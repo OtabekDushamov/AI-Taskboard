@@ -1,0 +1,5 @@
+Django==5.2.5
+django-modeltranslation==0.19.16
+django-rosetta==0.10.2
+djangorestframework==3.16.1
+pillow==11.3.0

@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Users Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://kit.fontawesome.com/your-fontawesome-kit.js" crossorigin="anonymous"></script>
+    {% csrf_token %}
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .online-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #10B981;
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            border: 2px solid white;
+        }
+        .offline-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #6B7280;
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            border: 2px solid white;
+        }
+        .language-badge {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .en { background-color: #EFF6FF; color: #1E40AF; }
+        .ru { background-color: #FEF2F2; color: #991B1B; }
+        .es { background-color: #ECFDF5; color: #065F46; }
+        .fr { background-color: #F5F3FF; color: #5B21B6; }
+        .de { background-color: #FFFBEB; color: #92400E; }
+        .other { background-color: #F3F4F6; color: #4B5563; }
+        .table-row-hover:hover {
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+        .dark .table-row-hover:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+        .dark .en { background-color: #1E3A8A; color: #DBEAFE; }
+        .dark .ru { background-color: #7F1D1D; color: #FECACA; }
+        .dark .es { background-color: #064E3B; color: #A7F3D0; }
+        .dark .fr { background-color: #4C1D95; color: #DDD6FE; }
+        .dark .de { background-color: #78350F; color: #FDE68A; }
+        .dark .other { background-color: #374151; color: #D1D5DB; }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+    <!-- Header Section -->
+    <header class="bg-white dark:bg-gray-800 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                <div class="flex-1 min-w-0">
+                    <h1 class="text-2xl font-bold leading-tight text-gray-900 dark:text-white">
+                        Users Management
+                    </h1>
+                </div>
+            </div>
+            
+            <!-- Search and Filters -->
+            <div class="mt-6">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 md:space-x-4">
+                    <form method="GET" class="flex-1">
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-search text-gray-400"></i>
+                            </div>
+                            <input type="text" name="search" value="{{ search }}" class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="Search users...">
+                        </div>
+                    </form>
+                    <form method="GET" class="flex space-x-2">
+                        <input type="hidden" name="search" value="{{ search }}">
+                        <select name="name_filter" class="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-white dark:bg-gray-700">
+                            <option value="">All Names</option>
+                            <option value="A" {% if name_filter == 'A' %}selected{% endif %}>A</option>
+                            <option value="B" {% if name_filter == 'B' %}selected{% endif %}>B</option>
+                            <option value="C" {% if name_filter == 'C' %}selected{% endif %}>C</option>
+                            <option value="D" {% if name_filter == 'D' %}selected{% endif %}>D</option>
+                            <option value="E" {% if name_filter == 'E' %}selected{% endif %}>E</option>
+                            <option value="F" {% if name_filter == 'F' %}selected{% endif %}>F</option>
+                            <option value="G" {% if name_filter == 'G' %}selected{% endif %}>G</option>
+                            <option value="H" {% if name_filter == 'H' %}selected{% endif %}>H</option>
+                            <option value="I" {% if name_filter == 'I' %}selected{% endif %}>I</option>
+                            <option value="J" {% if name_filter == 'J' %}selected{% endif %}>J</option>
+                        </select>
+                        <select name="username_filter" class="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-white dark:bg-gray-700">
+                            <option value="">All Usernames</option>
+                            <option value="a" {% if username_filter == 'a' %}selected{% endif %}>a</option>
+                            <option value="b" {% if username_filter == 'b' %}selected{% endif %}>b</option>
+                            <option value="c" {% if username_filter == 'c' %}selected{% endif %}>c</option>
+                            <option value="d" {% if username_filter == 'd' %}selected{% endif %}>d</option>
+                            <option value="e" {% if username_filter == 'e' %}selected{% endif %}>e</option>
+                            <option value="f" {% if username_filter == 'f' %}selected{% endif %}>f</option>
+                            <option value="g" {% if username_filter == 'g' %}selected{% endif %}>g</option>
+                            <option value="h" {% if username_filter == 'h' %}selected{% endif %}>h</option>
+                            <option value="i" {% if username_filter == 'i' %}selected{% endif %}>i</option>
+                            <option value="j" {% if username_filter == 'j' %}selected{% endif %}>j</option>
+                        </select>
+                        <select name="language_filter" class="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-white dark:bg-gray-700">
+                            <option value="">All Languages</option>
+                            <option value="en" {% if language_filter == 'en' %}selected{% endif %}>English</option>
+                            <option value="ru" {% if language_filter == 'ru' %}selected{% endif %}>Russian</option>
+                            <option value="es" {% if language_filter == 'es' %}selected{% endif %}>Spanish</option>
+                            <option value="fr" {% if language_filter == 'fr' %}selected{% endif %}>French</option>
+                            <option value="de" {% if language_filter == 'de' %}selected{% endif %}>German</option>
+                            <option value="other" {% if language_filter == 'other' %}selected{% endif %}>Other</option>
+                        </select>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <i class="fas fa-filter mr-2"></i>Filter
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+
+
+        <!-- Users Table -->
+        <div class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-gray-200">
+                                <div class="flex items-center">
+                                    <span>User</span>
+                                    <i class="fas fa-sort ml-1 text-gray-400"></i>
+                                </div>
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-gray-200">
+                                <div class="flex items-center">
+                                    <span>Username</span>
+                                    <i class="fas fa-sort ml-1 text-gray-400"></i>
+                                </div>
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-gray-200">
+                                <div class="flex items-center">
+                                    <span>Telegram ID</span>
+                                    <i class="fas fa-sort ml-1 text-gray-400"></i>
+                                </div>
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-gray-200">
+                                <div class="flex items-center">
+                                    <span>Language</span>
+                                    <i class="fas fa-sort ml-1 text-gray-400"></i>
+                                </div>
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-gray-200">
+                                <div class="flex items-center">
+                                    <span>Registered</span>
+                                    <i class="fas fa-sort ml-1 text-gray-400"></i>
+                                </div>
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-gray-200">
+                                <div class="flex items-center">
+                                    <span>Last Active</span>
+                                    <i class="fas fa-sort ml-1 text-gray-400"></i>
+                                </div>
+                            </th>
+
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        {% for user in users %}
+                        <tr class="table-row-hover cursor-pointer fade-in" data-user-id="{{ user.id }}">
+
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0 h-10 w-10 relative">
+                                        {% if user.profile_image %}
+                                            <img class="h-10 w-10 rounded-full" src="{{ user.profile_image }}" alt="{{ user.first_name }} {{ user.last_name }}">
+                                        {% else %}
+                                            <div class="h-10 w-10 rounded-full bg-purple-500 flex items-center justify-center text-white font-medium">
+                                                {{ user.first_name|first }}{{ user.last_name|first }}
+                                            </div>
+                                        {% endif %}
+                                        <span class="{% if user.last_login|timesince:'5 minutes' == '0 minutes' %}online-dot{% else %}offline-dot{% endif %}"></span>
+                                    </div>
+                                    <div class="ml-4">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-white">{{ user.first_name }} {{ user.last_name }}</div>
+                                        <div class="text-sm text-gray-500 dark:text-gray-400">{{ user.user.email }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900 dark:text-white">@{{ user.username|default:"no_username" }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900 dark:text-white">{{ user.telegram_id }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="language-badge {{ user.language_code|default:'other' }}">{{ user.language_code|default:'other' }}</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900 dark:text-white">{{ user.register_date|date:"Y-m-d" }}</div>
+                                <div class="text-sm text-gray-500 dark:text-gray-400">{{ user.register_date|timesince }} ago</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900 dark:text-white">{{ user.last_login|date:"Y-m-d" }}</div>
+                                <div class="text-sm text-gray-500 dark:text-gray-400">{{ user.last_login|timesince }} ago</div>
+                            </td>
+
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="px-6 py-12 text-center">
+                                <div id="emptyState" class="p-12 text-center">
+                                    <i class="fas fa-users-slash text-4xl text-gray-400 mb-4"></i>
+                                    <h3 class="text-lg font-medium text-gray-900 dark:text-white">No users found</h3>
+                                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Try adjusting your search or filter to find what you're looking for.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden p-12 text-center">
+                <i class="fas fa-users-slash text-4xl text-gray-400 mb-4"></i>
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white">No users found</h3>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Try adjusting your search or filter to find what you're looking for.</p>
+                <div class="mt-6">
+                    <button type="button" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <i class="fas fa-plus -ml-1 mr-2"></i>
+                        Add New User
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div id="loadingState" class="hidden p-12 text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+                <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">Loading users...</p>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="mt-4 flex items-center justify-between">
+            <div class="flex-1 flex justify-between sm:hidden">
+                <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Previous
+                </a>
+                <a href="#" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Next
+                </a>
+            </div>
+            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-sm text-gray-700 dark:text-gray-300">
+                        Showing <span class="font-medium">{{ users.start_index }}</span> to <span class="font-medium">{{ users.end_index }}</span> of <span class="font-medium">{{ total_users }}</span> results
+                    </p>
+                </div>
+                <div>
+                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                        {% if users.has_previous %}
+                            <a href="?page={{ users.previous_page_number }}&search={{ search }}&name_filter={{ name_filter }}&username_filter={{ username_filter }}&language_filter={{ language_filter }}&sort={{ sort_field }}&direction={{ sort_direction }}" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                <span class="sr-only">Previous</span>
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        {% endif %}
+                        
+                        {% for page_num in page_range %}
+                            {% if page_num == current_page %}
+                                <a href="#" aria-current="page" class="z-10 bg-blue-50 dark:bg-blue-900/20 border-blue-500 dark:border-blue-600 text-blue-600 dark:text-blue-300 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
+                                    {{ page_num }}
+                                </a>
+                            {% elif page_num == 1 or page_num == total_pages or page_num|add:"-1" <= current_page and page_num|add:"1" >= current_page %}
+                                <a href="?page={{ page_num }}&search={{ search }}&name_filter={{ name_filter }}&username_filter={{ username_filter }}&language_filter={{ language_filter }}&sort={{ sort_field }}&direction={{ sort_direction }}" class="bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
+                                    {{ page_num }}
+                                </a>
+                            {% elif page_num == 2 or page_num == total_pages|add:"-1" %}
+                                <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    ...
+                                </span>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if users.has_next %}
+                            <a href="?page={{ users.next_page_number }}&search={{ search }}&name_filter={{ name_filter }}&username_filter={{ username_filter }}&language_filter={{ language_filter }}&sort={{ sort_field }}&direction={{ sort_direction }}" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                <span class="sr-only">Next</span>
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        {% endif %}
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Global variables
+        let currentUsers = [];
+        let currentPage = 1;
+        let usersPerPage = 20;
+        let sortField = 'first_name';
+        let sortDirection = 'asc';
+        let selectedUsers = new Set();
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeEventListeners();
+            loadUsers();
+        });
+
+        // Initialize all event listeners
+        function initializeEventListeners() {
+            // Export dropdown
+            document.getElementById('exportDropdownButton').addEventListener('click', toggleExportDropdown);
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('#exportDropdownButton')) {
+                    document.getElementById('exportDropdown').classList.add('hidden');
+                }
+            });
+
+            // Search and filters
+            document.getElementById('searchInput').addEventListener('input', debounce(handleSearch, 300));
+            document.getElementById('nameFilter').addEventListener('change', handleFilter);
+            document.getElementById('usernameFilter').addEventListener('change', handleFilter);
+            document.getElementById('languageFilter').addEventListener('change', handleFilter);
+
+            // Bulk actions
+            document.getElementById('selectAll').addEventListener('change', handleSelectAll);
+            document.addEventListener('change', function(e) {
+                if (e.target.classList.contains('user-checkbox')) {
+                    handleUserSelection();
+                }
+            });
+
+            // Table sorting
+            document.querySelectorAll('th[scope="col"]').forEach(th => {
+                if (th.querySelector('.fas.fa-sort')) {
+                    th.addEventListener('click', () => handleSort(th));
+                }
+            });
+
+            // Modal controls
+            document.getElementById('cancelEditBtn').addEventListener('click', closeEditModal);
+            document.getElementById('saveUserBtn').addEventListener('click', saveUserChanges);
+            document.getElementById('cancelDeleteBtn').addEventListener('click', closeDeleteModal);
+            document.getElementById('confirmDeleteBtn').addEventListener('click', confirmDeleteUser);
+            document.getElementById('closeDetailsBtn').addEventListener('click', closeDetailsModal);
+        }
+
+        // Load users from backend
+        function loadUsers() {
+            showLoadingState();
+            
+            // Simulate API call - replace with actual Django view
+            setTimeout(() => {
+                // Mock data - replace with actual API call
+                currentUsers = generateMockUsers();
+                renderUsers();
+                hideLoadingState();
+            }, 1000);
+        }
+
+        // Generate mock users for demo
+        function generateMockUsers() {
+            const users = [];
+            const names = ['John Doe', 'Jane Smith', 'Bob Wilson', 'Alice Johnson', 'Charlie Brown', 'Diana Prince', 'Eve Adams', 'Frank Miller', 'Grace Lee', 'Henry Ford'];
+            const usernames = ['johndoe', 'janesmith', 'bobwilson', 'alicejohnson', 'charliebrown', 'dianaprince', 'eveadams', 'frankmiller', 'gracelee', 'henryford'];
+            const languages = ['en', 'ru', 'es', 'fr', 'de'];
+            
+            for (let i = 0; i < 50; i++) {
+                const name = names[i % names.length];
+                const username = usernames[i % usernames.length];
+                const language = languages[i % languages.length];
+                const isOnline = Math.random() > 0.7;
+                
+                users.push({
+                    id: i + 1,
+                    telegram_id: 100000000 + i,
+                    first_name: name.split(' ')[0],
+                    last_name: name.split(' ')[1],
+                    username: username,
+                    email: `${username}@example.com`,
+                    language_code: language,
+                    profile_image: `https://randomuser.me/api/portraits/${i % 2 ? 'men' : 'women'}/${(i % 50) + 1}.jpg`,
+                    register_date: new Date(2023, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
+                    last_login: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
+                    is_online: isOnline
+                });
+            }
+            
+            return users;
+        }
+
+        // Render users in the table
+        function renderUsers() {
+            const tbody = document.querySelector('tbody');
+            const filteredUsers = getFilteredUsers();
+            const paginatedUsers = getPaginatedUsers(filteredUsers);
+            
+            if (paginatedUsers.length === 0) {
+                showEmptyState();
+                return;
+            }
+            
+            hideEmptyState();
+            
+            tbody.innerHTML = paginatedUsers.map(user => `
+                <tr class="table-row-hover cursor-pointer fade-in" data-user-id="${user.id}">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <input type="checkbox" class="user-checkbox h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700" ${selectedUsers.has(user.id) ? 'checked' : ''}>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 h-10 w-10 relative">
+                                ${user.profile_image ? 
+                                    `<img class="h-10 w-10 rounded-full" src="${user.profile_image}" alt="${user.first_name} ${user.last_name}">` :
+                                    `<div class="h-10 w-10 rounded-full bg-purple-500 flex items-center justify-center text-white font-medium">${(user.first_name ? user.first_name.charAt(0) : '') + (user.last_name ? user.last_name.charAt(0) : '')}</div>`
+                                }
+                                <span class="${user.is_online ? 'online-dot' : 'offline-dot'}"></span>
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-900 dark:text-white">${user.first_name} ${user.last_name}</div>
+                                <div class="text-sm text-gray-500 dark:text-gray-400">${user.email}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900 dark:text-white">@${user.username}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900 dark:text-white">${user.telegram_id}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="language-badge ${user.language_code}">${user.language_code}</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900 dark:text-white">${formatDate(user.register_date)}</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">${getTimeAgo(user.register_date)}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900 dark:text-white">${formatDate(user.last_login)}</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">${getTimeAgo(user.last_login)}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div class="flex justify-end space-x-2">
+                            <button class="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300" onclick="viewUser(${user.id})">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300" onclick="editUser(${user.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300" onclick="deleteUser(${user.id})">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+            
+            updatePagination(filteredUsers.length);
+        }
+
+        // Get filtered users based on search and filters
+        function getFilteredUsers() {
+            let filtered = [...currentUsers];
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const nameFilter = document.getElementById('nameFilter').value;
+            const usernameFilter = document.getElementById('usernameFilter').value;
+            const languageFilter = document.getElementById('languageFilter').value;
+            
+            if (searchTerm) {
+                filtered = filtered.filter(user => 
+                    user.first_name.toLowerCase().includes(searchTerm) ||
+                    user.last_name.toLowerCase().includes(searchTerm) ||
+                    user.username.toLowerCase().includes(searchTerm) ||
+                    user.email.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            if (nameFilter) {
+                filtered = filtered.filter(user => user.first_name.startsWith(nameFilter));
+            }
+            
+            if (usernameFilter) {
+                filtered = filtered.filter(user => user.username.startsWith(usernameFilter));
+            }
+            
+            if (languageFilter) {
+                filtered = filtered.filter(user => user.language_code === languageFilter);
+            }
+            
+            return filtered;
+        }
+
+        // Get paginated users
+        function getPaginatedUsers(users) {
+            const startIndex = (currentPage - 1) * usersPerPage;
+            const endIndex = startIndex + usersPerPage;
+            return users.slice(startIndex, endIndex);
+        }
+
+        // Update pagination
+        function updatePagination(totalUsers) {
+            const totalPages = Math.ceil(totalUsers / usersPerPage);
+            const paginationInfo = document.querySelector('.text-sm.text-gray-700.dark\\:text-gray-300');
+            const startUser = (currentPage - 1) * usersPerPage + 1;
+            const endUser = Math.min(currentPage * usersPerPage, totalUsers);
+            
+            if (paginationInfo) {
+                paginationInfo.innerHTML = `Showing <span class="font-medium">${startUser}</span> to <span class="font-medium">${endUser}</span> of <span class="font-medium">${totalUsers}</span> results`;
+            }
+        }
+
+        // Handle search
+        function handleSearch() {
+            currentPage = 1;
+            renderUsers();
+        }
+
+        // Handle filters
+        function handleFilter() {
+            currentPage = 1;
+            renderUsers();
+        }
+
+        // Handle sorting
+        function handleSort(th) {
+            const field = th.getAttribute('data-field') || 'first_name';
+            
+            if (sortField === field) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortField = field;
+                sortDirection = 'asc';
+            }
+            
+            // Update sort indicators
+            document.querySelectorAll('th[scope="col"] .fas.fa-sort').forEach(icon => {
+                icon.className = 'fas fa-sort ml-1 text-gray-400';
+            });
+            
+            const icon = th.querySelector('.fas.fa-sort');
+            icon.className = `fas fa-sort-${sortDirection === 'asc' ? 'up' : 'down'} ml-1 text-blue-500`;
+            
+            // Sort users
+            currentUsers.sort((a, b) => {
+                let aVal = a[field];
+                let bVal = b[field];
+                
+                if (typeof aVal === 'string') {
+                    aVal = aVal.toLowerCase();
+                    bVal = bVal.toLowerCase();
+                }
+                
+                if (sortDirection === 'asc') {
+                    return aVal > bVal ? 1 : -1;
+                } else {
+                    return aVal < bVal ? 1 : -1;
+                }
+            });
+            
+            renderUsers();
+        }
+
+        // Handle select all
+        function handleSelectAll() {
+            const selectAll = document.getElementById('selectAll');
+            const checkboxes = document.querySelectorAll('.user-checkbox');
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAll.checked;
+                if (selectAll.checked) {
+                    selectedUsers.add(parseInt(checkbox.closest('tr').dataset.userId));
+                } else {
+                    selectedUsers.delete(parseInt(checkbox.closest('tr').dataset.userId));
+                }
+            });
+            
+            updateBulkActions();
+        }
+
+        // Handle individual user selection
+        function handleUserSelection() {
+            const checkboxes = document.querySelectorAll('.user-checkbox');
+            const selectAll = document.getElementById('selectAll');
+            
+            selectedUsers.clear();
+            checkboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    selectedUsers.add(parseInt(checkbox.closest('tr').dataset.userId));
+                }
+            });
+            
+            selectAll.checked = selectedUsers.size === checkboxes.length;
+            selectAll.indeterminate = selectedUsers.size > 0 && selectedUsers.size < checkboxes.length;
+            
+            updateBulkActions();
+        }
+
+        // Update bulk actions visibility
+        function updateBulkActions() {
+            const bulkActions = document.getElementById('bulkActions');
+            const selectedCount = document.getElementById('selectedCount');
+            
+            if (selectedUsers.size > 0) {
+                bulkActions.classList.remove('hidden');
+                selectedCount.textContent = selectedUsers.size;
+            } else {
+                bulkActions.classList.add('hidden');
+            }
+        }
+
+
+
+        // Close modals
+        function closeEditModal() {
+            document.getElementById('editUserModal').classList.add('hidden');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteUserModal').classList.add('hidden');
+        }
+
+        function closeDetailsModal() {
+            document.getElementById('userDetailsModal').classList.add('hidden');
+        }
+
+        // Toggle export dropdown
+        function toggleExportDropdown() {
+            const dropdown = document.getElementById('exportDropdown');
+            dropdown.classList.toggle('hidden');
+        }
+
+        // Show/hide loading state
+        function showLoadingState() {
+            document.getElementById('loadingState').classList.remove('hidden');
+            document.querySelector('tbody').innerHTML = '';
+        }
+
+        function hideLoadingState() {
+            document.getElementById('loadingState').classList.add('hidden');
+        }
+
+        // Show/hide empty state
+        function showEmptyState() {
+            document.getElementById('emptyState').classList.remove('hidden');
+            document.querySelector('tbody').innerHTML = '';
+        }
+
+        function hideEmptyState() {
+            document.getElementById('emptyState').classList.add('hidden');
+        }
+
+        // Utility functions
+        function formatDate(date) {
+            return date.toLocaleDateString();
+        }
+
+        function getTimeAgo(date) {
+            const now = new Date();
+            const diffInDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+            
+            if (diffInDays === 0) return 'Today';
+            if (diffInDays === 1) return 'Yesterday';
+            if (diffInDays < 7) return `${diffInDays} days ago`;
+            if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
+            if (diffInDays < 365) return `${Math.floor(diffInDays / 30)} months ago`;
+            return `${Math.floor(diffInDays / 365)} years ago`;
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+    </script>
+</body>
+</html>

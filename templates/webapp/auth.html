@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    {% csrf_token %}
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: -468px 0 }
+            100% { background-position: 468px 0 }
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+        
+        .shimmer {
+            background: linear-gradient(to right, #f3f4f6 8%, #e5e7eb 18%, #f3f4f6 33%);
+            background-size: 800px 104px;
+            animation: shimmer 1.5s infinite linear;
+        }
+        
+        .dark .shimmer {
+            background: linear-gradient(to right, #1f2937 8%, #374151 18%, #1f2937 33%);
+        }
+        
+        .spinner {
+            animation: spin 1s linear infinite;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 min-h-screen flex items-center justify-center p-4 transition-colors duration-300">
+    <main class="w-full max-w-md" aria-live="polite">
+        <div id="login-card" class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 opacity-0">
+            <div id="user-content" class="flex flex-col items-center text-center">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+        </div>
+    </main>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginCard = document.getElementById('login-card');
+            const userContent = document.getElementById('user-content');
+            
+            // Add fade-in animation
+            loginCard.classList.add('animate-fade-in');
+            
+            // Check for Telegram WebApp
+            function checkTelegramUser() {
+                const tg = window.Telegram?.WebApp;
+                
+                if (tg) {
+                    // Initialize the WebApp first
+                    tg.ready();
+                    
+                    // Wait a bit for the WebApp to fully initialize
+                    setTimeout(() => {
+                        const user = tg.initDataUnsafe?.user;
+                        
+                        if (user) {
+                            renderUserProfile(user);
+                            // Process authentication with backend
+                            authenticateUser(user);
+                        } else {
+                            renderLoginPrompt();
+                        }
+                    }, 300);
+                } else {
+                    renderLoginPrompt();
+                }
+            }
+            
+            function renderUserProfile(user) {
+                let avatarHtml = '';
+                
+                // Create avatar - use photo if available, otherwise initials
+                if (user.photo_url) {
+                    avatarHtml = `
+                        <img src="${user.photo_url}" 
+                             alt="${user.first_name || ''} ${user.last_name || ''}" 
+                             class="w-20 h-20 rounded-full object-cover border-4 border-gray-200 dark:border-gray-600">
+                    `;
+                } else {
+                    const initials = (user.first_name ? user.first_name.charAt(0) : '') + 
+                                    (user.last_name ? user.last_name.charAt(0) : '');
+                    const bgColor = stringToColor(user.id || '');
+                    
+                    avatarHtml = `
+                        <div class="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold text-white" 
+                             style="background-color: ${bgColor}">
+                            ${initials || '?'}
+                        </div>
+                    `;
+                }
+                
+                userContent.innerHTML = `
+                    <div class="mb-6 relative">
+                        ${avatarHtml}
+                    </div>
+                    <h1 class="text-2xl font-bold text-gray-800 dark:text-white mb-1">
+                        ${user.first_name || ''} ${user.last_name || ''}
+                    </h1>
+                    <p class="text-gray-600 dark:text-gray-300 mb-6">Welcome! Redirecting to profile...</p>
+                    <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full spinner"></div>
+                `;
+            }
+            
+            function renderLoginPrompt() {
+                userContent.innerHTML = `
+                    <div class="w-20 h-20 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center mb-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-2">Telegram Login Required</h2>
+                    <p class="text-gray-600 dark:text-gray-300 mb-6">Please open this page via the Telegram bot to continue.</p>
+                    <button id="retry-btn" class="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                        Retry
+                    </button>
+                `;
+                
+                document.getElementById('retry-btn').addEventListener('click', function() {
+                    const tg = window.Telegram?.WebApp;
+                    if (tg) {
+                        tg.ready();
+                        setTimeout(checkTelegramUser, 300);
+                    } else {
+                        checkTelegramUser();
+                    }
+                });
+            }
+            
+            // Helper function to generate a color from a string (for avatar background)
+            function stringToColor(str) {
+                let hash = 0;
+                for (let i = 0; i < str.length; i++) {
+                    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+                }
+                let color = '#';
+                for (let i = 0; i < 3; i++) {
+                    const value = (hash >> (i * 8)) & 0xFF;
+                    color += ('00' + value.toString(16)).substr(-2);
+                }
+                return color;
+            }
+            
+            // Function to authenticate user with backend
+            function authenticateUser(telegramUser) {
+                // Show loading state
+                const userContent = document.getElementById('user-content');
+                userContent.innerHTML = `
+                    <div class="mb-6 relative">
+                        <div class="w-20 h-20 rounded-full bg-blue-500 flex items-center justify-center text-2xl font-bold text-white">
+                            ${(telegramUser.first_name ? telegramUser.first_name.charAt(0) : '') + (telegramUser.last_name ? telegramUser.last_name.charAt(0) : '')}
+                        </div>
+                    </div>
+                    <h1 class="text-2xl font-bold text-gray-800 dark:text-white mb-1">
+                        ${telegramUser.first_name || ''} ${telegramUser.last_name || ''}
+                    </h1>
+                    <p class="text-gray-600 dark:text-gray-300 mb-6">Authenticating...</p>
+                    <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full spinner"></div>
+                `;
+                
+                // Send authentication request to backend
+                fetch('/webapp/auth/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        telegram_user: telegramUser
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Authentication successful, redirect to profile
+                        window.location.href = '/profile/';
+                    } else {
+                        // Authentication failed
+                        renderLoginPrompt();
+                    }
+                })
+                .catch(error => {
+                    console.error('Authentication error:', error);
+                    renderLoginPrompt();
+                });
+            }
+            
+            // Helper function to get CSRF token
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+            
+            // Initial check
+            checkTelegramUser();
+        });
+    </script>
+</body>
+</html>
