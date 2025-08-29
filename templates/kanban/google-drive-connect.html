@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connect Google Drive</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .security-badge {
+            position: relative;
+        }
+        .security-badge:hover::after {
+            content: "Verified by Google OAuth 2.0";
+            position: absolute;
+            bottom: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 10;
+        }
+        .scope-item:hover {
+            background-color: #f7f7f7;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-md overflow-hidden w-full max-w-md">
+        <!-- Header -->
+        <div class="bg-blue-600 p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold">Google Drive Connection</h1>
+                    <p class="text-blue-100 mt-1">Securely connect your Google account</p>
+                </div>
+                <div class="security-badge">
+                    <i class="fas fa-shield-alt text-3xl text-yellow-300"></i>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Connection Status Card -->
+        <div id="connectionStatus" class="border-b border-gray-200 p-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mr-4">
+                        <i class="fas fa-cloud text-blue-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-medium text-gray-900">Google Drive</h3>
+                        <p class="text-sm text-gray-500">Cloud storage service</p>
+                    </div>
+                </div>
+                <span id="statusBadge" class="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    <i class="fas fa-check-circle mr-1"></i> Connected
+                </span>
+            </div>
+        </div>
+        
+        <!-- Account Info (shown when connected) -->
+        <div id="accountInfo" class="border-b border-gray-200 p-6">
+            <div class="flex items-center">
+                <img id="userAvatar" src="https://lh3.googleusercontent.com/a-/AOh14Gg5v5mJ1jU3xY7X9y9Q5Q5Q5Q5Q5Q5Q5Q5Q5Q5Q5Q5Q5=s96-c" 
+                     alt="User avatar" class="w-10 h-10 rounded-full mr-4">
+                <div>
+                    <p id="userEmail" class="font-medium text-gray-900">user@example.com</p>
+                    <p class="text-sm text-gray-500">Google account</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Permissions/Scopes -->
+        <div class="border-b border-gray-200 p-6">
+            <h3 class="font-medium text-gray-900 mb-3">Permissions</h3>
+            <p class="text-sm text-gray-500 mb-4">This app will have access to:</p>
+            
+            <div class="space-y-2">
+                <div class="scope-item p-3 rounded-lg border border-gray-100 flex items-start">
+                    <i class="fas fa-file-alt text-blue-500 mt-1 mr-3"></i>
+                    <div>
+                        <h4 class="font-medium text-gray-900 text-sm">View your Google Drive files</h4>
+                        <p class="text-xs text-gray-500">Read-only access to file metadata</p>
+                    </div>
+                </div>
+                <div class="scope-item p-3 rounded-lg border border-gray-100 flex items-start">
+                    <i class="fas fa-upload text-blue-500 mt-1 mr-3"></i>
+                    <div>
+                        <h4 class="font-medium text-gray-900 text-sm">Upload files to Google Drive</h4>
+                        <p class="text-xs text-gray-500">Create new files in your Drive</p>
+                    </div>
+                </div>
+                <div class="scope-item p-3 rounded-lg border border-gray-100 flex items-start">
+                    <i class="fas fa-user-circle text-blue-500 mt-1 mr-3"></i>
+                    <div>
+                        <h4 class="font-medium text-gray-900 text-sm">View your email address</h4>
+                        <p class="text-xs text-gray-500">Basic profile information</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4 flex items-center text-xs text-gray-500">
+                <i class="fas fa-lock mr-2"></i>
+                <p>These permissions can be revoked at any time</p>
+            </div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="p-6">
+            <button id="connectButton" class="hidden w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg transition duration-200 flex items-center justify-center">
+                <i class="fab fa-google mr-3"></i> Connect Google Account
+            </button>
+            
+            <div id="disconnectSection" class="flex flex-col sm:flex-row justify-between space-y-3 sm:space-y-0">
+                <button id="disconnectButton" class="px-4 py-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition duration-200">
+                    Disconnect Account
+                </button>
+                <div class="flex items-center justify-center sm:justify-end space-x-2">
+                    <i class="fas fa-badge-check text-blue-500"></i>
+                    <span class="text-xs text-gray-500">Secure OAuth 2.0 connection</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // This would normally come from your backend/API
+        const userConnected = true;
+        const userData = {
+            name: "John Doe",
+            email: "john.doe@gmail.com",
+            avatar: "https://lh3.googleusercontent.com/a-/AOh14Gg5v5mJ1jU3xY7X9y9Q5Q5Q5Q5Q5Q5Q5Q5Q5Q5Q5Q5=s96-c"
+        };
+
+        // DOM elements
+        const statusBadge = document.getElementById('statusBadge');
+        const accountInfo = document.getElementById('accountInfo');
+        const connectButton = document.getElementById('connectButton');
+        const disconnectSection = document.getElementById('disconnectSection');
+        const userAvatar = document.getElementById('userAvatar');
+        const userEmail = document.getElementById('userEmail');
+
+        // Initialize UI based on connection status
+        function initUI() {
+            if (userConnected) {
+                // Show connected state
+                connectButton.classList.add('hidden');
+                disconnectSection.classList.remove('hidden');
+                accountInfo.classList.remove('hidden');
+                
+                // Populate user data
+                userEmail.textContent = userData.email;
+                userAvatar.src = userData.avatar;
+            } else {
+                // Show disconnected state
+                connectButton.classList.remove('hidden');
+                disconnectSection.classList.add('hidden');
+                accountInfo.classList.add('hidden');
+                statusBadge.innerHTML = '<i class="fas fa-times-circle mr-1"></i> Not Connected';
+                statusBadge.className = 'px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800';
+            }
+        }
+
+        // Button event listeners
+        connectButton.addEventListener('click', () => {
+            // In a real app, this would redirect to Google OAuth
+            alert('Redirecting to Google authentication...');
+        });
+
+        disconnectButton.addEventListener('click', () => {
+            if (confirm('Are you sure you want to disconnect your Google account?')) {
+                // In a real app, this would call your backend to revoke tokens
+                alert('Account disconnected successfully');
+                userConnected = false;
+                initUI();
+            }
+        });
+
+        // Initialize the UI
+        initUI();
+    </script>
+</body>
+</html>

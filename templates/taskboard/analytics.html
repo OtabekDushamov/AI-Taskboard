@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Analytics Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        .sticky-filters {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            backdrop-filter: blur(10px);
+        }
+        .dark .sticky-filters {
+            background-color: rgba(31, 41, 55, 0.8);
+        }
+        .light .sticky-filters {
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        @media (min-width: 1024px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .sortable:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+            cursor: pointer;
+        }
+        .sort-icon {
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .sortable:hover .sort-icon {
+            opacity: 1;
+        }
+        .active-sort .sort-icon {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen transition-colors duration-200">
+    <div class="container mx-auto px-4 py-6">
+        <!-- Header with theme toggle -->
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl md:text-3xl font-bold">Task Analytics Dashboard</h1>
+            <button id="theme-toggle" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-800 dark:text-gray-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Filter toolbar (sticky) -->
+        <div class="sticky-filters py-4 mb-6 rounded-lg shadow-sm">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                    <label for="date-range" class="block text-sm font-medium mb-1">Date Range</label>
+                    <select id="date-range" class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                        <option value="7">Last 7 Days</option>
+                        <option value="14">Last 14 Days</option>
+                        <option value="30" selected>Last 30 Days</option>
+                        <option value="90">Last 90 Days</option>
+                        <option value="custom">Custom Range</option>
+                    </select>
+                </div>
+                <div id="custom-range" class="hidden col-span-2">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="start-date" class="block text-sm font-medium mb-1">Start Date</label>
+                            <input type="date" id="start-date" class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                        </div>
+                        <div>
+                            <label for="end-date" class="block text-sm font-medium mb-1">End Date</label>
+                            <input type="date" id="end-date" class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label for="project" class="block text-sm font-medium mb-1">Project</label>
+                    <select id="project" class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                        <option value="all">All Projects</option>
+                        <option value="website">Website Redesign</option>
+                        <option value="mobile">Mobile App</option>
+                        <option value="marketing">Marketing Campaign</option>
+                        <option value="api">API Development</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="assignee" class="block text-sm font-medium mb-1">Assignee</label>
+                    <select id="assignee" class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                        <option value="all">All Team Members</option>
+                        <option value="john">John Smith</option>
+                        <option value="sarah">Sarah Johnson</option>
+                        <option value="mike">Mike Williams</option>
+                        <option value="emma">Emma Davis</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="status" class="block text-sm font-medium mb-1">Status</label>
+                    <select id="status" class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                        <option value="all">All Statuses</option>
+                        <option value="todo">To Do</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="review">In Review</option>
+                        <option value="done">Completed</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex justify-end mt-4 space-x-3">
+                <button id="apply-filters" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors">
+                    Apply Filters
+                </button>
+                <button id="reset-filters" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-md text-sm font-medium transition-colors">
+                    Reset
+                </button>
+            </div>
+        </div>
+
+        <!-- KPI Strip -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-blue-100 dark:bg-blue-900/50 mr-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Avg Cycle Time</p>
+                        <p class="text-2xl font-semibold">3.2 <span class="text-sm">days</span></p>
+                        <p class="text-sm text-green-600 dark:text-green-400 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                            </svg>
+                            12% from last period
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-green-100 dark:bg-green-900/50 mr-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">On-time %</p>
+                        <p class="text-2xl font-semibold">78%</p>
+                        <p class="text-sm text-green-600 dark:text-green-400 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                            </svg>
+                            8% from last period
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-red-100 dark:bg-red-900/50 mr-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Overdue %</p>
+                        <p class="text-2xl font-semibold">22%</p>
+                        <p class="text-sm text-red-600 dark:text-red-400 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                            </svg>
+                            5% from last period
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <!-- Tasks Completed Per Day (Line Chart) -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 lg:col-span-2">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold">Tasks Completed Per Day</h2>
+                    <div class="flex space-x-2">
+                        <button class="export-btn" data-chart="line-chart" data-type="png" class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                        </button>
+                        <button class="export-btn" data-chart="line-chart" data-type="csv" class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="line-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Tasks by Priority (Pie Chart) -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold">Tasks by Priority</h2>
+                    <div class="flex space-x-2">
+                        <button class="export-btn" data-chart="pie-chart" data-type="png" class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                        </button>
+                        <button class="export-btn" data-chart="pie-chart" data-type="csv" class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="pie-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tasks by Status (Bar Chart) -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold">Tasks by Status</h2>
+                <div class="flex space-x-2">
+                    <button class="export-btn" data-chart="bar-chart" data-type="png" class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                    </button>
+                    <button class="export-btn" data-chart="bar-chart" data-type="csv" class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="bar-chart"></canvas>
+            </div>
+        </div>
+
+        <!-- Top Overdue Tasks (Table) -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden mb-6">
+            <div class="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-lg font-semibold">Top Overdue Tasks</h2>
+                <div class="flex space-x-2">
+                    <button id="export-table-png" class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                    </button>
+                    <button id="export-table-csv" class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider sortable" data-column="task">
+                                <div class="flex items-center">
+                                    Task
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="sort-icon ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                    </svg>
+                                </div>
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider sortable" data-column="project">
+                                <div class="flex items-center">
+                                    Project
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="sort-icon ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                    </svg>
+                                </div>
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider sortable" data-column="assignee">
+                                <div class="flex items-center">
+                                    Assignee
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="sort-icon ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                    </svg>
+                                </div>
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider sortable" data-column="due">
+                                <div class="flex items-center">
+                                    Due Date
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="sort-icon ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                    </svg>
+                                </div>
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider sortable" data-column="overdue">
+                                <div class="flex items-center">
+                                    Days Overdue
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="sort-icon ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                    </svg>
+                                </div>
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider sortable" data-column="priority">
+                                <div class="flex items-center">
+                                    Priority
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="sort-icon ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                                    </svg>
+                                </div>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700" id="tasks-table-body">
+                        <!-- Table rows will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Theme toggle
+        document.getElementById('theme-toggle').addEventListener('click', function() {
+            document.documentElement.classList.toggle('dark');
+            document.documentElement.classList.toggle('light');
+        });
+
+        // Date range toggle
+        document.getElementById('date-range').addEventListener('change', function() {
+            const customRangeDiv = document.getElementById('custom-range');
+            if (this.value === 'custom') {
+                customRangeDiv.classList.remove('hidden');
+                customRangeDiv.classList.add('grid');
+            } else {
+                customRangeDiv.classList.add('hidden');
+                customRangeDiv.classList.remove('grid');
+            }
+        });
+
+        // Sample data for charts
+        const sampleData = {
+            lineChart: {
+                labels: ['Jan 1', 'Jan 2', 'Jan 3', 'Jan 4', 'Jan 5', 'Jan 6', 'Jan 7', 'Jan 8', 'Jan 9', 'Jan 10', 'Jan 11', 'Jan 12', 'Jan 13', 'Jan 14', 'Jan 15', 'Jan 16', 'Jan 17', 'Jan 18', 'Jan 19', 'Jan 20', 'Jan 21', 'Jan 22', 'Jan 23', 'Jan 24', 'Jan 25', 'Jan 26', 'Jan 27', 'Jan 28', 'Jan 29', 'Jan 30'],
+                data: [5, 8, 6, 10, 7, 12, 9, 11, 14, 10, 12, 15, 13, 16, 14, 12, 15, 18, 16, 14, 17, 20, 18, 16, 19, 22, 20, 18, 21, 24]
+            },
+            pieChart: {
+                labels: ['High', 'Medium', 'Low'],
+                data: [45, 35, 20],
+                colors: ['#EF4444', '#F59E0B', '#10B981']
+            },
+            barChart: {
+                labels: ['To Do', 'In Progress', 'In Review', 'Completed'],
+                data: [25, 40, 15, 60],
+                colors: ['#3B82F6', '#F59E0B', '#8B5CF6', '#10B981']
+            },
+            tableData: [
+                { task: 'Implement user authentication', project: 'Website Redesign', assignee: 'John Smith', due: '2023-01-05', overdue: 25, priority: 'High' },
+                { task: 'Design mobile app dashboard', project: 'Mobile App', assignee: 'Sarah Johnson', due: '2023-01-10', overdue: 20, priority: 'High' },
+                { task: 'Create marketing campaign assets', project: 'Marketing Campaign', assignee: 'Mike Williams', due: '2023-01-15', overdue: 15, priority: 'Medium' },
+                { task: 'API documentation', project: 'API Development', assignee: 'Emma Davis', due: '2023-01-20', overdue: 10, priority: 'Medium' },
+                { task: 'Fix responsive layout issues', project: 'Website Redesign', assignee: 'John Smith', due: '2023-01-25', overdue: 5, priority: 'Low' },
+                { task: 'Test payment integration', project: 'Mobile App', assignee: 'Sarah Johnson', due: '2023-01-28', overdue: 2, priority: 'Medium' },
+                { task: 'Update privacy policy', project: 'Website Redesign', assignee: 'Mike Williams', due: '2023-01-30', overdue: 0, priority: 'Low' }
+            ]
+        };
+
+        // Initialize charts
+        let lineChart, pieChart, barChart;
+
+        function initCharts() {
+            // Line Chart - Tasks Completed Per Day
+            const lineCtx = document.getElementById('line-chart').getContext('2d');
+            lineChart = new Chart(lineCtx, {
+                type: 'line',
+                data: {
+                    labels: sampleData.lineChart.labels,
+                    datasets: [{
+                        label: 'Tasks Completed',
+                        data: sampleData.lineChart.data,
+                        borderColor: '#3B82F6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: true,
+                        pointBackgroundColor: '#3B82F6',
+                        pointRadius: 3,
+                        pointHoverRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: getComputedStyle(document.documentElement).getPropertyValue('--text-color') || '#6B7280'
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                color: getComputedStyle(document.documentElement).getPropertyValue('--text-color') || '#6B7280',
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                color: getComputedStyle(document.documentElement).getPropertyValue('--text-color') || '#6B7280',
+                                stepSize: 5
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Pie Chart - Tasks by Priority
+            const pieCtx = document.getElementById('pie-chart').getContext('2d');
+            pieChart = new Chart(pieCtx, {
+                type: 'pie',
+                data: {
+                    labels: sampleData.pieChart.labels,
+                    datasets: [{
+                        data: sampleData.pieChart.data,
+                        backgroundColor: sampleData.pieChart.colors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                color: getComputedStyle(document.documentElement).getPropertyValue('--text-color') || '#6B7280'
+                            }
+                        },
+                        datalabels: {
+                            formatter: (value, ctx) => {
+                                let sum = 0;
+                                let dataArr = ctx.chart.data.datasets[0].data;
+                                dataArr.map(data => {
+                                    sum += data;
+                                });
+                                let percentage = (value * 100 / sum).toFixed(1) + "%";
+                                return percentage;
+                            },
+                            color: '#fff',
+                            font: {
+                                weight: 'bold'
+                            }
+                        }
+                    }
+                },
+                plugins: [ChartDataLabels]
+            });
+
+            // Bar Chart - Tasks by Status
+            const barCtx = document.getElementById('bar-chart').getContext('2d');
+            barChart = new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: sampleData.barChart.labels,
+                    datasets: [{
+                        label: 'Tasks',
+                        data: sampleData.barChart.data,
+                        backgroundColor: sampleData.barChart.colors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: getComputedStyle(document.documentElement).getPropertyValue('--text-color') || '#6B7280'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                color: getComputedStyle(document.documentElement).getPropertyValue('--text-color') || '#6B7280',
+                                stepSize: 10
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Populate table
+        function populateTable(data) {
+            const tbody = document.getElementById('tasks-table-body');
+            tbody.innerHTML = '';
+            
+            data.forEach(task => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50 dark:hover:bg-gray-700';
+                
+                // Priority badge color
+                let priorityColor = 'bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200';
+                if (task.priority === 'High') {
+                    priorityColor = 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200';
+                } else if (task.priority === 'Medium') {
+                    priorityColor = 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200';
+                }
+                
+                // Overdue days color
+                let overdueColor = 'text-green-600 dark:text-green-400';
+                if (task.overdue > 7) {
+                    overdueColor = 'text-red-600 dark:text-red-400';
+                } else if (task.overdue > 3) {
+                    overdueColor = 'text-yellow-600 dark:text-yellow-400';
+                }
+                
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">${task.task}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">${task.project}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">${task.assignee}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">${new Date(task.due).toLocaleDateString()}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium ${overdueColor}">${task.overdue} days</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${priorityColor}">
+                            ${task.priority}
+                        </span>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Table sorting
+        function sortTable(column, direction) {
+            const sortedData = [...sampleData.tableData];
+            
+            sortedData.sort((a, b) => {
+                if (a[column] < b[column]) return direction === 'asc' ? -1 : 1;
+                if (a[column] > b[column]) return direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+            
+            populateTable(sortedData);
+            
+            // Update sort indicators
+            document.querySelectorAll('.sortable').forEach(el => {
+                el.classList.remove('active-sort');
+                const icon = el.querySelector('.sort-icon');
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />';
+            });
+            
+            const activeHeader = document.querySelector(`.sortable[data-column="${column}"]`);
+            activeHeader.classList.add('active-sort');
+            const activeIcon = activeHeader.querySelector('.sort-icon');
+            activeIcon.innerHTML = direction === 'asc' 
+                ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />'
+                : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4" />';
+        }
+
+        // Export functions
+        async function exportChartToPNG(chartId) {
+            const canvas = document.getElementById(chartId);
+            const dataURL = canvas.toDataURL('image/png');
+            
+            const link = document.createElement('a');
+            link.download = `${chartId.replace('-', '_')}_${new Date().toISOString().slice(0, 10)}.png`;
+            link.href = dataURL;
+            link.click();
+        }
+
+        function exportChartToCSV(chartId) {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            
+            if (chartId === 'line-chart') {
+                csvContent += "Date,Tasks Completed\n";
+                sampleData.lineChart.labels.forEach((label, i) => {
+                    csvContent += `${label},${sampleData.lineChart.data[i]}\n`;
+                });
+            } else if (chartId === 'pie-chart') {
+                csvContent += "Priority,Percentage\n";
+                const total = sampleData.pieChart.data.reduce((a, b) => a + b, 0);
+                sampleData.pieChart.labels.forEach((label, i) => {
+                    const percentage = (sampleData.pieChart.data[i] / total * 100).toFixed(1);
+                    csvContent += `${label},${percentage}%\n`;
+                });
+            } else if (chartId === 'bar-chart') {
+                csvContent += "Status,Count\n";
+                sampleData.barChart.labels.forEach((label, i) => {
+                    csvContent += `${label},${sampleData.barChart.data[i]}\n`;
+                });
+            }
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', `${chartId.replace('-', '_')}_${new Date().toISOString().slice(0, 10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        async function exportTableToPNG() {
+            const table = document.querySelector('.overflow-x-auto');
+            const canvas = await html2canvas(table);
+            const dataURL = canvas.toDataURL('image/png');
+            
+            const link = document.createElement('a');
+            link.download = `overdue_tasks_${new Date().toISOString().slice(0, 10)}.png`;
+            link.href = dataURL;
+            link.click();
+        }
+
+        function exportTableToCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            
+            // Headers
+            csvContent += "Task,Project,Assignee,Due Date,Days Overdue,Priority\n";
+            
+            // Data
+            sampleData.tableData.forEach(task => {
+                csvContent += `"${task.task}","${task.project}","${task.assignee}","${new Date(task.due).toLocaleDateString()}",${task.overdue},${task.priority}\n`;
+            });
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', `overdue_tasks_${new Date().toISOString().slice(0, 10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            initCharts();
+            populateTable(sampleData.tableData);
+            
+            // Default sort
+            sortTable('overdue', 'desc');
+            
+            // Table sorting
+            document.querySelectorAll('.sortable').forEach(header => {
+                header.addEventListener('click', () => {
+                    const column = header.getAttribute('data-column');
+                    const currentDirection = header.classList.contains('asc') ? 'desc' : 'asc';
+                    sortTable(column, currentDirection);
+                    header.classList.toggle('asc');
+                });
+            });
+            
+            // Chart exports
+            document.querySelectorAll('.export-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const chartId = btn.getAttribute('data-chart');
+                    const type = btn.getAttribute('data-type');
+                    
+                    if (type === 'png') {
+                        exportChartToPNG(chartId);
+                    } else if (type === 'csv') {
+                        exportChartToCSV(chartId);
+                    }
+                });
+            });
+            
+            // Table exports
+            document.getElementById('export-table-png').addEventListener('click', exportTableToPNG);
+            document.getElementById('export-table-csv').addEventListener('click', exportTableToCSV);
+            
+            // Apply filters
+            document.getElementById('apply-filters').addEventListener('click', function() {
+                // In a real app, this would fetch filtered data from an API
+                // For this demo, we'll just show a message
+                alert('Filters applied! In a real application, this would update the charts and table with filtered data.');
+            });
+            
+            // Reset filters
+            document.getElementById('reset-filters').addEventListener('click', function() {
+                document.getElementById('date-range').value = '30';
+                document.getElementById('project').value = 'all';
+                document.getElementById('assignee').value = 'all';
+                document.getElementById('status').value = 'all';
+                document.getElementById('custom-range').classList.add('hidden');
+            });
+        });
+    </script>
+</body>
+</html>

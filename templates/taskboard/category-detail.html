@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Category Detail</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Custom CSS for drag and drop */
+        .kanban-lane {
+            min-height: 400px;
+        }
+        .task-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .task-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .task-card.dragging {
+            opacity: 0.5;
+            transform: rotate(3deg);
+        }
+        .lane-placeholder {
+            border: 2px dashed #ccc;
+            border-radius: 0.5rem;
+            background-color: #f8fafc;
+            min-height: 100px;
+            margin-bottom: 1rem;
+        }
+        
+        /* Mobile swipe tabs */
+        @media (max-width: 768px) {
+            .mobile-tab-content {
+                display: none;
+            }
+            .mobile-tab-content.active {
+                display: block;
+            }
+            .kanban-lane {
+                min-height: auto;
+                margin-bottom: 1rem;
+            }
+            .kanban-container {
+                flex-direction: column;
+            }
+        }
+        
+        /* Priority indicators */
+        .priority-high {
+            border-left: 4px solid #ef4444;
+        }
+        .priority-medium {
+            border-left: 4px solid #f59e0b;
+        }
+        .priority-low {
+            border-left: 4px solid #10b981;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="flex flex-col min-h-screen">
+        <!-- Header -->
+        <header class="bg-white shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                    <div class="flex items-center space-x-4">
+                        <h1 class="text-2xl font-bold text-gray-900">Website Redesign</h1>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            Project: Marketing
+                        </span>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                            <span class="w-2 h-2 mr-1 rounded-full bg-purple-500"></span>
+                            Design
+                        </span>
+                    </div>
+                    <div class="mt-2 sm:mt-0">
+                        <span class="text-sm text-gray-500">12 tasks</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                <!-- Tabs -->
+                <div class="border-b border-gray-200">
+                    <nav class="-mb-px flex space-x-8" id="desktop-tabs">
+                        <button class="tab-button border-b-2 border-blue-500 text-blue-600 whitespace-nowrap py-4 px-1 text-sm font-medium" data-tab="tasks">
+                            Tasks
+                        </button>
+                        <button class="tab-button border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 text-sm font-medium" data-tab="info">
+                            Info
+                        </button>
+                    </nav>
+                    
+                    <!-- Mobile tabs -->
+                    <div class="sm:hidden flex overflow-x-auto py-2" id="mobile-tabs">
+                        <button class="mobile-tab-button px-4 py-2 text-sm font-medium text-blue-600 border-b-2 border-blue-500" data-tab="tasks">
+                            Tasks
+                        </button>
+                        <button class="mobile-tab-button px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700" data-tab="info">
+                            Info
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tab Content -->
+                <div class="py-6">
+                    <!-- Tasks Tab -->
+                    <div id="tasks-content" class="tab-content active">
+                        <div class="flex flex-col lg:flex-row">
+                            <!-- Main Kanban Board -->
+                            <div class="flex-1">
+                                <div class="kanban-container flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 overflow-x-auto pb-4">
+                                    <!-- To Do Column -->
+                                    <div class="kanban-lane bg-gray-50 rounded-lg p-4 flex-1 min-w-[280px]">
+                                        <div class="flex justify-between items-center mb-4">
+                                            <h3 class="font-medium text-gray-900">To Do</h3>
+                                            <span class="text-xs text-gray-500">4 tasks</span>
+                                        </div>
+                                        <div class="space-y-3" id="todo-lane">
+                                            <!-- Task Card 1 -->
+                                            <div class="task-card bg-white rounded-lg shadow p-4 cursor-move priority-high" draggable="true" data-id="1">
+                                                <div class="flex justify-between items-start">
+                                                    <h4 class="font-medium">Homepage wireframes</h4>
+                                                    <span class="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">High</span>
+                                                </div>
+                                                <div class="mt-2 flex items-center justify-between">
+                                                    <div class="flex items-center space-x-2">
+                                                        <img class="h-6 w-6 rounded-full" src="https://i.pravatar.cc/150?img=3" alt="Assignee">
+                                                        <span class="text-xs text-gray-500">Due: Tomorrow</span>
+                                                    </div>
+                                                    <button class="text-gray-400 hover:text-gray-600">
+                                                        <i class="fas fa-ellipsis-h"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Task Card 2 -->
+                                            <div class="task-card bg-white rounded-lg shadow p-4 cursor-move priority-medium" draggable="true" data-id="2">
+                                                <div class="flex justify-between items-start">
+                                                    <h4 class="font-medium">Color palette selection</h4>
+                                                    <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">Medium</span>
+                                                </div>
+                                                <div class="mt-2 flex items-center justify-between">
+                                                    <div class="flex items-center space-x-2">
+                                                        <img class="h-6 w-6 rounded-full" src="https://i.pravatar.cc/150?img=5" alt="Assignee">
+                                                        <span class="text-xs text-gray-500">Due: Fri</span>
+                                                    </div>
+                                                    <button class="text-gray-400 hover:text-gray-600">
+                                                        <i class="fas fa-ellipsis-h"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="lane-placeholder hidden" id="todo-placeholder"></div>
+                                        <button class="mt-3 w-full py-2 px-3 border border-dashed border-gray-300 rounded-md text-sm text-gray-500 hover:text-gray-700 hover:border-gray-400">
+                                            <i class="fas fa-plus mr-1"></i> Add task
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- In Progress Column -->
+                                    <div class="kanban-lane bg-gray-50 rounded-lg p-4 flex-1 min-w-[280px]">
+                                        <div class="flex justify-between items-center mb-4">
+                                            <h3 class="font-medium text-gray-900">In Progress</h3>
+                                            <span class="text-xs text-gray-500">3 tasks</span>
+                                        </div>
+                                        <div class="space-y-3" id="progress-lane">
+                                            <!-- Task Card 3 -->
+                                            <div class="task-card bg-white rounded-lg shadow p-4 cursor-move priority-high" draggable="true" data-id="3">
+                                                <div class="flex justify-between items-start">
+                                                    <h4 class="font-medium">Mobile navigation design</h4>
+                                                    <span class="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">High</span>
+                                                </div>
+                                                <div class="mt-2 flex items-center justify-between">
+                                                    <div class="flex items-center space-x-2">
+                                                        <img class="h-6 w-6 rounded-full" src="https://i.pravatar.cc/150?img=1" alt="Assignee">
+                                                        <span class="text-xs text-gray-500">Due: Today</span>
+                                                    </div>
+                                                    <button class="text-gray-400 hover:text-gray-600">
+                                                        <i class="fas fa-ellipsis-h"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Task Card 4 -->
+                                            <div class="task-card bg-white rounded-lg shadow p-4 cursor-move priority-low" draggable="true" data-id="4">
+                                                <div class="flex justify-between items-start">
+                                                    <h4 class="font-medium">Blog page layout</h4>
+                                                    <span class="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">Low</span>
+                                                </div>
+                                                <div class="mt-2 flex items-center justify-between">
+                                                    <div class="flex items-center space-x-2">
+                                                        <img class="h-6 w-6 rounded-full" src="https://i.pravatar.cc/150?img=7" alt="Assignee">
+                                                        <span class="text-xs text-gray-500">Due: Next week</span>
+                                                    </div>
+                                                    <button class="text-gray-400 hover:text-gray-600">
+                                                        <i class="fas fa-ellipsis-h"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="lane-placeholder hidden" id="progress-placeholder"></div>
+                                        <button class="mt-3 w-full py-2 px-3 border border-dashed border-gray-300 rounded-md text-sm text-gray-500 hover:text-gray-700 hover:border-gray-400">
+                                            <i class="fas fa-plus mr-1"></i> Add task
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Review Column -->
+                                    <div class="kanban-lane bg-gray-50 rounded-lg p-4 flex-1 min-w-[280px]">
+                                        <div class="flex justify-between items-center mb-4">
+                                            <h3 class="font-medium text-gray-900">Review</h3>
+                                            <span class="text-xs text-gray-500">2 tasks</span>
+                                        </div>
+                                        <div class="space-y-3" id="review-lane">
+                                            <!-- Task Card 5 -->
+                                            <div class="task-card bg-white rounded-lg shadow p-4 cursor-move priority-medium" draggable="true" data-id="5">
+                                                <div class="flex justify-between items-start">
+                                                    <h4 class="font-medium">Product page redesign</h4>
+                                                    <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">Medium</span>
+                                                </div>
+                                                <div class="mt-2 flex items-center justify-between">
+                                                    <div class="flex items-center space-x-2">
+                                                        <img class="h-6 w-6 rounded-full" src="https://i.pravatar.cc/150?img=9" alt="Assignee">
+                                                        <span class="text-xs text-gray-500">Due: Tomorrow</span>
+                                                    </div>
+                                                    <button class="text-gray-400 hover:text-gray-600">
+                                                        <i class="fas fa-ellipsis-h"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="lane-placeholder hidden" id="review-placeholder"></div>
+                                        <button class="mt-3 w-full py-2 px-3 border border-dashed border-gray-300 rounded-md text-sm text-gray-500 hover:text-gray-700 hover:border-gray-400">
+                                            <i class="fas fa-plus mr-1"></i> Add task
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Done Column -->
+                                    <div class="kanban-lane bg-gray-50 rounded-lg p-4 flex-1 min-w-[280px]">
+                                        <div class="flex justify-between items-center mb-4">
+                                            <h3 class="font-medium text-gray-900">Done</h3>
+                                            <span class="text-xs text-gray-500">3 tasks</span>
+                                        </div>
+                                        <div class="space-y-3" id="done-lane">
+                                            <!-- Task Card 6 -->
+                                            <div class="task-card bg-white rounded-lg shadow p-4 cursor-move opacity-70 priority-low" draggable="true" data-id="6">
+                                                <div class="flex justify-between items-start">
+                                                    <h4 class="font-medium line-through">Style guide update</h4>
+                                                    <span class="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">Low</span>
+                                                </div>
+                                                <div class="mt-2 flex items-center justify-between">
+                                                    <div class="flex items-center space-x-2">
+                                                        <img class="h-6 w-6 rounded-full" src="https://i.pravatar.cc/150?img=2" alt="Assignee">
+                                                        <span class="text-xs text-gray-500">Completed</span>
+                                                    </div>
+                                                    <button class="text-gray-400 hover:text-gray-600">
+                                                        <i class="fas fa-ellipsis-h"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="lane-placeholder hidden" id="done-placeholder"></div>
+                                        <button class="mt-3 w-full py-2 px-3 border border-dashed border-gray-300 rounded-md text-sm text-gray-500 hover:text-gray-700 hover:border-gray-400">
+                                            <i class="fas fa-plus mr-1"></i> Add task
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Sidebar Filters -->
+                            <div class="lg:w-64 mt-6 lg:mt-0 lg:ml-6">
+                                <div class="bg-white rounded-lg shadow p-4">
+                                    <h3 class="font-medium text-gray-900 mb-4">Quick Filters</h3>
+                                    <div class="space-y-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                                            <div class="space-y-2">
+                                                <label class="flex items-center">
+                                                    <input type="checkbox" class="h-4 w-4 text-red-500 focus:ring-red-500 border-gray-300 rounded" checked>
+                                                    <span class="ml-2 text-sm text-gray-700">High</span>
+                                                </label>
+                                                <label class="flex items-center">
+                                                    <input type="checkbox" class="h-4 w-4 text-yellow-500 focus:ring-yellow-500 border-gray-300 rounded" checked>
+                                                    <span class="ml-2 text-sm text-gray-700">Medium</span>
+                                                </label>
+                                                <label class="flex items-center">
+                                                    <input type="checkbox" class="h-4 w-4 text-green-500 focus:ring-green-500 border-gray-300 rounded" checked>
+                                                    <span class="ml-2 text-sm text-gray-700">Low</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Assignee</label>
+                                            <select class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                                                <option>All assignees</option>
+                                                <option>Sarah Johnson</option>
+                                                <option>Michael Chen</option>
+                                                <option>Emma Wilson</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+                                            <select class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                                                <option>Any time</option>
+                                                <option>Today</option>
+                                                <option>Tomorrow</option>
+                                                <option>This week</option>
+                                                <option>Next week</option>
+                                                <option>Overdue</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <button class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md text-sm font-medium">
+                                            Apply Filters
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Info Tab -->
+                    <div id="info-content" class="tab-content hidden">
+                        <div class="bg-white shadow rounded-lg overflow-hidden">
+                            <div class="px-6 py-5 border-b border-gray-200">
+                                <h3 class="text-lg font-medium leading-6 text-gray-900">Category Information</h3>
+                            </div>
+                            <div class="px-6 py-4">
+                                <div class="mb-6">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                    <div class="mt-1 text-sm text-gray-700">
+                                        <p>The website redesign project aims to modernize our online presence, improve user experience, and align with our new brand guidelines. This category focuses on all design-related tasks including wireframing, visual design, and prototyping.</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Created</label>
+                                        <div class="mt-1 text-sm text-gray-700">
+                                            <p>June 15, 2023 by Sarah Johnson</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Last Updated</label>
+                                        <div class="mt-1 text-sm text-gray-700">
+                                            <p>June 28, 2023 by Michael Chen</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Tab functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Desktop tabs
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    // Remove active class from all buttons and contents
+                    tabButtons.forEach(btn => {
+                        btn.classList.remove('border-blue-500', 'text-blue-600');
+                        btn.classList.add('border-transparent', 'text-gray-500');
+                    });
+                    
+                    tabContents.forEach(content => {
+                        content.classList.add('hidden');
+                        content.classList.remove('active');
+                    });
+                    
+                    // Add active class to clicked button and corresponding content
+                    button.classList.remove('border-transparent', 'text-gray-500');
+                    button.classList.add('border-blue-500', 'text-blue-600');
+                    
+                    const tabId = button.getAttribute('data-tab');
+                    document.getElementById(`${tabId}-content`).classList.remove('hidden');
+                    document.getElementById(`${tabId}-content`).classList.add('active');
+                });
+            });
+            
+            // Mobile tabs
+            const mobileTabButtons = document.querySelectorAll('.mobile-tab-button');
+            
+            mobileTabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    // Remove active class from all buttons
+                    mobileTabButtons.forEach(btn => {
+                        btn.classList.remove('border-blue-500', 'text-blue-600');
+                        btn.classList.add('text-gray-500');
+                    });
+                    
+                    // Add active class to clicked button
+                    button.classList.remove('text-gray-500');
+                    button.classList.add('border-blue-500', 'text-blue-600');
+                    
+                    // Switch tab content
+                    const tabId = button.getAttribute('data-tab');
+                    document.querySelectorAll('.mobile-tab-content').forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    document.getElementById(`${tabId}-content`).classList.add('active');
+                });
+            });
+            
+            // Drag and drop functionality
+            const lanes = {
+                'todo': document.getElementById('todo-lane'),
+                'progress': document.getElementById('progress-lane'),
+                'review': document.getElementById('review-lane'),
+                'done': document.getElementById('done-lane')
+            };
+            
+            const placeholders = {
+                'todo': document.getElementById('todo-placeholder'),
+                'progress': document.getElementById('progress-placeholder'),
+                'review': document.getElementById('review-placeholder'),
+                'done': document.getElementById('done-placeholder')
+            };
+            
+            let draggedItem = null;
+            
+            document.querySelectorAll('.task-card').forEach(card => {
+                card.addEventListener('dragstart', function() {
+                    draggedItem = this;
+                    setTimeout(() => {
+                        this.classList.add('dragging');
+                    }, 0);
+                });
+                
+                card.addEventListener('dragend', function() {
+                    this.classList.remove('dragging');
+                    Object.values(placeholders).forEach(placeholder => {
+                        placeholder.classList.add('hidden');
+                    });
+                });
+            });
+            
+            Object.entries(lanes).forEach(([laneId, lane]) => {
+                lane.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    placeholders[laneId].classList.remove('hidden');
+                    const afterElement = getDragAfterElement(lane, e.clientY);
+                    if (afterElement) {
+                        lane.insertBefore(placeholders[laneId], afterElement);
+                    } else {
+                        lane.appendChild(placeholders[laneId]);
+                    }
+                });
+                
+                lane.addEventListener('dragleave', function() {
+                    placeholders[laneId].classList.add('hidden');
+                });
+                
+                lane.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    placeholders[laneId].classList.add('hidden');
+                    if (draggedItem) {
+                        const afterElement = getDragAfterElement(lane, e.clientY);
+                        if (afterElement) {
+                            lane.insertBefore(draggedItem, afterElement);
+                        } else {
+                            lane.appendChild(draggedItem);
+                        }
+                        
+                        // Update task count (simplified for demo)
+                        const countElement = this.parentElement.querySelector('span:last-child');
+                        const currentCount = parseInt(countElement.textContent.split(' ')[0]);
+                        countElement.textContent = `${currentCount + 1} tasks`;
+                        
+                        // Update the lane the dragged item came from
+                        const originalLane = draggedItem.parentElement.parentElement;
+                        if (originalLane !== this.parentElement) {
+                            const originalCountElement = originalLane.querySelector('span:last-child');
+                            const originalCount = parseInt(originalCountElement.textContent.split(' ')[0]);
+                            originalCountElement.textContent = `${originalCount - 1} tasks`;
+                        }
+                    }
+                });
+            });
+            
+            function getDragAfterElement(lane, y) {
+                const draggableElements = [...lane.querySelectorAll('.task-card:not(.dragging)')];
+                
+                return draggableElements.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = y - box.top - box.height / 2;
+                    
+                    if (offset < 0 && offset > closest.offset) {
+                        return { offset: offset, element: child };
+                    } else {
+                        return closest;
+                    }
+                }, { offset: Number.NEGATIVE_INFINITY }).element;
+            }
+            
+            // Mobile swipe detection (simplified)
+            let touchStartX = 0;
+            let touchEndX = 0;
+            
+            document.getElementById('tasks-content').addEventListener('touchstart', function(e) {
+                touchStartX = e.changedTouches[0].screenX;
+            }, false);
+            
+            document.getElementById('tasks-content').addEventListener('touchend', function(e) {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            }, false);
+            
+            function handleSwipe() {
+                if (touchEndX < touchStartX - 50) {
+                    // Swipe left - switch to Info tab
+                    document.querySelector('.mobile-tab-button[data-tab="info"]').click();
+                }
+                
+                if (touchEndX > touchStartX + 50) {
+                    // Swipe right - switch to Tasks tab
+                    document.querySelector('.mobile-tab-button[data-tab="tasks"]').click();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

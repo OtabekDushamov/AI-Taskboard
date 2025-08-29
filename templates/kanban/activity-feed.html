@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Feed</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Custom scrollbar */
+        .activity-feed::-webkit-scrollbar {
+            width: 6px;
+        }
+        .activity-feed::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .activity-feed::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 3px;
+        }
+        .activity-feed::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
+        }
+        
+        /* Loading animation */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        /* Transition for cards */
+        .activity-card {
+            transition: all 0.2s ease;
+        }
+        .activity-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-bold text-gray-800">Activity Feed</h1>
+                <p class="text-gray-500">Recent activities in your workspace</p>
+            </div>
+            
+            <div class="flex flex-wrap gap-2">
+                <div class="relative">
+                    <select id="filter-type" class="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="all">All Activities</option>
+                        <option value="card">Card Moves</option>
+                        <option value="task">AI Tasks</option>
+                        <option value="export">Exports</option>
+                        <option value="comment">Comments</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                        <i class="fas fa-chevron-down text-xs"></i>
+                    </div>
+                </div>
+                
+                <div class="relative">
+                    <select id="filter-time" class="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="all">All Time</option>
+                        <option value="today">Today</option>
+                        <option value="week">This Week</option>
+                        <option value="month">This Month</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                        <i class="fas fa-chevron-down text-xs"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div id="activity-feed" class="activity-feed max-h-[600px] overflow-y-auto p-4">
+                <!-- Activities will be loaded here -->
+            </div>
+            
+            <div id="loading" class="flex justify-center items-center p-4 bg-gray-50">
+                <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const activityFeed = document.getElementById('activity-feed');
+            const loadingElement = document.getElementById('loading');
+            const filterType = document.getElementById('filter-type');
+            const filterTime = document.getElementById('filter-time');
+            
+            let isLoading = false;
+            let currentPage = 1;
+            let currentFilter = 'all';
+            let currentTimeFilter = 'all';
+            
+            // Sample data - in a real app, this would come from an API
+            const sampleActivities = [
+                {
+                    id: 1,
+                    type: 'card',
+                    title: 'Card moved',
+                    description: 'Moved "Project Kickoff" from To Do to In Progress',
+                    user: { name: 'Alex Johnson', avatar: 'https://randomuser.me/api/portraits/men/32.jpg' },
+                    timestamp: new Date(Date.now() - 1000 * 60 * 5), // 5 minutes ago
+                    icon: 'fa-solid fa-arrows-up-down-left-right',
+                    iconColor: 'text-purple-500'
+                },
+                {
+                    id: 2,
+                    type: 'task',
+                    title: 'AI tasks added',
+                    description: 'Added 3 new tasks using AI suggestions',
+                    user: { name: 'Sam Wilson', avatar: 'https://randomuser.me/api/portraits/women/44.jpg' },
+                    timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
+                    icon: 'fa-solid fa-robot',
+                    iconColor: 'text-blue-500'
+                },
+                {
+                    id: 3,
+                    type: 'export',
+                    title: 'Export completed',
+                    description: 'Exported project data as CSV file',
+                    user: { name: 'Taylor Smith', avatar: 'https://randomuser.me/api/portraits/men/22.jpg' },
+                    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
+                    icon: 'fa-solid fa-file-export',
+                    iconColor: 'text-green-500'
+                },
+                {
+                    id: 4,
+                    type: 'comment',
+                    title: 'Comment added',
+                    description: 'Commented on "UI Design Draft"',
+                    user: { name: 'Jordan Lee', avatar: 'https://randomuser.me/api/portraits/women/63.jpg' },
+                    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5), // 5 hours ago
+                    icon: 'fa-solid fa-comment',
+                    iconColor: 'text-yellow-500'
+                },
+                {
+                    id: 5,
+                    type: 'card',
+                    title: 'Card moved',
+                    description: 'Moved "User Testing" from In Progress to Done',
+                    user: { name: 'Casey Kim', avatar: 'https://randomuser.me/api/portraits/women/28.jpg' },
+                    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 8), // 8 hours ago
+                    icon: 'fa-solid fa-arrows-up-down-left-right',
+                    iconColor: 'text-purple-500'
+                },
+                {
+                    id: 6,
+                    type: 'task',
+                    title: 'AI tasks added',
+                    description: 'Added 5 new tasks using AI suggestions',
+                    user: { name: 'Morgan Taylor', avatar: 'https://randomuser.me/api/portraits/men/41.jpg' },
+                    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
+                    icon: 'fa-solid fa-robot',
+                    iconColor: 'text-blue-500'
+                },
+                {
+                    id: 7,
+                    type: 'export',
+                    title: 'Export completed',
+                    description: 'Exported team report as PDF',
+                    user: { name: 'Riley Chen', avatar: 'https://randomuser.me/api/portraits/women/35.jpg' },
+                    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 36), // 1.5 days ago
+                    icon: 'fa-solid fa-file-export',
+                    iconColor: 'text-green-500'
+                },
+                {
+                    id: 8,
+                    type: 'comment',
+                    title: 'Comment added',
+                    description: 'Commented on "API Documentation"',
+                    user: { name: 'Jamie Wilson', avatar: 'https://randomuser.me/api/portraits/men/55.jpg' },
+                    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 48), // 2 days ago
+                    icon: 'fa-solid fa-comment',
+                    iconColor: 'text-yellow-500'
+                }
+            ];
+            
+            // Format time as "X minutes/hours/days ago"
+            function formatTimeAgo(date) {
+                const seconds = Math.floor((new Date() - date) / 1000);
+                
+                let interval = Math.floor(seconds / 31536000);
+                if (interval >= 1) return interval + " year" + (interval === 1 ? "" : "s") + " ago";
+                
+                interval = Math.floor(seconds / 2592000);
+                if (interval >= 1) return interval + " month" + (interval === 1 ? "" : "s") + " ago";
+                
+                interval = Math.floor(seconds / 86400);
+                if (interval >= 1) return interval + " day" + (interval === 1 ? "" : "s") + " ago";
+                
+                interval = Math.floor(seconds / 3600);
+                if (interval >= 1) return interval + " hour" + (interval === 1 ? "" : "s") + " ago";
+                
+                interval = Math.floor(seconds / 60);
+                if (interval >= 1) return interval + " minute" + (interval === 1 ? "" : "s") + " ago";
+                
+                return "just now";
+            }
+            
+            // Create activity card HTML
+            function createActivityCard(activity) {
+                return `
+                    <div class="activity-card bg-white border border-gray-100 rounded-lg p-4 mb-3 hover:shadow-md">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0 mr-3">
+                                <div class="relative">
+                                    <img class="h-10 w-10 rounded-full object-cover" src="${activity.user.avatar}" alt="${activity.user.name}">
+                                    <div class="absolute -bottom-1 -right-1 bg-white rounded-full p-1">
+                                        <div class="h-5 w-5 rounded-full flex items-center justify-center ${activity.iconColor}">
+                                            <i class="${activity.icon} text-xs"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-900">${activity.user.name}</p>
+                                        <p class="text-sm font-semibold text-gray-700 mt-1">${activity.title}</p>
+                                    </div>
+                                    <span class="text-xs text-gray-500 whitespace-nowrap ml-2">${formatTimeAgo(activity.timestamp)}</span>
+                                </div>
+                                <p class="text-sm text-gray-600 mt-1">${activity.description}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Load activities with pagination
+            function loadActivities(page = 1, filter = 'all', timeFilter = 'all') {
+                if (isLoading) return;
+                
+                isLoading = true;
+                loadingElement.classList.remove('hidden');
+                
+                // Simulate API delay
+                setTimeout(() => {
+                    // Filter activities
+                    let filteredActivities = sampleActivities;
+                    
+                    // Filter by type
+                    if (filter !== 'all') {
+                        filteredActivities = filteredActivities.filter(a => a.type === filter);
+                    }
+                    
+                    // Filter by time
+                    const now = new Date();
+                    if (timeFilter !== 'all') {
+                        let cutoffDate;
+                        
+                        switch(timeFilter) {
+                            case 'today':
+                                cutoffDate = new Date(now.setHours(0, 0, 0, 0));
+                                break;
+                            case 'week':
+                                cutoffDate = new Date(now.setDate(now.getDate() - now.getDay()));
+                                cutoffDate.setHours(0, 0, 0, 0);
+                                break;
+                            case 'month':
+                                cutoffDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                                break;
+                        }
+                        
+                        filteredActivities = filteredActivities.filter(a => a.timestamp >= cutoffDate);
+                    }
+                    
+                    // Simulate pagination - in a real app, this would be handled by the API
+                    const startIndex = (page - 1) * 4;
+                    const endIndex = startIndex + 4;
+                    const paginatedActivities = filteredActivities.slice(0, endIndex);
+                    
+                    // Clear feed if it's the first page
+                    if (page === 1) {
+                        activityFeed.innerHTML = '';
+                    }
+                    
+                    // Add activities to feed
+                    if (paginatedActivities.length > 0) {
+                        paginatedActivities.forEach(activity => {
+                            activityFeed.innerHTML += createActivityCard(activity);
+                        });
+                    } else if (page === 1) {
+                        activityFeed.innerHTML = `
+                            <div class="text-center py-8">
+                                <i class="fas fa-inbox text-4xl text-gray-300 mb-2"></i>
+                                <p class="text-gray-500">No activities found</p>
+                            </div>
+                        `;
+                    }
+                    
+                    isLoading = false;
+                    loadingElement.classList.add('hidden');
+                    currentPage = page;
+                }, 800);
+            }
+            
+            // Initial load
+            loadActivities();
+            
+            // Infinite scroll
+            activityFeed.addEventListener('scroll', function() {
+                const { scrollTop, scrollHeight, clientHeight } = activityFeed;
+                
+                if (scrollTop + clientHeight >= scrollHeight - 20 && !isLoading) {
+                    loadActivities(currentPage + 1, currentFilter, currentTimeFilter);
+                }
+            });
+            
+            // Filter change handlers
+            filterType.addEventListener('change', function() {
+                currentFilter = this.value;
+                loadActivities(1, currentFilter, currentTimeFilter);
+            });
+            
+            filterTime.addEventListener('change', function() {
+                currentTimeFilter = this.value;
+                loadActivities(1, currentFilter, currentTimeFilter);
+            });
+        });
+    </script>
+</body>
+</html>

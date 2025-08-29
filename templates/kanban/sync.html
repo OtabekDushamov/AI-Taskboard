@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Sync Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .sync-card {
+            transition: all 0.3s ease;
+        }
+        .sync-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+        }
+        .badge-success {
+            background-color: #ecfdf5;
+            color: #059669;
+        }
+        .badge-warning {
+            background-color: #fef3c7;
+            color: #d97706;
+        }
+        .badge-error {
+            background-color: #fee2e2;
+            color: #dc2626;
+        }
+        .timestamp {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #e5e7eb;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #3b82f6;
+        }
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-2xl font-bold text-gray-800">Data Sync Dashboard</h1>
+            <div class="flex items-center space-x-4">
+                <span class="text-sm text-gray-600">Auto Sync</span>
+                <label class="switch">
+                    <input type="checkbox" id="autoSyncToggle" checked>
+                    <span class="slider"></span>
+                </label>
+                <div class="relative">
+                    <select id="syncInterval" class="block appearance-none bg-white border border-gray-300 text-gray-700 py-2 px-4 pr-8 rounded leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="5">Every 5 minutes</option>
+                        <option value="15" selected>Every 15 minutes</option>
+                        <option value="30">Every 30 minutes</option>
+                        <option value="60">Every hour</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <!-- Sync Now Card -->
+            <div class="sync-card bg-white rounded-lg shadow p-6 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-semibold text-gray-800">Manual Sync</h2>
+                        <i class="fas fa-sync-alt text-blue-500 text-xl"></i>
+                    </div>
+                    <p class="text-gray-600 mb-4">Trigger an immediate data synchronization process across all connected systems.</p>
+                </div>
+                <button id="syncNowBtn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded transition duration-200 flex items-center justify-center space-x-2">
+                    <i class="fas fa-sync-alt"></i>
+                    <span>Sync Now</span>
+                </button>
+            </div>
+
+            <!-- Sync Status Card -->
+            <div class="sync-card bg-white rounded-lg shadow p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold text-gray-800">Sync Status</h2>
+                    <i class="fas fa-info-circle text-blue-500 text-xl"></i>
+                </div>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Last Sync</span>
+                        <span id="lastSyncTime" class="font-medium">Just now</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Next Sync</span>
+                        <span id="nextSyncTime" class="font-medium">in 14 minutes</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Status</span>
+                        <span class="badge badge-success">Active</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error Logs Card -->
+            <div class="sync-card bg-white rounded-lg shadow p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold text-gray-800">Error Logs</h2>
+                    <i class="fas fa-exclamation-triangle text-yellow-500 text-xl"></i>
+                </div>
+                <div class="space-y-3">
+                    <p class="text-gray-600">View detailed error logs from previous sync operations.</p>
+                    <a href="#" class="inline-block mt-2 text-blue-500 hover:text-blue-600 font-medium flex items-center space-x-1">
+                        <i class="fas fa-external-link-alt"></i>
+                        <span>View Error Logs</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sync History -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-800">Recent Sync History</h2>
+            </div>
+            <div class="divide-y divide-gray-200">
+                <!-- Table Header -->
+                <div class="grid grid-cols-12 gap-4 px-6 py-3 bg-gray-50 text-sm font-medium text-gray-500 uppercase tracking-wider">
+                    <div class="col-span-3">Timestamp</div>
+                    <div class="col-span-2">Status</div>
+                    <div class="col-span-2">Records Synced</div>
+                    <div class="col-span-3">Duration</div>
+                    <div class="col-span-2">Actions</div>
+                </div>
+                
+                <!-- Sync History Items -->
+                <div id="syncHistoryList">
+                    <!-- Items will be added dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Sample sync history data
+            const syncHistory = [
+                {
+                    id: 1,
+                    timestamp: new Date(),
+                    status: 'success',
+                    recordsSynced: 1245,
+                    duration: '12s',
+                    type: 'auto'
+                },
+                {
+                    id: 2,
+                    timestamp: new Date(Date.now() - 15 * 60 * 1000),
+                    status: 'success',
+                    recordsSynced: 892,
+                    duration: '8s',
+                    type: 'auto'
+                },
+                {
+                    id: 3,
+                    timestamp: new Date(Date.now() - 30 * 60 * 1000),
+                    status: 'warning',
+                    recordsSynced: 567,
+                    duration: '22s',
+                    type: 'manual',
+                    notes: 'Partial sync - connection timeout'
+                },
+                {
+                    id: 4,
+                    timestamp: new Date(Date.now() - 45 * 60 * 1000),
+                    status: 'error',
+                    recordsSynced: 0,
+                    duration: '5s',
+                    type: 'auto',
+                    notes: 'API server unavailable'
+                },
+                {
+                    id: 5,
+                    timestamp: new Date(Date.now() - 60 * 60 * 1000),
+                    status: 'success',
+                    recordsSynced: 1532,
+                    duration: '15s',
+                    type: 'manual'
+                }
+            ];
+
+            // Render sync history
+            const syncHistoryList = document.getElementById('syncHistoryList');
+            
+            function renderSyncHistory() {
+                syncHistoryList.innerHTML = '';
+                
+                syncHistory.forEach(item => {
+                    const statusBadgeClass = item.status === 'success' ? 'badge-success' : 
+                                            item.status === 'warning' ? 'badge-warning' : 'badge-error';
+                    const statusText = item.status === 'success' ? 'Completed' : 
+                                     item.status === 'warning' ? 'Partial' : 'Failed';
+                    
+                    const formattedTime = formatTime(item.timestamp);
+                    
+                    const syncItem = document.createElement('div');
+                    syncItem.className = 'grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-gray-50 transition';
+                    syncItem.innerHTML = `
+                        <div class="col-span-3">
+                            <div class="font-medium">${formattedTime.date}</div>
+                            <div class="timestamp">${formattedTime.time}</div>
+                        </div>
+                        <div class="col-span-2">
+                            <span class="badge ${statusBadgeClass}">${statusText}</span>
+                            ${item.type === 'manual' ? '<span class="text-xs text-gray-500 block mt-1">Manual</span>' : ''}
+                        </div>
+                        <div class="col-span-2 font-medium">${item.recordsSynced.toLocaleString()}</div>
+                        <div class="col-span-3">${item.duration}</div>
+                        <div class="col-span-2">
+                            <button class="text-blue-500 hover:text-blue-600 text-sm font-medium" onclick="showSyncDetails(${item.id})">
+                                Details
+                            </button>
+                        </div>
+                    `;
+                    syncHistoryList.appendChild(syncItem);
+                });
+            }
+            
+            // Format timestamp
+            function formatTime(date) {
+                const options = { 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                };
+                const dateStr = date.toLocaleDateString(undefined, options);
+                const timeStr = date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                
+                return {
+                    date: dateStr,
+                    time: timeStr
+                };
+            }
+            
+            // Update next sync time
+            function updateNextSyncTime() {
+                const interval = parseInt(document.getElementById('syncInterval').value);
+                const now = new Date();
+                const nextSync = new Date(now.getTime() + interval * 60000);
+                
+                document.getElementById('nextSyncTime').textContent = `in ${interval} minutes`;
+                
+                // Update last sync time
+                const lastSync = syncHistory[0];
+                if (lastSync) {
+                    const formatted = formatTime(lastSync.timestamp);
+                    let timeText = '';
+                    
+                    const diffMinutes = Math.floor((now - lastSync.timestamp) / 60000);
+                    if (diffMinutes < 1) {
+                        timeText = 'Just now';
+                    } else if (diffMinutes < 60) {
+                        timeText = `${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
+                    } else {
+                        timeText = formatted.date;
+                    }
+                    
+                    document.getElementById('lastSyncTime').textContent = timeText;
+                }
+            }
+            
+            // Sync now button click handler
+            document.getElementById('syncNowBtn').addEventListener('click', function() {
+                // Show loading state
+                const btn = this;
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Syncing...</span>';
+                
+                // Simulate sync process
+                setTimeout(() => {
+                    // Add new sync record
+                    const newSync = {
+                        id: syncHistory.length + 1,
+                        timestamp: new Date(),
+                        status: 'success',
+                        recordsSynced: Math.floor(Math.random() * 2000) + 500,
+                        duration: `${Math.floor(Math.random() * 20) + 5}s`,
+                        type: 'manual'
+                    };
+                    
+                    syncHistory.unshift(newSync);
+                    renderSyncHistory();
+                    updateNextSyncTime();
+                    
+                    // Reset button
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-sync-alt"></i><span>Sync Now</span>';
+                    
+                    // Show success notification
+                    showNotification('Sync completed successfully!', 'success');
+                }, 3000);
+            });
+            
+            // Auto sync toggle change handler
+            document.getElementById('autoSyncToggle').addEventListener('change', function() {
+                if (this.checked) {
+                    showNotification('Auto sync enabled', 'success');
+                } else {
+                    showNotification('Auto sync disabled', 'warning');
+                }
+            });
+            
+            // Sync interval change handler
+            document.getElementById('syncInterval').addEventListener('change', updateNextSyncTime);
+            
+            // Show notification
+            function showNotification(message, type) {
+                const notification = document.createElement('div');
+                notification.className = `fixed top-4 right-4 px-6 py-3 rounded-md shadow-lg text-white font-medium ${
+                    type === 'success' ? 'bg-green-500' : 
+                    type === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
+                }`;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+                    setTimeout(() => notification.remove(), 300);
+                }, 3000);
+            }
+            
+            // Show sync details (mock function)
+            window.showSyncDetails = function(id) {
+                const item = syncHistory.find(i => i.id === id);
+                if (item) {
+                    let details = `Sync ID: ${item.id}\n`;
+                    details += `Time: ${formatTime(item.timestamp).date} ${formatTime(item.timestamp).time}\n`;
+                    details += `Status: ${item.status}\n`;
+                    details += `Records Synced: ${item.recordsSynced.toLocaleString()}\n`;
+                    details += `Duration: ${item.duration}\n`;
+                    details += `Type: ${item.type}\n`;
+                    if (item.notes) details += `Notes: ${item.notes}`;
+                    
+                    alert(details);
+                }
+            };
+            
+            // Initial render
+            renderSyncHistory();
+            updateNextSyncTime();
+            
+            // Simulate auto sync
+            setInterval(() => {
+                if (document.getElementById('autoSyncToggle').checked) {
+                    const interval = parseInt(document.getElementById('syncInterval').value);
+                    
+                    // Add new sync record
+                    const newSync = {
+                        id: syncHistory.length + 1,
+                        timestamp: new Date(),
+                        status: Math.random() > 0.9 ? (Math.random() > 0.5 ? 'warning' : 'error') : 'success',
+                        recordsSynced: Math.floor(Math.random() * 2000) + 500,
+                        duration: `${Math.floor(Math.random() * 20) + 5}s`,
+                        type: 'auto'
+                    };
+                    
+                    if (newSync.status === 'warning') {
+                        newSync.notes = 'Partial sync - some records skipped';
+                    } else if (newSync.status === 'error') {
+                        newSync.notes = 'Connection timeout';
+                        newSync.recordsSynced = 0;
+                    }
+                    
+                    syncHistory.unshift(newSync);
+                    renderSyncHistory();
+                    updateNextSyncTime();
+                    
+                    if (newSync.status !== 'success') {
+                        showNotification(`Auto sync completed with ${newSync.status}`, newSync.status);
+                    }
+                }
+            }, 60000); // Check every minute (for demo purposes)
+        });
+    </script>
+</body>
+</html>

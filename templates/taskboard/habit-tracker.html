@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Habit Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <style>
+        .habit-cell {
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .habit-cell:hover {
+            transform: scale(1.1);
+        }
+        .completed {
+            background-color: #10b981;
+        }
+        .missed {
+            background-color: #ef4444;
+        }
+        .pending {
+            background-color: #d1d5db;
+        }
+        .future {
+            background-color: #f3f4f6;
+        }
+        .scroll-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        @media (max-width: 640px) {
+            .habit-cell {
+                width: 22px;
+                height: 22px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800">Habit Tracker</h1>
+                <p class="text-gray-600">Track your daily routines and build better habits</p>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-3">
+                <button id="exportBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Export as PNG
+                </button>
+                <div class="flex gap-2">
+                    <select id="filterSelect" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="all">All Habits</option>
+                        <option value="active">Only Active</option>
+                        <option value="missed">Only Missed</option>
+                    </select>
+                    <button id="addHabitBtn" class="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        <span class="hidden sm:inline">Add Habit</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-indigo-50 p-4 rounded-lg">
+                    <p class="text-sm text-indigo-600 font-medium">Total Habits</p>
+                    <p id="totalHabits" class="text-2xl font-bold text-indigo-800">0</p>
+                </div>
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <p class="text-sm text-green-600 font-medium">Current Streak</p>
+                    <p id="currentStreak" class="text-2xl font-bold text-green-800">0 days</p>
+                </div>
+                <div class="bg-purple-50 p-4 rounded-lg">
+                    <p class="text-sm text-purple-600 font-medium">Best Streak</p>
+                    <p id="bestStreak" class="text-2xl font-bold text-purple-800">0 days</p>
+                </div>
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <p class="text-sm text-blue-600 font-medium">Completion Rate</p>
+                    <p id="completionRate" class="text-2xl font-bold text-blue-800">0%</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="trackerContainer" class="bg-white rounded-xl shadow-md overflow-hidden">
+            <div class="scroll-container">
+                <table class="w-full">
+                    <thead>
+                        <tr>
+                            <th class="sticky left-0 z-10 bg-white pl-4 pr-6 py-3 text-left text-sm font-semibold text-gray-900 min-w-[200px]">Habit</th>
+                            <th colspan="30" class="px-2 py-3 text-center text-sm font-semibold text-gray-900">Last 30 Days</th>
+                        </tr>
+                        <tr>
+                            <th class="sticky left-0 z-10 bg-white pl-4 pr-6 py-2 text-left text-sm font-medium text-gray-500"></th>
+                            <!-- Date headers will be inserted here by JavaScript -->
+                        </tr>
+                    </thead>
+                    <tbody id="habitsBody" class="divide-y divide-gray-200">
+                        <!-- Habits will be inserted here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="addHabitModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl p-6 w-full max-w-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-800">Add New Habit</h3>
+                    <button id="closeModalBtn" class="text-gray-500 hover:text-gray-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label for="habitName" class="block text-sm font-medium text-gray-700 mb-1">Habit Name</label>
+                        <input type="text" id="habitName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g. Morning Run">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                        <input type="date" id="habitStartDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end gap-3">
+                    <button id="cancelAddHabitBtn" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancel</button>
+                    <button id="saveHabitBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Save Habit</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Sample data structure
+            let habits = JSON.parse(localStorage.getItem('habits')) || [
+                {
+                    id: 1,
+                    name: 'Morning Run',
+                    startDate: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                    completions: Array(30).fill().map((_, i) => Math.random() > 0.3 ? 'completed' : (Math.random() > 0.5 ? 'missed' : 'pending')),
+                    active: true
+                },
+                {
+                    id: 2,
+                    name: 'Meditation',
+                    startDate: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                    completions: Array(30).fill().map((_, i) => Math.random() > 0.4 ? 'completed' : (Math.random() > 0.6 ? 'missed' : 'pending')),
+                    active: true
+                },
+                {
+                    id: 3,
+                    name: 'Read 30 mins',
+                    startDate: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                    completions: Array(30).fill().map((_, i) => Math.random() > 0.5 ? 'completed' : (Math.random() > 0.7 ? 'missed' : 'pending')),
+                    active: true
+                },
+                {
+                    id: 4,
+                    name: 'Drink 2L water',
+                    startDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                    completions: Array(30).fill().map((_, i) => Math.random() > 0.6 ? 'completed' : (Math.random() > 0.4 ? 'missed' : 'pending')),
+                    active: true
+                }
+            ];
+
+            // Generate dates for the last 30 days
+            const today = new Date();
+            const dates = [];
+            for (let i = 29; i >= 0; i--) {
+                const date = new Date(today);
+                date.setDate(date.getDate() - i);
+                dates.push(date);
+            }
+
+            // Render the tracker
+            function renderTracker(filter = 'all') {
+                // Update KPIs
+                updateKPIs();
+
+                // Filter habits
+                let filteredHabits = habits;
+                if (filter === 'active') {
+                    filteredHabits = habits.filter(habit => habit.active);
+                } else if (filter === 'missed') {
+                    filteredHabits = habits.filter(habit => 
+                        habit.completions.some(status => status === 'missed')
+                    );
+                }
+
+                // Render date headers
+                const dateHeaders = document.querySelector('thead tr:nth-child(2)');
+                dateHeaders.innerHTML = '<th class="sticky left-0 z-10 bg-white pl-4 pr-6 py-2 text-left text-sm font-medium text-gray-500"></th>';
+                
+                dates.forEach(date => {
+                    const day = date.getDate();
+                    const dayOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][date.getDay()];
+                    const isToday = date.toDateString() === today.toDateString();
+                    
+                    const th = document.createElement('th');
+                    th.className = 'px-1 py-2 text-center text-xs font-medium ' + (isToday ? 'text-indigo-600 font-bold' : 'text-gray-500');
+                    th.title = date.toDateString();
+                    th.innerHTML = `
+                        <div class="flex flex-col items-center">
+                            <span>${dayOfWeek}</span>
+                            <span class="text-sm">${day}</span>
+                        </div>
+                    `;
+                    dateHeaders.appendChild(th);
+                });
+
+                // Render habits
+                const habitsBody = document.getElementById('habitsBody');
+                habitsBody.innerHTML = '';
+
+                filteredHabits.forEach(habit => {
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-gray-50';
+                    row.dataset.habitId = habit.id;
+
+                    // Habit name cell
+                    const nameCell = document.createElement('td');
+                    nameCell.className = 'sticky left-0 z-10 bg-white pl-4 pr-6 py-3 whitespace-nowrap text-sm font-medium text-gray-900 min-w-[200px]';
+                    nameCell.innerHTML = `
+                        <div class="flex items-center justify-between">
+                            <span>${habit.name}</span>
+                            <button class="habit-toggle-btn p-1 text-gray-400 hover:text-gray-600" data-habit-id="${habit.id}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
+                    `;
+                    row.appendChild(nameCell);
+
+                    // Habit completion cells
+                    dates.forEach((date, index) => {
+                        const dateStr = date.toISOString().split('T')[0];
+                        const startDate = new Date(habit.startDate);
+                        startDate.setHours(0, 0, 0, 0);
+                        
+                        const cell = document.createElement('td');
+                        cell.className = 'px-1 py-1 text-center';
+
+                        if (date < startDate) {
+                            // Before habit start date
+                            cell.innerHTML = '<div class="habit-cell future" title="Not started yet"></div>';
+                        } else {
+                            const status = habit.completions[index] || 'pending';
+                            const statusClass = status === 'completed' ? 'completed' : 
+                                              status === 'missed' ? 'missed' : 'pending';
+                            const title = status === 'completed' ? 'Completed' : 
+                                         status === 'missed' ? 'Missed' : 'Pending';
+                            
+                            cell.innerHTML = `<div class="habit-cell ${statusClass}" 
+                                data-habit-id="${habit.id}" 
+                                data-date-index="${index}"
+                                title="${date.toDateString()} - ${title}"></div>`;
+                        }
+                        row.appendChild(cell);
+                    });
+
+                    habitsBody.appendChild(row);
+                });
+
+                // Update total habits count
+                document.getElementById('totalHabits').textContent = filteredHabits.length;
+            }
+
+            // Update KPIs
+            function updateKPIs() {
+                // Calculate streaks and completion rate
+                let currentStreak = 0;
+                let bestStreak = 0;
+                let totalCompletions = 0;
+                let totalPossible = 0;
+
+                habits.forEach(habit => {
+                    if (!habit.active) return;
+                    
+                    let habitCurrentStreak = 0;
+                    let habitBestStreak = 0;
+                    
+                    // Check streaks from today backwards
+                    for (let i = dates.length - 1; i >= 0; i--) {
+                        const date = dates[i];
+                        const startDate = new Date(habit.startDate);
+                        startDate.setHours(0, 0, 0, 0);
+                        
+                        if (date >= startDate) {
+                            const status = habit.completions[i];
+                            if (status === 'completed') {
+                                habitCurrentStreak++;
+                                habitBestStreak = Math.max(habitBestStreak, habitCurrentStreak);
+                                totalCompletions++;
+                                totalPossible++;
+                            } else if (status === 'missed') {
+                                habitCurrentStreak = 0;
+                                totalPossible++;
+                            } else if (status === 'pending' && date.toDateString() === today.toDateString()) {
+                                // Today is pending, don't break streak yet
+                            } else {
+                                // Past pending days break the streak
+                                habitCurrentStreak = 0;
+                            }
+                        }
+                    }
+                    
+                    currentStreak = Math.max(currentStreak, habitCurrentStreak);
+                    bestStreak = Math.max(bestStreak, habitBestStreak);
+                });
+
+                // Update KPI elements
+                document.getElementById('currentStreak').textContent = `${currentStreak} day${currentStreak !== 1 ? 's' : ''}`;
+                document.getElementById('bestStreak').textContent = `${bestStreak} day${bestStreak !== 1 ? 's' : ''}`;
+                
+                const completionRate = totalPossible > 0 ? Math.round((totalCompletions / totalPossible) * 100) : 0;
+                document.getElementById('completionRate').textContent = `${completionRate}%`;
+            }
+
+            // Event listeners
+            document.getElementById('filterSelect').addEventListener('change', function() {
+                renderTracker(this.value);
+            });
+
+            // Toggle habit completion status
+            document.addEventListener('click', function(e) {
+                // Handle habit cell clicks
+                if (e.target.classList.contains('habit-cell') && !e.target.classList.contains('future')) {
+                    const habitId = parseInt(e.target.dataset.habitId);
+                    const dateIndex = parseInt(e.target.dataset.dateIndex);
+                    
+                    const habit = habits.find(h => h.id === habitId);
+                    if (habit) {
+                        const currentStatus = habit.completions[dateIndex];
+                        let newStatus;
+                        
+                        if (currentStatus === 'completed') {
+                            newStatus = 'missed';
+                        } else if (currentStatus === 'missed') {
+                            newStatus = 'pending';
+                        } else {
+                            newStatus = 'completed';
+                        }
+                        
+                        habit.completions[dateIndex] = newStatus;
+                        localStorage.setItem('habits', JSON.stringify(habits));
+                        renderTracker(document.getElementById('filterSelect').value);
+                    }
+                }
+                
+                // Handle habit settings button clicks
+                if (e.target.closest('.habit-toggle-btn')) {
+                    const habitId = parseInt(e.target.closest('.habit-toggle-btn').dataset.habitId);
+                    const habit = habits.find(h => h.id === habitId);
+                    if (habit) {
+                        habit.active = !habit.active;
+                        localStorage.setItem('habits', JSON.stringify(habits));
+                        renderTracker(document.getElementById('filterSelect').value);
+                    }
+                }
+            });
+
+            // Add habit modal
+            const addHabitModal = document.getElementById('addHabitModal');
+            document.getElementById('addHabitBtn').addEventListener('click', function() {
+                addHabitModal.classList.remove('hidden');
+                document.getElementById('habitStartDate').value = today.toISOString().split('T')[0];
+            });
+
+            document.getElementById('closeModalBtn').addEventListener('click', function() {
+                addHabitModal.classList.add('hidden');
+            });
+
+            document.getElementById('cancelAddHabitBtn').addEventListener('click', function() {
+                addHabitModal.classList.add('hidden');
+            });
+
+            document.getElementById('saveHabitBtn').addEventListener('click', function() {
+                const name = document.getElementById('habitName').value.trim();
+                const startDate = document.getElementById('habitStartDate').value;
+                
+                if (name) {
+                    const newHabit = {
+                        id: habits.length > 0 ? Math.max(...habits.map(h => h.id)) + 1 : 1,
+                        name: name,
+                        startDate: startDate,
+                        completions: Array(30).fill('pending'),
+                        active: true
+                    };
+                    
+                    habits.push(newHabit);
+                    localStorage.setItem('habits', JSON.stringify(habits));
+                    
+                    document.getElementById('habitName').value = '';
+                    addHabitModal.classList.add('hidden');
+                    renderTracker(document.getElementById('filterSelect').value);
+                }
+            });
+
+            // Export as PNG
+            document.getElementById('exportBtn').addEventListener('click', function() {
+                const trackerContainer = document.getElementById('trackerContainer');
+                
+                html2canvas(trackerContainer, {
+                    scale: 2,
+                    logging: false,
+                    useCORS: true,
+                    allowTaint: true,
+                    scrollX: -window.scrollX,
+                    scrollY: -window.scrollY,
+                    windowWidth: trackerContainer.scrollWidth,
+                    windowHeight: trackerContainer.scrollHeight
+                }).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = 'habit-tracker-' + new Date().toISOString().split('T')[0] + '.png';
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                });
+            });
+
+            // Initial render
+            renderTracker();
+        });
+    </script>
+</body>
+</html>

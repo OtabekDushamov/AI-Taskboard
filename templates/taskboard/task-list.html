@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Tasks Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .badge {
+            @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+        }
+        .chip {
+            @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium;
+        }
+        .drawer {
+            transition: transform 0.3s ease-in-out;
+        }
+        .drawer-open {
+            transform: translateX(0);
+        }
+        .drawer-closed {
+            transform: translateX(100%);
+        }
+        .priority-high {
+            @apply bg-red-100 text-red-800;
+        }
+        .priority-medium {
+            @apply bg-yellow-100 text-yellow-800;
+        }
+        .priority-low {
+            @apply bg-green-100 text-green-800;
+        }
+        .status-todo {
+            @apply bg-gray-100 text-gray-800;
+        }
+        .status-in-progress {
+            @apply bg-blue-100 text-blue-800;
+        }
+        .status-done {
+            @apply bg-green-100 text-green-800;
+        }
+        .status-blocked {
+            @apply bg-red-100 text-red-800;
+        }
+        .date-overdue {
+            @apply bg-red-100 text-red-800;
+        }
+        .date-due-today {
+            @apply bg-yellow-100 text-yellow-800;
+        }
+        .date-due-soon {
+            @apply bg-blue-100 text-blue-800;
+        }
+        .date-due-later {
+            @apply bg-gray-100 text-gray-800;
+        }
+        .checkbox-cell {
+            @apply px-3 py-4 whitespace-nowrap;
+            width: 40px;
+        }
+        [type="checkbox"] {
+            @apply h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500;
+        }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            z-index: 50;
+            @apply mt-1 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none;
+        }
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen">
+        <!-- Header -->
+        <header class="bg-white shadow">
+            <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex justify-between items-center">
+                <h1 class="text-2xl font-bold text-gray-900">Global Tasks</h1>
+                <div class="flex items-center space-x-4">
+                    <button class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
+                        <i class="fas fa-plus mr-2"></i>New Task
+                    </button>
+                    <button id="saveFilterBtn" class="px-4 py-2 border border-indigo-600 text-indigo-600 rounded-md hover:bg-indigo-50">
+                        <i class="fas fa-save mr-2"></i>Save Filter
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Filter Toolbar -->
+        <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
+            <div class="bg-white shadow rounded-lg p-4 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Search -->
+                    <div>
+                        <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-search text-gray-400"></i>
+                            </div>
+                            <input type="text" id="search" class="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md" placeholder="Search tasks...">
+                        </div>
+                    </div>
+
+                    <!-- Status Multi-select -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                        <div class="dropdown relative">
+                            <button class="w-full text-left px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                <span id="status-selected">Any status</span>
+                                <i class="fas fa-chevron-down float-right mt-1"></i>
+                            </button>
+                            <div class="dropdown-content p-2">
+                                <div class="space-y-2">
+                                    <div class="flex items-center">
+                                        <input id="status-todo" name="status" type="checkbox" value="todo" class="h-4 w-4 border-gray-300 rounded text-indigo-600 focus:ring-indigo-500">
+                                        <label for="status-todo" class="ml-2 block text-sm text-gray-700">To Do</label>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input id="status-in-progress" name="status" type="checkbox" value="in-progress" class="h-4 w-4 border-gray-300 rounded text-indigo-600 focus:ring-indigo-500">
+                                        <label for="status-in-progress" class="ml-2 block text-sm text-gray-700">In Progress</label>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input id="status-done" name="status" type="checkbox" value="done" class="h-4 w-4 border-gray-300 rounded text-indigo-600 focus:ring-indigo-500">
+                                        <label for="status-done" class="ml-2 block text-sm text-gray-700">Done</label>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input id="status-blocked" name="status" type="checkbox" value="blocked" class="h-4 w-4 border-gray-300 rounded text-indigo-600 focus:ring-indigo-500">
+                                        <label for="status-blocked" class="ml-2 block text-sm text-gray-700">Blocked</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Priority -->
+                    <div>
+                        <label for="priority" class="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                        <select id="priority" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                            <option value="">Any priority</option>
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                    <!-- Project -->
+                    <div>
+                        <label for="project" class="block text-sm font-medium text-gray-700 mb-1">Project</label>
+                        <select id="project" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                            <option value="">All projects</option>
+                            <option value="website">Website Redesign</option>
+                            <option value="mobile">Mobile App</option>
+                            <option value="marketing">Marketing Campaign</option>
+                            <option value="hr">HR Onboarding</option>
+                        </select>
+                    </div>
+
+                    <!-- Category -->
+                    <div>
+                        <label for="category" class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                        <select id="category" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                            <option value="">All categories</option>
+                            <option value="design">Design</option>
+                            <option value="development">Development</option>
+                            <option value="testing">Testing</option>
+                            <option value="documentation">Documentation</option>
+                        </select>
+                    </div>
+
+                    <!-- Assignee -->
+                    <div>
+                        <label for="assignee" class="block text-sm font-medium text-gray-700 mb-1">Assignee</label>
+                        <select id="assignee" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                            <option value="">All assignees</option>
+                            <option value="john">John Doe</option>
+                            <option value="jane">Jane Smith</option>
+                            <option value="mike">Mike Johnson</option>
+                            <option value="sarah">Sarah Williams</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Date Range -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div>
+                        <label for="date-from" class="block text-sm font-medium text-gray-700 mb-1">From</label>
+                        <input type="date" id="date-from" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                    </div>
+                    <div>
+                        <label for="date-to" class="block text-sm font-medium text-gray-700 mb-1">To</label>
+                        <input type="date" id="date-to" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                    </div>
+                </div>
+
+                <div class="flex justify-end mt-4">
+                    <button id="resetFilters" class="mr-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50">
+                        Reset
+                    </button>
+                    <button id="applyFilters" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
+                        Apply Filters
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bulk Actions (hidden by default) -->
+        <div id="bulkActions" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4 hidden">
+            <div class="bg-white shadow rounded-lg p-4 flex items-center justify-between">
+                <div class="text-sm text-gray-500">
+                    <span id="selectedCount">0</span> tasks selected
+                </div>
+                <div class="flex space-x-2">
+                    <div class="dropdown relative">
+                        <button class="px-3 py-1.5 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            <i class="fas fa-check mr-1"></i>Complete
+                            <i class="fas fa-chevron-down ml-1"></i>
+                        </button>
+                    </div>
+                    <div class="dropdown relative">
+                        <button class="px-3 py-1.5 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            <i class="fas fa-exchange-alt mr-1"></i>Change Status
+                            <i class="fas fa-chevron-down ml-1"></i>
+                        </button>
+                        <div class="dropdown-content p-2">
+                            <div class="space-y-2">
+                                <button class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded">To Do</button>
+                                <button class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded">In Progress</button>
+                                <button class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded">Done</button>
+                                <button class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded">Blocked</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dropdown relative">
+                        <button class="px-3 py-1.5 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            <i class="fas fa-user mr-1"></i>Assign
+                            <i class="fas fa-chevron-down ml-1"></i>
+                        </button>
+                        <div class="dropdown-content p-2">
+                            <div class="space-y-2">
+                                <button class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded">John Doe</button>
+                                <button class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded">Jane Smith</button>
+                                <button class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded">Mike Johnson</button>
+                                <button class="w-full text-left px-2 py-1 text-sm hover:bg-gray-100 rounded">Sarah Williams</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dropdown relative">
+                        <button class="px-3 py-1.5 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            <i class="fas fa-calendar mr-1"></i>Set Due Date
+                            <i class="fas fa-chevron-down ml-1"></i>
+                        </button>
+                    </div>
+                    <button class="px-3 py-1.5 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        <i class="fas fa-trash mr-1"></i>Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tasks Table -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-white shadow rounded-lg overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="checkbox-cell">
+                                    <input type="checkbox" id="selectAll" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Title
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Project / Category
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Status
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Priority
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Assignee
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Due Date
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Time
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Updated
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <!-- Task 1 -->
+                            <tr class="cursor-pointer hover:bg-gray-50 task-row" data-task-id="1">
+                                <td class="checkbox-cell">
+                                    <input type="checkbox" class="task-checkbox h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="text-sm font-medium text-gray-900">Design homepage layout</div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900">Website Redesign</div>
+                                    <div class="text-sm text-gray-500">Design</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="badge status-in-progress">In Progress</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="badge priority-high">High</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0 h-8 w-8">
+                                            <img class="h-8 w-8 rounded-full" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="">
+                                        </div>
+                                        <div class="ml-2">
+                                            <div class="text-sm font-medium text-gray-900">Jane Smith</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="chip date-due-today">Today</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900">4h / 2h</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    2 hours ago
+                                </td>
+                            </tr>
+
+                            <!-- Task 2 -->
+                            <tr class="cursor-pointer hover:bg-gray-50 task-row" data-task-id="2">
+                                <td class="checkbox-cell">
+                                    <input type="checkbox" class="task-checkbox h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="text-sm font-medium text-gray-900">Implement user authentication</div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900">Mobile App</div>
+                                    <div class="text-sm text-gray-500">Development</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="badge status-todo">To Do</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="badge priority-medium">Medium</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0 h-8 w-8">
+                                            <img class="h-8 w-8 rounded-full" src="https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="">
+                                        </div>
+                                        <div class="ml-2">
+                                            <div class="text-sm font-medium text-gray-900">Mike Johnson</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="chip date-due-soon">Tomorrow</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900">8h / 0h</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    1 day ago
+                                </td>
+                            </tr>
+
+                            <!-- Task 3 -->
+                            <tr class="cursor-pointer hover:bg-gray-50 task-row" data-task-id="3">
+                                <td class="checkbox-cell">
+                                    <input type="checkbox" class="task-checkbox h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="text-sm font-medium text-gray-900">Write API documentation</div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900">Website Redesign</div>
+                                    <div class="text-sm text-gray-500">Documentation</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="badge status-done">Done</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="badge priority-low">Low</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0 h-8 w-8">
+                                            <img class="h-8 w-8 rounded-full" src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="">
+                                        </div>
+                                        <div class="ml-2">
+                                            <div class="text-sm font-medium text-gray-900">John Doe</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="chip">Jun 15</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900">3h / 3h</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    3 days ago
+                                </td>
+                            </tr>
+
+                            <!-- Task 4 -->
+                            <tr class="cursor-pointer hover:bg-gray-50 task-row" data-task-id="4">
+                                <td class="checkbox-cell">
+                                    <input type="checkbox" class="task-checkbox h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="text-sm font-medium text-gray-900">Fix login page bugs</div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900">Mobile App</div>
+                                    <div class="text-sm text-gray-500">Testing</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="badge status-blocked">Blocked</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="badge priority-high">High</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0 h-8 w-8">
+                                            <img class="h-8 w-8 rounded-full" src="https://images.unsplash.com/photo-1517841905240-472988babdf9?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="">
+                                        </div>
+                                        <div class="ml-2">
+                                            <div class="text-sm font-medium text-gray-900">Sarah Williams</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="chip date-overdue">Overdue</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900">2h / 0h</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    5 days ago
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Task Preview Drawer -->
+        <div id="taskDrawer" class="drawer drawer-closed fixed inset-y-0 right-0 w-full md:w-1/2 lg:w-1/3 bg-white shadow-lg z-50 overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-gray-900" id="drawerTaskTitle">Task Details</h2>
+                    <button id="closeDrawer" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <div class="mb-6">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm font-medium text-gray-500">Status</span>
+                        <span class="badge status-in-progress" id="drawerTaskStatus">In Progress</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm font-medium text-gray-500">Priority</span>
+                        <span class="badge priority-high" id="drawerTaskPriority">High</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm font-medium text-gray-500">Due Date</span>
+                        <span class="chip date-due-today" id="drawerTaskDueDate">Today</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm font-medium text-gray-500">Assignee</span>
+                        <div class="flex items-center">
+                            <img class="h-6 w-6 rounded-full mr-2" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="">
+                            <span class="text-sm" id="drawerTaskAssignee">Jane Smith</span>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm font-medium text-gray-500">Project</span>
+                        <span class="text-sm" id="drawerTaskProject">Website Redesign</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-medium text-gray-500">Category</span>
+                        <span class="text-sm" id="drawerTaskCategory">Design</span>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <h3 class="text-sm font-medium text-gray-500 mb-2">Description</h3>
+                    <p class="text-sm text-gray-700" id="drawerTaskDescription">
+                        Design a modern and responsive homepage layout for the new website. Include hero section, featured products, testimonials, and call-to-action buttons. Follow brand guidelines.
+                    </p>
+                </div>
+
+                <div class="mb-6">
+                    <h3 class="text-sm font-medium text-gray-500 mb-2">Time Tracking</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Estimate</span>
+                            <p class="text-sm" id="drawerTaskEstimate">4 hours</p>
+                        </div>
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Actual</span>
+                            <p class="text-sm" id="drawerTaskActual">2 hours</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <h3 class="text-sm font-medium text-gray-500 mb-2">Attachments</h3>
+                    <div class="border border-gray-200 rounded-md p-3">
+                        <div class="flex items-center">
+                            <i class="fas fa-file-image text-gray-400 mr-2"></i>
+                            <span class="text-sm">homepage-mockup.png</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex space-x-2">
+                    <button class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
+                        <i class="fas fa-edit mr-2"></i>Edit
+                    </button>
+                    <button class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50">
+                        <i class="fas fa-check mr-2"></i>Complete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Task selection and bulk actions
+            const taskCheckboxes = document.querySelectorAll('.task-checkbox');
+            const selectAllCheckbox = document.getElementById('selectAll');
+            const bulkActions = document.getElementById('bulkActions');
+            const selectedCount = document.getElementById('selectedCount');
+
+            // Task drawer
+            const taskDrawer = document.getElementById('taskDrawer');
+            const closeDrawer = document.getElementById('closeDrawer');
+            const taskRows = document.querySelectorAll('.task-row');
+
+            // Status filter
+            const statusCheckboxes = document.querySelectorAll('input[name="status"]');
+            const statusSelected = document.getElementById('status-selected');
+
+            // Filter buttons
+            const applyFilters = document.getElementById('applyFilters');
+            const resetFilters = document.getElementById('resetFilters');
+
+            // Toggle bulk actions based on selection
+            function updateBulkActions() {
+                const selectedTasks = document.querySelectorAll('.task-checkbox:checked');
+                selectedCount.textContent = selectedTasks.length;
+                
+                if (selectedTasks.length > 0) {
+                    bulkActions.classList.remove('hidden');
+                } else {
+                    bulkActions.classList.add('hidden');
+                }
+            }
+
+            // Select all tasks
+            selectAllCheckbox.addEventListener('change', function() {
+                taskCheckboxes.forEach(checkbox => {
+                    checkbox.checked = selectAllCheckbox.checked;
+                });
+                updateBulkActions();
+            });
+
+            // Update select all checkbox when individual checkboxes change
+            taskCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const allChecked = Array.from(taskCheckboxes).every(cb => cb.checked);
+                    selectAllCheckbox.checked = allChecked;
+                    updateBulkActions();
+                });
+            });
+
+            // Open task drawer when clicking on a row
+            taskRows.forEach(row => {
+                row.addEventListener('click', function(e) {
+                    // Don't open drawer if clicking on checkbox
+                    if (e.target.tagName === 'INPUT' && e.target.type === 'checkbox') {
+                        return;
+                    }
+                    
+                    // Get task data from the row
+                    const taskId = row.getAttribute('data-task-id');
+                    const title = row.querySelector('td:nth-child(2) .text-gray-900').textContent;
+                    const project = row.querySelector('td:nth-child(3) .text-gray-900').textContent;
+                    const category = row.querySelector('td:nth-child(3) .text-gray-500').textContent;
+                    const status = row.querySelector('td:nth-child(4) .badge').textContent;
+                    const priority = row.querySelector('td:nth-child(5) .badge').textContent;
+                    const assignee = row.querySelector('td:nth-child(6) .text-gray-900').textContent;
+                    const dueDate = row.querySelector('td:nth-child(7) .chip').textContent;
+                    const time = row.querySelector('td:nth-child(8) .text-gray-900').textContent;
+                    
+                    // Update drawer content
+                    document.getElementById('drawerTaskTitle').textContent = title;
+                    document.getElementById('drawerTaskStatus').textContent = status;
+                    document.getElementById('drawerTaskPriority').textContent = priority;
+                    document.getElementById('drawerTaskDueDate').textContent = dueDate;
+                    document.getElementById('drawerTaskAssignee').textContent = assignee;
+                    document.getElementById('drawerTaskProject').textContent = project;
+                    document.getElementById('drawerTaskCategory').textContent = category;
+                    
+                    // Split time into estimate/actual
+                    const [estimate, actual] = time.split(' / ');
+                    document.getElementById('drawerTaskEstimate').textContent = estimate;
+                    document.getElementById('drawerTaskActual').textContent = actual;
+                    
+                    // Update status/priority classes
+                    const statusBadge = document.getElementById('drawerTaskStatus');
+                    statusBadge.className = 'badge ' + row.querySelector('td:nth-child(4) .badge').className.split(' ').slice(1).join(' ');
+                    
+                    const priorityBadge = document.getElementById('drawerTaskPriority');
+                    priorityBadge.className = 'badge ' + row.querySelector('td:nth-child(5) .badge').className.split(' ').slice(1).join(' ');
+                    
+                    const dueDateChip = document.getElementById('drawerTaskDueDate');
+                    dueDateChip.className = 'chip ' + row.querySelector('td:nth-child(7) .chip').className.split(' ').slice(1).join(' ');
+                    
+                    // Open drawer
+                    taskDrawer.classList.remove('drawer-closed');
+                    taskDrawer.classList.add('drawer-open');
+                });
+            });
+
+            // Close drawer
+            closeDrawer.addEventListener('click', function() {
+                taskDrawer.classList.remove('drawer-open');
+                taskDrawer.classList.add('drawer-closed');
+            });
+
+            // Update status filter label
+            statusCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const selectedStatuses = Array.from(statusCheckboxes)
+                        .filter(cb => cb.checked)
+                        .map(cb => cb.nextElementSibling.textContent);
+                    
+                    if (selectedStatuses.length === 0) {
+                        statusSelected.textContent = 'Any status';
+                    } else if (selectedStatuses.length === statusCheckboxes.length) {
+                        statusSelected.textContent = 'All statuses';
+                    } else if (selectedStatuses.length > 2) {
+                        statusSelected.textContent = `${selectedStatuses.length} statuses`;
+                    } else {
+                        statusSelected.textContent = selectedStatuses.join(', ');
+                    }
+                });
+            });
+
+            // Apply filters
+            applyFilters.addEventListener('click', function() {
+                // In a real app, this would filter the tasks
+                alert('Filters applied! (This is a demo)');
+            });
+
+            // Reset filters
+            resetFilters.addEventListener('click', function() {
+                // Reset all filter inputs
+                document.getElementById('search').value = '';
+                
+                statusCheckboxes.forEach(cb => cb.checked = false);
+                statusSelected.textContent = 'Any status';
+                
+                document.getElementById('priority').value = '';
+                document.getElementById('project').value = '';
+                document.getElementById('category').value = '';
+                document.getElementById('assignee').value = '';
+                document.getElementById('date-from').value = '';
+                document.getElementById('date-to').value = '';
+            });
+        });
+    </script>
+</body>
+</html>

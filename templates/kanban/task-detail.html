@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Details</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Custom scrollbar for comments section */
+        .comments-container::-webkit-scrollbar {
+            width: 5px;
+        }
+        .comments-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .comments-container::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 10px;
+        }
+        .comments-container::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
+        }
+        
+        /* Animation for checklist items */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .checklist-item {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        
+        /* Date picker styling */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.5);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans">
+    <div class="max-w-md mx-auto pb-20">
+        <!-- Header -->
+        <div class="bg-white p-4 shadow-sm sticky top-0 z-10">
+            <div class="flex items-center justify-between">
+                <button class="text-gray-600">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <h1 class="text-xl font-semibold text-center">Task Details</h1>
+                <div class="w-6"></div> <!-- Spacer for balance -->
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="px-4 pt-2 space-y-6">
+            <!-- Title -->
+            <div>
+                <label class="block text-sm font-medium text-gray-500 mb-1">Title</label>
+                <input type="text" value="Complete project proposal" 
+                       class="w-full p-3 border-b border-gray-200 focus:border-blue-500 focus:outline-none text-lg font-medium">
+            </div>
+            
+            <!-- Description -->
+            <div>
+                <label class="block text-sm font-medium text-gray-500 mb-1">Description</label>
+                <textarea class="w-full p-3 border border-gray-200 rounded-lg focus:ring-blue-500 focus:border-blue-500 h-32"
+                          placeholder="Add details about this task...">Finish the proposal document with all requirements and send to client for review by Friday.</textarea>
+            </div>
+            
+            <!-- Checklist -->
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <label class="block text-sm font-medium text-gray-500">Checklist</label>
+                    <button id="add-checklist-item" class="text-blue-500 text-sm font-medium">
+                        <i class="fas fa-plus mr-1"></i> Add item
+                    </button>
+                </div>
+                <div id="checklist-items" class="space-y-2">
+                    <div class="checklist-item flex items-center bg-white p-3 rounded-lg shadow-sm">
+                        <input type="checkbox" class="h-5 w-5 text-blue-500 rounded mr-3">
+                        <input type="text" value="Research competitors" class="flex-1 focus:outline-none">
+                        <button class="text-gray-400 hover:text-red-500 ml-2">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="checklist-item flex items-center bg-white p-3 rounded-lg shadow-sm">
+                        <input type="checkbox" class="h-5 w-5 text-blue-500 rounded mr-3" checked>
+                        <input type="text" value="Draft initial outline" class="flex-1 focus:outline-none line-through text-gray-400">
+                        <button class="text-gray-400 hover:text-red-500 ml-2">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Assignee -->
+            <div>
+                <label class="block text-sm font-medium text-gray-500 mb-2">Assignee</label>
+                <div class="relative">
+                    <select class="w-full p-3 border border-gray-200 rounded-lg appearance-none focus:ring-blue-500 focus:border-blue-500 bg-white">
+                        <option selected>Select assignee</option>
+                        <option value="1">John Doe (Design)</option>
+                        <option value="2">Jane Smith (Development)</option>
+                        <option value="3">Mike Johnson (Marketing)</option>
+                    </select>
+                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Due Date -->
+            <div>
+                <label class="block text-sm font-medium text-gray-500 mb-2">Due Date</label>
+                <div class="relative">
+                    <input type="date" value="2023-11-15" 
+                           class="w-full p-3 border border-gray-200 rounded-lg focus:ring-blue-500 focus:border-blue-500 bg-white">
+                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
+                        <i class="far fa-calendar-alt"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Labels -->
+            <div>
+                <label class="block text-sm font-medium text-gray-500 mb-2">Labels</label>
+                <div class="flex flex-wrap gap-2">
+                    <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center">
+                        Urgent
+                        <button class="ml-1 text-blue-400 hover:text-blue-600">
+                            <i class="fas fa-times text-xs"></i>
+                        </button>
+                    </span>
+                    <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm flex items-center">
+                        Client Project
+                        <button class="ml-1 text-green-400 hover:text-green-600">
+                            <i class="fas fa-times text-xs"></i>
+                        </button>
+                    </span>
+                    <button class="text-blue-500 text-sm font-medium flex items-center">
+                        <i class="fas fa-plus mr-1"></i> Add label
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Attachments -->
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <label class="block text-sm font-medium text-gray-500">Attachments</label>
+                    <button class="text-blue-500 text-sm font-medium">
+                        <i class="fas fa-plus mr-1"></i> Add file
+                    </button>
+                </div>
+                <div class="space-y-2">
+                    <div class="flex items-center p-3 bg-white rounded-lg shadow-sm">
+                        <div class="bg-blue-100 p-2 rounded-lg mr-3">
+                            <i class="fas fa-file-pdf text-blue-500"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium">Project_Requirements.pdf</p>
+                            <p class="text-xs text-gray-500">2.4 MB • Added 2 days ago</p>
+                        </div>
+                        <button class="text-gray-400 hover:text-red-500 ml-2">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                    </div>
+                    <div class="flex items-center p-3 bg-white rounded-lg shadow-sm">
+                        <div class="bg-green-100 p-2 rounded-lg mr-3">
+                            <i class="fas fa-file-excel text-green-500"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium">Budget_Estimate.xlsx</p>
+                            <p class="text-xs text-gray-500">1.1 MB • Added yesterday</p>
+                        </div>
+                        <button class="text-gray-400 hover:text-red-500 ml-2">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Comments -->
+            <div>
+                <label class="block text-sm font-medium text-gray-500 mb-2">Comments</label>
+                <div class="comments-container max-h-64 overflow-y-auto pr-2">
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <div class="bg-purple-500 text-white h-8 w-8 rounded-full flex items-center justify-center mr-3 mt-1">
+                                JD
+                            </div>
+                            <div class="flex-1 bg-white p-3 rounded-lg shadow-sm">
+                                <div class="flex items-center justify-between mb-1">
+                                    <p class="font-medium">John Doe</p>
+                                    <p class="text-xs text-gray-500">2h ago</p>
+                                </div>
+                                <p class="text-sm">I've reviewed the initial outline, looks good. Let's add more details to section 3.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="bg-blue-500 text-white h-8 w-8 rounded-full flex items-center justify-center mr-3 mt-1">
+                                JS
+                            </div>
+                            <div class="flex-1 bg-white p-3 rounded-lg shadow-sm">
+                                <div class="flex items-center justify-between mb-1">
+                                    <p class="font-medium">Jane Smith</p>
+                                    <p class="text-xs text-gray-500">30m ago</p>
+                                </div>
+                                <p class="text-sm">I'll work on that today. Can you share the client's branding guidelines?</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-3 flex items-center">
+                    <div class="bg-gray-300 text-white h-10 w-10 rounded-full flex items-center justify-center mr-3">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="flex-1 relative">
+                        <input type="text" placeholder="Write a comment..." 
+                               class="w-full p-3 pr-10 border border-gray-200 rounded-full focus:ring-blue-500 focus:border-blue-500">
+                        <button class="absolute right-3 top-3 text-gray-400 hover:text-blue-500">
+                            <i class="far fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sticky Action Bar -->
+        <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 shadow-lg flex justify-between max-w-md mx-auto">
+            <button class="px-4 py-2 bg-red-100 text-red-600 rounded-lg font-medium flex items-center">
+                <i class="fas fa-trash mr-2"></i> Delete
+            </button>
+            <button class="px-6 py-2 bg-blue-500 text-white rounded-lg font-medium flex items-center">
+                <i class="fas fa-save mr-2"></i> Save
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Add new checklist item
+        document.getElementById('add-checklist-item').addEventListener('click', function() {
+            const checklistContainer = document.getElementById('checklist-items');
+            const newItem = document.createElement('div');
+            newItem.className = 'checklist-item flex items-center bg-white p-3 rounded-lg shadow-sm';
+            newItem.innerHTML = `
+                <input type="checkbox" class="h-5 w-5 text-blue-500 rounded mr-3">
+                <input type="text" placeholder="New checklist item" class="flex-1 focus:outline-none">
+                <button class="text-gray-400 hover:text-red-500 ml-2 remove-item">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            checklistContainer.appendChild(newItem);
+            
+            // Focus on the new input
+            newItem.querySelector('input[type="text"]').focus();
+            
+            // Add animation
+            setTimeout(() => {
+                newItem.style.opacity = '1';
+            }, 10);
+        });
+        
+        // Remove checklist item
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('remove-item') || 
+                e.target.parentElement.classList.contains('remove-item')) {
+                const item = e.target.closest('.checklist-item');
+                item.style.opacity = '0';
+                item.style.transform = 'translateY(-10px)';
+                setTimeout(() => {
+                    item.remove();
+                }, 300);
+            }
+        });
+        
+        // Toggle checklist item strike-through
+        document.addEventListener('change', function(e) {
+            if (e.target.type === 'checkbox' && e.target.closest('.checklist-item')) {
+                const textInput = e.target.nextElementSibling;
+                if (e.target.checked) {
+                    textInput.classList.add('line-through', 'text-gray-400');
+                } else {
+                    textInput.classList.remove('line-through', 'text-gray-400');
+                }
+            }
+        });
+    </script>
+</body>
+</html>

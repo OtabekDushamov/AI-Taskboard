@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Routine Detail</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .heatmap-day {
+            width: 14px;
+            height: 14px;
+            margin: 2px;
+            border-radius: 2px;
+            transition: all 0.2s ease;
+        }
+        .heatmap-day:hover {
+            transform: scale(1.5);
+        }
+        .attachment-card {
+            transition: all 0.2s ease;
+        }
+        .attachment-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .mark-done-btn {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .mark-done-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .mark-done-btn:active {
+            transform: translateY(0);
+        }
+        .chip {
+            transition: all 0.2s ease;
+        }
+        .chip.active {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- Header Section -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                <div class="flex items-center mb-4 md:mb-0">
+                    <h1 class="text-2xl font-bold text-gray-800 mr-4">Morning Meditation</h1>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" value="" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                        <span class="ml-3 text-sm font-medium text-gray-700">Active</span>
+                    </label>
+                </div>
+                <div class="flex items-center">
+                    <div class="flex items-center bg-blue-50 px-3 py-1 rounded-full">
+                        <i class="far fa-clock text-blue-500 mr-2"></i>
+                        <span class="text-blue-700 font-medium">8:00 AM</span>
+                    </div>
+                    <button class="ml-4 text-gray-500 hover:text-gray-700" id="edit-btn">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Schedule Chips -->
+            <div class="mt-4 flex flex-wrap gap-2">
+                <div class="chip px-3 py-1 rounded-full bg-gray-100 text-gray-700">Mon</div>
+                <div class="chip px-3 py-1 rounded-full bg-gray-100 text-gray-700">Wed</div>
+                <div class="chip px-3 py-1 rounded-full bg-gray-100 text-gray-700">Fri</div>
+                <div class="chip px-3 py-1 rounded-full bg-gray-100 text-gray-700">Sun</div>
+            </div>
+        </div>
+        
+        <div class="flex flex-col lg:flex-row gap-6">
+            <!-- Left Column -->
+            <div class="lg:w-2/3">
+                <!-- Description -->
+                <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-3">Description</h2>
+                    <p class="text-gray-600">
+                        Start your day with a 10-minute mindfulness meditation session. Find a quiet space, sit comfortably, and focus on your breath. This practice helps reduce stress and increase focus for the day ahead.
+                    </p>
+                </div>
+                
+                <!-- Notes -->
+                <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="text-lg font-semibold text-gray-800">Notes</h2>
+                        <button class="text-blue-500 hover:text-blue-700">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0 mt-1">
+                                <div class="h-2 w-2 rounded-full bg-blue-500"></div>
+                            </div>
+                            <p class="ml-2 text-gray-600">Try using the Insight Timer app for guided sessions</p>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0 mt-1">
+                                <div class="h-2 w-2 rounded-full bg-blue-500"></div>
+                            </div>
+                            <p class="ml-2 text-gray-600">Best done before checking phone or email</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Attachments -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="text-lg font-semibold text-gray-800">Attachments</h2>
+                        <button class="text-blue-500 hover:text-blue-700">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div class="attachment-card bg-gray-50 rounded-lg p-3 flex items-center border border-gray-200 cursor-pointer">
+                            <div class="bg-blue-100 p-2 rounded-lg mr-3">
+                                <i class="fas fa-file-pdf text-blue-500"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-800">Meditation Guide.pdf</p>
+                                <p class="text-xs text-gray-500">250 KB</p>
+                            </div>
+                        </div>
+                        <div class="attachment-card bg-gray-50 rounded-lg p-3 flex items-center border border-gray-200 cursor-pointer">
+                            <div class="bg-purple-100 p-2 rounded-lg mr-3">
+                                <i class="fas fa-link text-purple-500"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-800">Breathing Techniques</p>
+                                <p class="text-xs text-gray-500">Website Link</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Column -->
+            <div class="lg:w-1/3">
+                <!-- Streak Counter -->
+                <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4">Current Streak</h2>
+                    <div class="flex items-center justify-center">
+                        <div class="text-center">
+                            <div class="text-5xl font-bold text-orange-500">12</div>
+                            <div class="text-gray-500">days</div>
+                        </div>
+                        <div class="ml-6">
+                            <div class="flex items-center mb-2">
+                                <div class="w-4 h-4 rounded-full bg-green-500 mr-2"></div>
+                                <span class="text-sm text-gray-600">Longest streak: 21 days</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-4 h-4 rounded-full bg-blue-500 mr-2"></div>
+                                <span class="text-sm text-gray-600">Started 3 weeks ago</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Calendar Heatmap -->
+                <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4">Last 90 Days</h2>
+                    <div class="flex justify-center">
+                        <div class="flex flex-wrap w-64">
+                            <!-- This would be generated dynamically in a real app -->
+                            <!-- Sample heatmap data -->
+                            <div class="heatmap-day bg-gray-200" title="No data"></div>
+                            <div class="heatmap-day bg-gray-200" title="No data"></div>
+                            <div class="heatmap-day bg-green-100" title="Skipped"></div>
+                            <div class="heatmap-day bg-green-300" title="Completed"></div>
+                            <div class="heatmap-day bg-green-500" title="Completed"></div>
+                            <div class="heatmap-day bg-green-300" title="Completed"></div>
+                            <div class="heatmap-day bg-gray-200" title="No data"></div>
+                            <!-- More days would follow in a real implementation -->
+                        </div>
+                    </div>
+                    <div class="flex justify-between mt-4 text-xs text-gray-500">
+                        <span>Less</span>
+                        <div class="flex items-center">
+                            <div class="heatmap-day bg-gray-200 mr-1"></div>
+                            <div class="heatmap-day bg-green-100 mr-1"></div>
+                            <div class="heatmap-day bg-green-300 mr-1"></div>
+                            <div class="heatmap-day bg-green-500 mr-1"></div>
+                        </div>
+                        <span>More</span>
+                    </div>
+                </div>
+                
+                <!-- Stats -->
+                <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4">Stats</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm font-medium text-gray-700">Completion Rate</span>
+                                <span class="text-sm font-medium text-blue-600">78%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="bg-blue-600 h-2.5 rounded-full" style="width: 78%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm font-medium text-gray-700">Average Duration</span>
+                                <span class="text-sm font-medium text-purple-600">9.2 min</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="bg-purple-600 h-2.5 rounded-full" style="width: 92%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm font-medium text-gray-700">Consistency</span>
+                                <span class="text-sm font-medium text-green-600">85%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="bg-green-600 h-2.5 rounded-full" style="width: 85%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mark Done Button -->
+                <button class="mark-done-btn w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold py-4 px-4 rounded-xl text-lg">
+                    Mark Done Today
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Edit Modal (hidden by default) -->
+    <div id="edit-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-800">Edit Routine</h3>
+                <button id="close-modal" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="routine-name">
+                        Routine Name
+                    </label>
+                    <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="routine-name" type="text" value="Morning Meditation">
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">
+                        Active
+                    </label>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" value="" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                    </label>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="reminder-time">
+                        Reminder Time
+                    </label>
+                    <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="reminder-time" type="time" value="08:00">
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">
+                        Schedule
+                    </label>
+                    <div class="flex flex-wrap gap-2">
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600" checked>
+                            <span class="ml-2 text-gray-700">Mon</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600">
+                            <span class="ml-2 text-gray-700">Tue</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600" checked>
+                            <span class="ml-2 text-gray-700">Wed</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600">
+                            <span class="ml-2 text-gray-700">Thu</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600" checked>
+                            <span class="ml-2 text-gray-700">Fri</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600">
+                            <span class="ml-2 text-gray-700">Sat</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600" checked>
+                            <span class="ml-2 text-gray-700">Sun</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="description">
+                        Description
+                    </label>
+                    <textarea class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="description" rows="3">Start your day with a 10-minute mindfulness meditation session. Find a quiet space, sit comfortably, and focus on your breath. This practice helps reduce stress and increase focus for the day ahead.</textarea>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="cancel-edit" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                        Cancel
+                    </button>
+                    <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        // Modal functionality
+        const editBtn = document.getElementById('edit-btn');
+        const editModal = document.getElementById('edit-modal');
+        const closeModal = document.getElementById('close-modal');
+        const cancelEdit = document.getElementById('cancel-edit');
+        
+        editBtn.addEventListener('click', () => {
+            editModal.classList.remove('hidden');
+        });
+        
+        closeModal.addEventListener('click', () => {
+            editModal.classList.add('hidden');
+        });
+        
+        cancelEdit.addEventListener('click', () => {
+            editModal.classList.add('hidden');
+        });
+        
+        // Close modal when clicking outside
+        editModal.addEventListener('click', (e) => {
+            if (e.target === editModal) {
+                editModal.classList.add('hidden');
+            }
+        });
+        
+        // Mark Done button animation
+        const markDoneBtn = document.querySelector('.mark-done-btn');
+        markDoneBtn.addEventListener('click', function() {
+            // In a real app, this would save the completion
+            // Here we just show a temporary effect
+            this.innerHTML = '<i class="fas fa-check mr-2"></i> Done!';
+            this.classList.remove('from-blue-500', 'to-blue-600', 'hover:from-blue-600', 'hover:to-blue-700');
+            this.classList.add('from-green-500', 'to-green-600');
+            
+            setTimeout(() => {
+                this.innerHTML = 'Mark Done Today';
+                this.classList.remove('from-green-500', 'to-green-600');
+                this.classList.add('from-blue-500', 'to-blue-600', 'hover:from-blue-600', 'hover:to-blue-700');
+            }, 2000);
+        });
+        
+        // Toggle active state for schedule chips
+        const chips = document.querySelectorAll('.chip');
+        chips.forEach(chip => {
+            chip.addEventListener('click', function() {
+                this.classList.toggle('bg-gray-100');
+                this.classList.toggle('bg-blue-100');
+                this.classList.toggle('text-gray-700');
+                this.classList.toggle('text-blue-700');
+                this.classList.toggle('active');
+            });
+        });
+    </script>
+</body>
+</html>

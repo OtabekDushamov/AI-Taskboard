@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Routines Checklist</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Custom animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .task-card {
+            animation: fadeIn 0.3s ease-out forwards;
+            opacity: 0;
+        }
+        
+        .progress-bar {
+            transition: width 0.5s ease;
+        }
+        
+        .streak-fire {
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        /* Custom checkbox */
+        .custom-checkbox {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border: 2px solid #d1d5db;
+            border-radius: 6px;
+            outline: none;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+        }
+        
+        .custom-checkbox:checked {
+            background-color: #4f46e5;
+            border-color: #4f46e5;
+        }
+        
+        .custom-checkbox:checked::after {
+            content: "✓";
+            position: absolute;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans">
+    <div class="container mx-auto px-4 py-8 max-w-md">
+        <!-- Header -->
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">Today's Routines</h1>
+            <p class="text-gray-600">Build your day, one habit at a time</p>
+            
+            <!-- Progress bar -->
+            <div class="mt-6 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="font-bold text-gray-800">Today's Progress</h2>
+                    <span id="progress-count" class="font-bold text-indigo-600 text-lg">0/5 done</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-4 mb-2">
+                    <div id="progress-bar" class="progress-bar bg-gradient-to-r from-indigo-500 to-purple-500 h-4 rounded-full" style="width: 0%"></div>
+                </div>
+                <p id="progress-message" class="text-sm text-gray-600 text-center">Let's get started!</p>
+            </div>
+        </header>
+        
+        <!-- Motivational message (hidden by default) -->
+        <div id="motivation-message" class="hidden mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800">
+            <div class="flex items-center">
+                <i class="fas fa-sparkle text-green-500 mr-3"></i>
+                <span id="motivation-text">Great start! Keep the momentum going.</span>
+            </div>
+        </div>
+        
+        <!-- Tasks container -->
+        <div id="tasks-container" class="space-y-4">
+            <!-- Tasks will be dynamically inserted here -->
+        </div>
+        
+        <!-- Empty state -->
+        <div id="empty-state" class="hidden text-center py-12">
+            <i class="fas fa-check-circle text-5xl text-gray-300 mb-4"></i>
+            <h3 class="text-xl font-medium text-gray-600 mb-2">All done for today!</h3>
+            <p class="text-gray-500">You've completed all your routines. Amazing work!</p>
+        </div>
+    </div>
+
+    <script>
+        // Sample tasks data
+        const tasks = [
+            {
+                id: 1,
+                name: "Morning Meditation",
+                description: "10 minutes of mindfulness",
+                priority: 1,
+                time: "07:00",
+                streak: 5,
+                lastDone: "2023-06-10",
+                completed: false
+            },
+            {
+                id: 2,
+                name: "Exercise",
+                description: "30 minute workout session",
+                priority: 2,
+                time: "08:00",
+                streak: 12,
+                lastDone: "2023-06-10",
+                completed: false
+            },
+            {
+                id: 3,
+                name: "Read",
+                description: "20 pages of current book",
+                priority: 3,
+                time: "21:00",
+                streak: 8,
+                lastDone: "2023-06-09",
+                completed: false
+            },
+            {
+                id: 4,
+                name: "Journal",
+                description: "Daily reflection",
+                priority: 2,
+                time: "20:00",
+                streak: 3,
+                lastDone: "2023-06-09",
+                completed: false
+            },
+            {
+                id: 5,
+                name: "Plan Tomorrow",
+                description: "Outline next day's priorities",
+                priority: 1,
+                time: "22:00",
+                streak: 15,
+                lastDone: "2023-06-10",
+                completed: false
+            }
+        ];
+
+        // Sort tasks by priority then by time
+        tasks.sort((a, b) => {
+            if (a.priority !== b.priority) {
+                return a.priority - b.priority;
+            }
+            return a.time.localeCompare(b.time);
+        });
+
+        // DOM elements
+        const tasksContainer = document.getElementById('tasks-container');
+        const progressCount = document.getElementById('progress-count');
+        const progressBar = document.getElementById('progress-bar');
+        const progressMessage = document.getElementById('progress-message');
+        const motivationMessage = document.getElementById('motivation-message');
+        const motivationText = document.getElementById('motivation-text');
+        const emptyState = document.getElementById('empty-state');
+
+        // Progress messages
+        const progressMessages = [
+            { threshold: 0, message: "Let's get started!" },
+            { threshold: 0.25, message: "Good start!" },
+            { threshold: 0.5, message: "Halfway there!" },
+            { threshold: 0.75, message: "Almost done!" },
+            { threshold: 1, message: "All done! Great job!" }
+        ];
+
+        // Motivational messages
+        const motivationalMessages = [
+            "Great start! Keep the momentum going.",
+            "You're on fire! One down, more to go!",
+            "Consistency is key! Great job.",
+            "Building habits like a pro!",
+            "Amazing! You're crushing it today!",
+            "Small steps lead to big changes!"
+        ];
+
+        // Initialize the app
+        function init() {
+            renderTasks();
+            updateProgress();
+            
+            // Load completed tasks from localStorage
+            const savedTasks = localStorage.getItem('completedTasks');
+            if (savedTasks) {
+                const completedIds = JSON.parse(savedTasks);
+                tasks.forEach(task => {
+                    if (completedIds.includes(task.id)) {
+                        task.completed = true;
+                    }
+                });
+                renderTasks();
+                updateProgress();
+            }
+        }
+
+        // Render all tasks
+        function renderTasks() {
+            tasksContainer.innerHTML = '';
+            
+            tasks.forEach((task, index) => {
+                const taskElement = createTaskElement(task, index);
+                tasksContainer.appendChild(taskElement);
+            });
+            
+            // Show empty state if all tasks are completed
+            if (tasks.every(task => task.completed)) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+            }
+        }
+
+        // Create a task element
+        function createTaskElement(task, index) {
+            const taskElement = document.createElement('div');
+            taskElement.className = `task-card bg-white rounded-xl shadow-sm p-5 border ${task.completed ? 'border-green-200 bg-green-50' : 'border-gray-200'}`;
+            taskElement.style.animationDelay = `${index * 0.1}s`;
+            
+            // Format last done date
+            const lastDoneDate = new Date(task.lastDone);
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            
+            let lastDoneText = '';
+            if (lastDoneDate.toDateString() === today.toDateString()) {
+                lastDoneText = 'Today';
+            } else if (lastDoneDate.toDateString() === yesterday.toDateString()) {
+                lastDoneText = 'Yesterday';
+            } else {
+                lastDoneText = lastDoneDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            }
+            
+            // Streak indicator with different colors based on streak length
+            let streakColor = 'text-gray-500';
+            let streakIcon = 'fa-calendar';
+            
+            if (task.streak >= 7) {
+                streakColor = 'text-purple-500';
+                streakIcon = 'fa-bolt';
+            }
+            if (task.streak >= 14) {
+                streakColor = 'text-indigo-500';
+                streakIcon = 'fa-fire streak-fire';
+            }
+            if (task.streak >= 30) {
+                streakColor = 'text-red-500';
+                streakIcon = 'fa-trophy';
+            }
+            
+            taskElement.innerHTML = `
+                <div class="flex items-start gap-4">
+                    <label for="task-${task.id}" class="flex-shrink-0 mt-1">
+                        <input type="checkbox" id="task-${task.id}" ${task.completed ? 'checked' : ''} 
+                            class="custom-checkbox w-8 h-8" aria-label="Mark ${task.name} as done">
+                    </label>
+                    <div class="flex-grow">
+                        <div class="flex justify-between items-start mb-1">
+                            <h3 class="font-semibold text-lg ${task.completed ? 'text-gray-500 line-through' : 'text-gray-800'}">${task.name}</h3>
+                            <span class="text-sm font-medium text-gray-500">${task.time}</span>
+                        </div>
+                        <p class="text-sm ${task.completed ? 'text-gray-400' : 'text-gray-600'} mb-3">${task.description}</p>
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center">
+                                <i class="fas ${streakIcon} ${streakColor} mr-1"></i>
+                                <span class="text-sm font-medium ${streakColor}">${task.streak} day streak</span>
+                            </div>
+                            <span class="text-xs text-gray-500">Last: ${lastDoneText}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add event listener to checkbox
+            const checkbox = taskElement.querySelector(`#task-${task.id}`);
+            checkbox.addEventListener('change', () => toggleTaskCompletion(task.id));
+            
+            return taskElement;
+        }
+
+        // Toggle task completion status
+        function toggleTaskCompletion(taskId) {
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+            
+            task.completed = !task.completed;
+            
+            if (task.completed) {
+                // Update streak and last done date if completing today
+                const today = new Date().toISOString().split('T')[0];
+                if (task.lastDone !== today) {
+                    task.streak += 1;
+                    task.lastDone = today;
+                }
+                
+                // Show motivational message
+                showMotivationalMessage();
+            }
+            
+            // Save to localStorage
+            saveCompletedTasks();
+            
+            // Re-render tasks and update progress
+            renderTasks();
+            updateProgress();
+        }
+
+        // Update progress bar and count
+        function updateProgress() {
+            const completedCount = tasks.filter(task => task.completed).length;
+            const totalCount = tasks.length;
+            const percentage = completedCount / totalCount;
+            
+            progressCount.textContent = `${completedCount}/${totalCount} done`;
+            progressBar.style.width = `${percentage * 100}%`;
+            
+            // Update progress message
+            let message = progressMessages[0].message;
+            for (let i = progressMessages.length - 1; i >= 0; i--) {
+                if (percentage >= progressMessages[i].threshold) {
+                    message = progressMessages[i].message;
+                    break;
+                }
+            }
+            progressMessage.textContent = message;
+        }
+
+        // Show random motivational message
+        function showMotivationalMessage() {
+            const randomMessage = motivationalMessages[Math.floor(Math.random() * motivationalMessages.length)];
+            motivationText.textContent = randomMessage;
+            
+            motivationMessage.classList.remove('hidden');
+            
+            // Hide after 5 seconds
+            setTimeout(() => {
+                motivationMessage.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Save completed tasks to localStorage
+        function saveCompletedTasks() {
+            const completedIds = tasks.filter(task => task.completed).map(task => task.id);
+            localStorage.setItem('completedTasks', JSON.stringify(completedIds));
+        }
+
+        // Initialize the app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
