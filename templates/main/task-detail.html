@@ -1,0 +1,564 @@
+{% extends 'base.html' %}
+
+{% block title %}Task Detail View - AI Taskboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Custom styles for rich text editor and other elements */
+    .rich-text {
+        min-height: 150px;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.375rem;
+        padding: 0.75rem;
+    }
+    .rich-text:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 1px #3b82f6;
+    }
+    .attachment-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 0.75rem;
+    }
+    .timeline-item:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        left: 11px;
+        top: 24px;
+        height: calc(100% - 24px);
+        width: 2px;
+        background-color: #e2e8f0;
+    }
+    .mention {
+        background-color: #dbeafe;
+        color: #1d4ed8;
+        padding: 0 2px;
+        border-radius: 3px;
+    }
+    @media (max-width: 768px) {
+        .sticky-action-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 0.75rem;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            z-index: 50;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6 max-w-6xl">
+    <!-- Header Section -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+            <div class="flex-1 min-w-[200px]">
+                <h1 id="task-title" class="text-2xl font-bold text-gray-800 dark:text-white border-b border-transparent hover:border-gray-300 dark:hover:border-gray-600 px-1 py-1 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" contenteditable="true">Complete project dashboard redesign</h1>
+            </div>
+            
+            <div class="flex items-center gap-3 flex-wrap">
+                <div class="relative">
+                    <select id="status-dropdown" class="appearance-none bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md py-2 pl-3 pr-8 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-gray-100">
+                        <option value="todo">To Do</option>
+                        <option value="in-progress" selected>In Progress</option>
+                        <option value="review">In Review</option>
+                        <option value="done">Done</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 dark:text-gray-300">
+                        <i class="fas fa-chevron-down text-xs"></i>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-1">
+                    <button id="priority-btn" class="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 px-3 py-2 rounded-md text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
+                        <span>Medium</span>
+                        <i class="fas fa-chevron-down text-xs ml-1"></i>
+                    </button>
+                    <div id="priority-menu" class="hidden absolute mt-2 w-40 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10 border border-gray-200 dark:border-gray-700">
+                        <div class="py-1">
+                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700" data-priority="low">
+                                <span class="w-2 h-2 rounded-full bg-green-500 inline-block mr-2"></span>Low
+                            </a>
+                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700" data-priority="medium">
+                                <span class="w-2 h-2 rounded-full bg-yellow-500 inline-block mr-2"></span>Medium
+                            </a>
+                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700" data-priority="high">
+                                <span class="w-2 h-2 rounded-full bg-red-500 inline-block mr-2"></span>High
+                            </a>
+                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700" data-priority="critical">
+                                <span class="w-2 h-2 rounded-full bg-purple-500 inline-block mr-2"></span>Critical
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-calendar-alt text-gray-400"></i>
+                    <input type="date" class="border border-gray-300 dark:border-gray-600 rounded-md py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" value="2023-07-15">
+                </div>
+                
+                <button class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2">
+                    <i class="fas fa-check"></i>
+                    <span>Complete</span>
+                </button>
+            </div>
+        </div>
+        
+        <div class="flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-400">
+            <div class="flex items-center gap-1">
+                <i class="fas fa-user-circle text-gray-400"></i>
+                <span>Created by <span class="font-medium text-gray-800 dark:text-white">Alex Johnson</span></span>
+            </div>
+            <div class="flex items-center gap-1">
+                <i class="fas fa-clock text-gray-400"></i>
+                <span>Updated 2 hours ago</span>
+            </div>
+            <div class="flex items-center gap-1">
+                <i class="fas fa-id-badge text-gray-400"></i>
+                <span>PROJ-124</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="flex flex-col lg:flex-row gap-6">
+        <!-- Left Column -->
+        <div class="lg:w-2/3">
+            <!-- Description -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
+                <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Description</h2>
+                <div class="rich-text dark:bg-gray-700 dark:text-gray-100" contenteditable="true">
+                    <p>Redesign the project dashboard to improve user experience and add new analytics features.</p>
+                    <p><br></p>
+                    <p><strong>Requirements:</strong></p>
+                    <ul>
+                        <li>Modern, clean interface</li>
+                        <li>Performance metrics section</li>
+                        <li>Team workload visualization</li>
+                        <li>Responsive design for all devices</li>
+                    </ul>
+                    <p><br></p>
+                    <p>Please coordinate with <span class="mention">@sarah_design</span> for UI assets.</p>
+                </div>
+            </div>
+            
+            <!-- Checklist -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Checklist</h2>
+                    <button class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium flex items-center gap-1">
+                        <i class="fas fa-plus"></i>
+                        <span>Add item</span>
+                    </button>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                        <div class="bg-green-500 h-2 rounded-full" style="width: 60%"></div>
+                    </div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">3 of 5 tasks completed</div>
+                </div>
+                
+                <div class="space-y-2">
+                    <div class="flex items-start">
+                        <input type="checkbox" checked class="mt-1 h-4 w-4 text-blue-600 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500">
+                        <label class="ml-2 text-gray-700 dark:text-gray-300 line-through">Gather requirements</label>
+                    </div>
+                    <div class="flex items-start">
+                        <input type="checkbox" checked class="mt-1 h-4 w-4 text-blue-600 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500">
+                        <label class="ml-2 text-gray-700 dark:text-gray-300 line-through">Create wireframes</label>
+                    </div>
+                    <div class="flex items-start">
+                        <input type="checkbox" checked class="mt-1 h-4 w-4 text-blue-600 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500">
+                        <label class="ml-2 text-gray-700 dark:text-gray-300 line-through">Design mockups</label>
+                    </div>
+                    <div class="flex items-start">
+                        <input type="checkbox" class="mt-1 h-4 w-4 text-blue-600 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500">
+                        <label class="ml-2 text-gray-700 dark:text-gray-300">Implement frontend</label>
+                    </div>
+                    <div class="flex items-start">
+                        <input type="checkbox" class="mt-1 h-4 w-4 text-blue-600 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500">
+                        <label class="ml-2 text-gray-700 dark:text-gray-300">Test and deploy</label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Comments -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
+                <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Comments</h2>
+                <div class="space-y-4">
+                    <div class="flex gap-3">
+                        <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Sarah" class="w-8 h-8 rounded-full">
+                        <div class="flex-1">
+                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="font-medium text-gray-800 dark:text-white">Sarah Design</span>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">2 hours ago</span>
+                                </div>
+                                <p class="text-gray-700 dark:text-gray-300">I've uploaded the new design assets. Let me know if you need any adjustments!</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-3">
+                        <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Alex" class="w-8 h-8 rounded-full">
+                        <div class="flex-1">
+                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="font-medium text-gray-800 dark:text-white">Alex Johnson</span>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">1 hour ago</span>
+                                </div>
+                                <p class="text-gray-700 dark:text-gray-300">Perfect! I'll start implementing these right away.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <textarea placeholder="Add a comment..." class="w-full border border-gray-300 dark:border-gray-600 rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" rows="3"></textarea>
+                    <div class="flex justify-end mt-2">
+                        <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">Post Comment</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Column -->
+        <div class="lg:w-1/3">
+            <!-- Assignees -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Assignees</h3>
+                <div class="space-y-3">
+                    <div class="flex items-center gap-3">
+                        <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Alex" class="w-10 h-10 rounded-full">
+                        <div class="flex-1">
+                            <div class="font-medium text-gray-800 dark:text-white">Alex Johnson</div>
+                            <div class="text-sm text-gray-500 dark:text-gray-400">Lead Developer</div>
+                        </div>
+                        <button class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Sarah" class="w-10 h-10 rounded-full">
+                        <div class="flex-1">
+                            <div class="font-medium text-gray-800 dark:text-white">Sarah Design</div>
+                            <div class="text-sm text-gray-500 dark:text-gray-400">UI/UX Designer</div>
+                        </div>
+                        <button class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <button class="w-full mt-4 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium flex items-center justify-center gap-1">
+                    <i class="fas fa-plus"></i>
+                    <span>Add Assignee</span>
+                </button>
+            </div>
+            
+            <!-- Attachments -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Attachments</h3>
+                <div class="space-y-3">
+                    <div class="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                        <i class="fas fa-file-pdf text-red-500"></i>
+                        <div class="flex-1">
+                            <div class="text-sm font-medium text-gray-800 dark:text-white">Design_Specs.pdf</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">2.4 MB</div>
+                        </div>
+                        <button class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-400">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                        <i class="fas fa-image text-blue-500"></i>
+                        <div class="flex-1">
+                            <div class="text-sm font-medium text-gray-800 dark:text-white">Mockup_v1.png</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">1.8 MB</div>
+                        </div>
+                        <button class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-400">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                </div>
+                <button class="w-full mt-4 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium flex items-center justify-center gap-1">
+                    <i class="fas fa-paperclip"></i>
+                    <span>Add Attachment</span>
+                </button>
+            </div>
+            
+            <!-- Activity Timeline -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Activity</h3>
+                <div class="space-y-4">
+                    <div class="flex gap-3 relative timeline-item">
+                        <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-medium">A</div>
+                        <div class="flex-1">
+                            <div class="text-sm text-gray-800 dark:text-white">Alex Johnson assigned to task</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">2 hours ago</div>
+                        </div>
+                    </div>
+                    <div class="flex gap-3 relative timeline-item">
+                        <div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-xs font-medium">S</div>
+                        <div class="flex-1">
+                            <div class="text-sm text-gray-800 dark:text-white">Sarah Design uploaded design assets</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">1 hour ago</div>
+                        </div>
+                    </div>
+                    <div class="flex gap-3 relative timeline-item">
+                        <div class="w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center text-white text-xs font-medium">A</div>
+                        <div class="flex-1">
+                            <div class="text-sm text-gray-800 dark:text-white">Status changed to In Progress</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">30 minutes ago</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Task data
+    let taskData = {
+        id: 'PROJ-124',
+        title: 'Complete project dashboard redesign',
+        status: 'in-progress',
+        priority: 'medium',
+        dueDate: '2023-07-15',
+        assignees: [
+            { id: 1, name: 'Alex Johnson', role: 'Lead Developer', avatar: 'https://randomuser.me/api/portraits/men/32.jpg' },
+            { id: 2, name: 'Sarah Design', role: 'UI/UX Designer', avatar: 'https://randomuser.me/api/portraits/women/44.jpg' }
+        ],
+        checklist: [
+            { id: 1, text: 'Gather requirements', completed: true },
+            { id: 2, text: 'Create wireframes', completed: true },
+            { id: 3, text: 'Design mockups', completed: true },
+            { id: 4, text: 'Implement frontend', completed: false },
+            { id: 5, text: 'Test and deploy', completed: false }
+        ],
+        comments: [
+            { id: 1, user: 'Sarah Design', avatar: 'https://randomuser.me/api/portraits/women/44.jpg', text: 'I\'ve uploaded the new design assets. Let me know if you need any adjustments!', time: '2 hours ago' },
+            { id: 2, user: 'Alex Johnson', avatar: 'https://randomuser.me/api/portraits/men/32.jpg', text: 'Perfect! I\'ll start implementing these right away.', time: '1 hour ago' }
+        ],
+        attachments: [
+            { id: 1, name: 'Design_Specs.pdf', type: 'pdf', size: '2.4 MB', icon: 'fas fa-file-pdf', color: 'text-red-500' },
+            { id: 2, name: 'Mockup_v1.png', type: 'image', size: '1.8 MB', icon: 'fas fa-image', color: 'text-blue-500' }
+        ]
+    };
+
+    // DOM elements
+    const taskTitle = document.getElementById('task-title');
+    const statusDropdown = document.getElementById('status-dropdown');
+    const priorityBtn = document.getElementById('priority-btn');
+    const priorityMenu = document.getElementById('priority-menu');
+
+    // Initialize the app
+    document.addEventListener('DOMContentLoaded', function() {
+        setupEventListeners();
+        setupPriorityMenu();
+        setupChecklist();
+        setupComments();
+    });
+
+    // Setup event listeners
+    function setupEventListeners() {
+        // Status change
+        statusDropdown.addEventListener('change', function() {
+            updateTaskStatus(this.value);
+        });
+
+        // Priority button click
+        priorityBtn.addEventListener('click', function() {
+            priorityMenu.classList.toggle('hidden');
+        });
+
+        // Close priority menu when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!priorityBtn.contains(e.target) && !priorityMenu.contains(e.target)) {
+                priorityMenu.classList.add('hidden');
+            }
+        });
+
+        // Task title editing
+        taskTitle.addEventListener('blur', function() {
+            saveTaskTitle(this.textContent);
+        });
+
+        taskTitle.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.blur();
+            }
+        });
+    }
+
+    // Setup priority menu
+    function setupPriorityMenu() {
+        const priorityOptions = priorityMenu.querySelectorAll('[data-priority]');
+        priorityOptions.forEach(option => {
+            option.addEventListener('click', function(e) {
+                e.preventDefault();
+                const priority = this.dataset.priority;
+                updatePriority(priority);
+                priorityMenu.classList.add('hidden');
+            });
+        });
+    }
+
+    // Setup checklist functionality
+    function setupChecklist() {
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                updateChecklistProgress();
+            });
+        });
+    }
+
+    // Setup comments functionality
+    function setupComments() {
+        const commentForm = document.querySelector('textarea[placeholder="Add a comment..."]');
+        const postButton = commentForm.nextElementSibling.querySelector('button');
+        
+        postButton.addEventListener('click', function() {
+            addComment(commentForm.value);
+            commentForm.value = '';
+        });
+    }
+
+    // Update task status
+    function updateTaskStatus(status) {
+        console.log('Status updated to:', status);
+        // In a real app, this would send an API request
+        showNotification(`Task status updated to ${status}`, 'success');
+    }
+
+    // Update priority
+    function updatePriority(priority) {
+        const priorityColors = {
+            low: 'bg-green-500',
+            medium: 'bg-yellow-500',
+            high: 'bg-red-500',
+            critical: 'bg-purple-500'
+        };
+        
+        const priorityLabels = {
+            low: 'Low',
+            medium: 'Medium',
+            high: 'High',
+            critical: 'Critical'
+        };
+        
+        // Update button appearance
+        const priorityDot = priorityBtn.querySelector('span:first-child');
+        const priorityText = priorityBtn.querySelector('span:last-child');
+        
+        // Remove all priority color classes
+        priorityDot.className = 'w-3 h-3 rounded-full';
+        priorityDot.classList.add(priorityColors[priority]);
+        
+        priorityText.textContent = priorityLabels[priority];
+        
+        console.log('Priority updated to:', priority);
+        showNotification(`Priority updated to ${priorityLabels[priority]}`, 'success');
+    }
+
+    // Save task title
+    function saveTaskTitle(title) {
+        console.log('Title updated to:', title);
+        // In a real app, this would send an API request
+        showNotification('Task title updated', 'success');
+    }
+
+    // Update checklist progress
+    function updateChecklistProgress() {
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+        const completed = Array.from(checkboxes).filter(cb => cb.checked).length;
+        const total = checkboxes.length;
+        const percentage = (completed / total) * 100;
+        
+        const progressBar = document.querySelector('.bg-green-500.h-2');
+        const progressText = document.querySelector('.text-xs.text-gray-500');
+        
+        progressBar.style.width = `${percentage}%`;
+        progressText.textContent = `${completed} of ${total} tasks completed`;
+        
+        // Update task data
+        taskData.checklist.forEach((item, index) => {
+            item.completed = checkboxes[index].checked;
+        });
+        
+        console.log('Checklist progress updated:', percentage + '%');
+    }
+
+    // Add comment
+    function addComment(text) {
+        if (!text.trim()) return;
+        
+        const newComment = {
+            id: Date.now(),
+            user: 'You',
+            avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
+            text: text.trim(),
+            time: 'Just now'
+        };
+        
+        // Add to task data
+        taskData.comments.unshift(newComment);
+        
+        // In a real app, this would send an API request
+        console.log('Comment added:', newComment);
+        showNotification('Comment added successfully', 'success');
+        
+        // Refresh comments display (in a real app, this would re-render the comments section)
+        location.reload();
+    }
+
+    // Show notification
+    function showNotification(message, type = 'info') {
+        // Simple notification - in a real app, you might use a toast library
+        console.log(`${type.toUpperCase()}: ${message}`);
+        
+        // Create a simple toast notification
+        const toast = document.createElement('div');
+        toast.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${
+            type === 'success' ? 'bg-green-500 text-white' : 
+            type === 'error' ? 'bg-red-500 text-white' : 
+            'bg-blue-500 text-white'
+        }`;
+        toast.textContent = message;
+        
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.remove();
+        }, 3000);
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Ctrl+Enter to save changes
+        if (e.ctrlKey && e.key === 'Enter') {
+            saveAllChanges();
+        }
+        
+        // Escape to close priority menu
+        if (e.key === 'Escape') {
+            priorityMenu.classList.add('hidden');
+        }
+    });
+
+    // Save all changes
+    function saveAllChanges() {
+        console.log('Saving all changes...');
+        showNotification('All changes saved successfully', 'success');
+    }
+</script>
+{% endblock %}

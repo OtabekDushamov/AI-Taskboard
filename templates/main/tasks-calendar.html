@@ -1,0 +1,607 @@
+{% extends 'base.html' %}
+
+{% block title %}Task Calendar - AI Taskboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --high-priority: #f87171;
+        --medium-priority: #fbbf24;
+        --low-priority: #34d399;
+        --default-priority: #60a5fa;
+    }
+
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 1px;
+    }
+
+    .calendar-day {
+        min-height: 100px;
+        border: 1px solid #e5e7eb;
+        position: relative;
+    }
+
+    .calendar-day-header {
+        text-align: right;
+        padding: 4px;
+        font-size: 0.875rem;
+    }
+
+    .calendar-event {
+        font-size: 0.75rem;
+        padding: 2px 4px;
+        margin: 2px;
+        border-radius: 4px;
+        cursor: pointer;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .high-priority {
+        background-color: var(--high-priority);
+        color: white;
+    }
+
+    .medium-priority {
+        background-color: var(--medium-priority);
+        color: white;
+    }
+
+    .low-priority {
+        background-color: var(--low-priority);
+        color: white;
+    }
+
+    .default-priority {
+        background-color: var(--default-priority);
+        color: white;
+    }
+
+    .today {
+        background-color: #dbeafe;
+    }
+
+    .current-day {
+        background-color: #3b82f6;
+        color: white;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .drawer {
+        transform: translateX(100%);
+        transition: transform 0.3s ease-in-out;
+    }
+
+    .drawer-open {
+        transform: translateX(0);
+    }
+
+    .week-view .calendar-day {
+        min-height: 600px;
+    }
+
+    .day-view .calendar-day {
+        min-height: 800px;
+    }
+
+    @media (max-width: 768px) {
+        .calendar-container {
+            flex-direction: column;
+        }
+        
+        .sidebar {
+            width: 100%;
+            height: auto;
+        }
+        
+        .main-content {
+            padding: 1rem;
+        }
+        
+        .calendar-day {
+            min-height: 80px;
+        }
+    }
+
+    .calendar-day:hover {
+        background-color: rgba(59, 130, 246, 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex h-screen overflow-hidden">
+    <!-- Sidebar -->
+    <div class="sidebar w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 p-4 flex flex-col">
+        <h1 class="text-xl font-bold mb-6 text-gray-800 dark:text-white">Task Calendar</h1>
+        
+        <!-- Mini Calendar -->
+        <div class="mb-6">
+            <div class="flex justify-between items-center mb-2">
+                <button class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" id="prev-month">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <h3 class="font-semibold text-gray-800 dark:text-white" id="mini-calendar-month">June 2023</h3>
+                <button class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" id="next-month">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            <div class="grid grid-cols-7 gap-1 text-center text-xs mb-1 text-gray-600 dark:text-gray-400">
+                <div>S</div>
+                <div>M</div>
+                <div>T</div>
+                <div>W</div>
+                <div>T</div>
+                <div>F</div>
+                <div>S</div>
+            </div>
+            <div class="grid grid-cols-7 gap-1 text-center text-sm" id="mini-calendar-days"></div>
+        </div>
+        
+        <!-- Filters -->
+        <div class="mb-6">
+            <h3 class="font-semibold mb-2 text-gray-800 dark:text-white">Filters</h3>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Project</label>
+                    <select class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                        <option>All Projects</option>
+                        <option>Website Redesign</option>
+                        <option>Marketing Campaign</option>
+                        <option>Product Development</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Assignee</label>
+                    <select class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                        <option>All Team</option>
+                        <option>John Doe</option>
+                        <option>Jane Smith</option>
+                        <option>Mike Johnson</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                    <select class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                        <option>All Statuses</option>
+                        <option>Not Started</option>
+                        <option>In Progress</option>
+                        <option>Completed</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Add -->
+        <button class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md flex items-center justify-center">
+            <i class="fas fa-plus mr-2"></i> Add Task
+        </button>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-content flex-1 overflow-auto p-6">
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-800 dark:text-white" id="current-month">June 2023</h2>
+                <button class="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm" id="today-btn">Today</button>
+            </div>
+            
+            <div class="flex space-x-2 view-options">
+                <button class="px-4 py-2 rounded-md bg-blue-500 text-white" id="month-view">Month</button>
+                <button class="px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300" id="week-view">Week</button>
+                <button class="px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300" id="day-view">Day</button>
+            </div>
+            
+            <div class="flex space-x-2">
+                <button class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400" id="prev-period">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <button class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400" id="next-period">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Month View (Default) -->
+        <div id="month-calendar" class="calendar-view">
+            <div class="grid grid-cols-7 gap-1 text-center bg-gray-100 dark:bg-gray-700 py-2 font-medium text-gray-700 dark:text-gray-300">
+                <div>Sunday</div>
+                <div>Monday</div>
+                <div>Tuesday</div>
+                <div>Wednesday</div>
+                <div>Thursday</div>
+                <div>Friday</div>
+                <div>Saturday</div>
+            </div>
+            <div class="calendar-grid" id="month-grid"></div>
+        </div>
+        
+        <!-- Week View -->
+        <div id="week-calendar" class="calendar-view hidden">
+            <div class="grid grid-cols-7 gap-1 text-center bg-gray-100 dark:bg-gray-700 py-2 font-medium text-gray-700 dark:text-gray-300">
+                <div>Sunday</div>
+                <div>Monday</div>
+                <div>Tuesday</div>
+                <div>Wednesday</div>
+                <div>Thursday</div>
+                <div>Friday</div>
+                <div>Saturday</div>
+            </div>
+            <div class="calendar-grid week-view" id="week-grid"></div>
+        </div>
+        
+        <!-- Day View -->
+        <div id="day-calendar" class="calendar-view hidden">
+            <div class="grid grid-cols-1 gap-1 text-center bg-gray-100 dark:bg-gray-700 py-2 font-medium text-gray-700 dark:text-gray-300">
+                <div id="day-header">Monday, June 12, 2023</div>
+            </div>
+            <div class="calendar-grid day-view" id="day-grid"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Task Details Drawer -->
+<div id="task-drawer" class="drawer fixed top-0 right-0 h-full w-96 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 shadow-lg z-50">
+    <div class="p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Task Details</h3>
+            <button id="close-drawer" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="task-details-content">
+            <!-- Task details will be populated here -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Calendar state
+    let currentDate = new Date();
+    let currentView = 'month';
+    let tasks = [
+        {
+            id: 1,
+            title: 'Design homepage',
+            date: '2023-06-15',
+            priority: 'high',
+            project: 'Website Redesign',
+            assignee: 'John Doe',
+            status: 'In Progress'
+        },
+        {
+            id: 2,
+            title: 'Write blog post',
+            date: '2023-06-18',
+            priority: 'medium',
+            project: 'Marketing Campaign',
+            assignee: 'Jane Smith',
+            status: 'Not Started'
+        },
+        {
+            id: 3,
+            title: 'Review code',
+            date: '2023-06-20',
+            priority: 'low',
+            project: 'Product Development',
+            assignee: 'Mike Johnson',
+            status: 'Completed'
+        }
+    ];
+
+    // DOM elements
+    const monthGrid = document.getElementById('month-grid');
+    const weekGrid = document.getElementById('week-grid');
+    const dayGrid = document.getElementById('day-grid');
+    const currentMonthElement = document.getElementById('current-month');
+    const miniCalendarMonth = document.getElementById('mini-calendar-month');
+    const taskDrawer = document.getElementById('task-drawer');
+    const closeDrawerBtn = document.getElementById('close-drawer');
+
+    // Initialize calendar
+    document.addEventListener('DOMContentLoaded', function() {
+        setupEventListeners();
+        renderCalendar();
+        renderMiniCalendar();
+    });
+
+    // Setup event listeners
+    function setupEventListeners() {
+        document.getElementById('prev-month').addEventListener('click', () => navigateMonth(-1));
+        document.getElementById('next-month').addEventListener('click', () => navigateMonth(1));
+        document.getElementById('prev-period').addEventListener('click', () => navigatePeriod(-1));
+        document.getElementById('next-period').addEventListener('click', () => navigatePeriod(1));
+        document.getElementById('today-btn').addEventListener('click', goToToday);
+        
+        // View options
+        document.getElementById('month-view').addEventListener('click', () => switchView('month'));
+        document.getElementById('week-view').addEventListener('click', () => switchView('week'));
+        document.getElementById('day-view').addEventListener('click', () => switchView('day'));
+        
+        // Close drawer
+        closeDrawerBtn.addEventListener('click', closeTaskDrawer);
+        
+        // Close drawer when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!taskDrawer.contains(e.target) && !e.target.closest('.calendar-event')) {
+                closeTaskDrawer();
+            }
+        });
+    }
+
+    // Navigate months
+    function navigateMonth(direction) {
+        currentDate.setMonth(currentDate.getMonth() + direction);
+        renderCalendar();
+        renderMiniCalendar();
+    }
+
+    // Navigate periods (weeks/days)
+    function navigatePeriod(direction) {
+        if (currentView === 'week') {
+            currentDate.setDate(currentDate.getDate() + (direction * 7));
+        } else if (currentView === 'day') {
+            currentDate.setDate(currentDate.getDate() + direction);
+        }
+        renderCalendar();
+    }
+
+    // Go to today
+    function goToToday() {
+        currentDate = new Date();
+        renderCalendar();
+        renderMiniCalendar();
+    }
+
+    // Switch calendar view
+    function switchView(view) {
+        currentView = view;
+        
+        // Hide all views
+        document.querySelectorAll('.calendar-view').forEach(v => v.classList.add('hidden'));
+        
+        // Show selected view
+        document.getElementById(`${view}-calendar`).classList.remove('hidden');
+        
+        // Update button states
+        document.querySelectorAll('.view-options button').forEach(btn => {
+            btn.classList.remove('bg-blue-500', 'text-white');
+            btn.classList.add('border', 'border-gray-300', 'dark:border-gray-600', 'hover:bg-gray-100', 'dark:hover:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+        });
+        
+        document.getElementById(`${view}-view`).classList.remove('border', 'border-gray-300', 'dark:border-gray-600', 'hover:bg-gray-100', 'dark:hover:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+        document.getElementById(`${view}-view`).classList.add('bg-blue-500', 'text-white');
+        
+        renderCalendar();
+    }
+
+    // Render calendar based on current view
+    function renderCalendar() {
+        if (currentView === 'month') {
+            renderMonthView();
+        } else if (currentView === 'week') {
+            renderWeekView();
+        } else if (currentView === 'day') {
+            renderDayView();
+        }
+    }
+
+    // Render month view
+    function renderMonthView() {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        
+        currentMonthElement.textContent = new Date(year, month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const startDate = new Date(firstDay);
+        startDate.setDate(startDate.getDate() - firstDay.getDay());
+        
+        monthGrid.innerHTML = '';
+        
+        for (let i = 0; i < 42; i++) {
+            const date = new Date(startDate);
+            date.setDate(startDate.getDate() + i);
+            
+            const dayElement = document.createElement('div');
+            dayElement.className = 'calendar-day bg-white dark:bg-gray-800';
+            
+            if (date.getMonth() !== month) {
+                dayElement.classList.add('text-gray-400');
+            }
+            
+            if (isToday(date)) {
+                dayElement.classList.add('today');
+            }
+            
+            const header = document.createElement('div');
+            header.className = 'calendar-day-header';
+            header.textContent = date.getDate();
+            
+            if (isToday(date)) {
+                header.innerHTML = `<span class="current-day">${date.getDate()}</span>`;
+            }
+            
+            dayElement.appendChild(header);
+            
+            // Add tasks for this date
+            const dateString = date.toISOString().split('T')[0];
+            const dayTasks = tasks.filter(task => task.date === dateString);
+            
+            dayTasks.forEach(task => {
+                const taskElement = document.createElement('div');
+                taskElement.className = `calendar-event ${task.priority}-priority`;
+                taskElement.textContent = task.title;
+                taskElement.addEventListener('click', () => showTaskDetails(task));
+                dayElement.appendChild(taskElement);
+            });
+            
+            monthGrid.appendChild(dayElement);
+        }
+    }
+
+    // Render week view
+    function renderWeekView() {
+        const startOfWeek = new Date(currentDate);
+        startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
+        
+        weekGrid.innerHTML = '';
+        
+        for (let i = 0; i < 7; i++) {
+            const date = new Date(startOfWeek);
+            date.setDate(startOfWeek.getDate() + i);
+            
+            const dayElement = document.createElement('div');
+            dayElement.className = 'calendar-day bg-white dark:bg-gray-800';
+            
+            if (isToday(date)) {
+                dayElement.classList.add('today');
+            }
+            
+            const header = document.createElement('div');
+            header.className = 'calendar-day-header';
+            header.textContent = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            
+            if (isToday(date)) {
+                header.innerHTML = `<span class="current-day">${date.getDate()}</span>`;
+            }
+            
+            dayElement.appendChild(header);
+            
+            // Add tasks for this date
+            const dateString = date.toISOString().split('T')[0];
+            const dayTasks = tasks.filter(task => task.date === dateString);
+            
+            dayTasks.forEach(task => {
+                const taskElement = document.createElement('div');
+                taskElement.className = `calendar-event ${task.priority}-priority`;
+                taskElement.textContent = task.title;
+                taskElement.addEventListener('click', () => showTaskDetails(task));
+                dayElement.appendChild(taskElement);
+            });
+            
+            weekGrid.appendChild(dayElement);
+        }
+    }
+
+    // Render day view
+    function renderDayView() {
+        const date = currentDate;
+        document.getElementById('day-header').textContent = date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        
+        dayGrid.innerHTML = '';
+        
+        const dayElement = document.createElement('div');
+        dayElement.className = 'calendar-day bg-white dark:bg-gray-800';
+        
+        // Add tasks for this date
+        const dateString = date.toISOString().split('T')[0];
+        const dayTasks = tasks.filter(task => task.date === dateString);
+        
+        dayTasks.forEach(task => {
+            const taskElement = document.createElement('div');
+            taskElement.className = `calendar-event ${task.priority}-priority p-3 mb-2`;
+            taskElement.innerHTML = `
+                <div class="font-medium">${task.title}</div>
+                <div class="text-sm opacity-75">${task.project} • ${task.assignee}</div>
+            `;
+            taskElement.addEventListener('click', () => showTaskDetails(task));
+            dayElement.appendChild(taskElement);
+        });
+        
+        dayGrid.appendChild(dayElement);
+    }
+
+    // Render mini calendar
+    function renderMiniCalendar() {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        
+        miniCalendarMonth.textContent = new Date(year, month).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const startDate = new Date(firstDay);
+        startDate.setDate(startDate.getDate() - firstDay.getDay());
+        
+        const miniCalendarDays = document.getElementById('mini-calendar-days');
+        miniCalendarDays.innerHTML = '';
+        
+        for (let i = 0; i < 35; i++) {
+            const date = new Date(startDate);
+            date.setDate(startDate.getDate() + i);
+            
+            const dayElement = document.createElement('div');
+            dayElement.className = 'p-1 text-xs';
+            
+            if (date.getMonth() !== month) {
+                dayElement.classList.add('text-gray-400');
+            }
+            
+            if (isToday(date)) {
+                dayElement.classList.add('font-bold', 'text-blue-600');
+            }
+            
+            dayElement.textContent = date.getDate();
+            miniCalendarDays.appendChild(dayElement);
+        }
+    }
+
+    // Check if date is today
+    function isToday(date) {
+        const today = new Date();
+        return date.getDate() === today.getDate() && 
+               date.getMonth() === today.getMonth() && 
+               date.getFullYear() === today.getFullYear();
+    }
+
+    // Show task details in drawer
+    function showTaskDetails(task) {
+        const content = document.getElementById('task-details-content');
+        content.innerHTML = `
+            <div class="space-y-4">
+                <div>
+                    <h4 class="font-medium text-gray-800 dark:text-white">${task.title}</h4>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">${task.project}</p>
+                </div>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <span class="text-gray-500 dark:text-gray-400">Assignee:</span>
+                        <p class="text-gray-800 dark:text-white">${task.assignee}</p>
+                    </div>
+                    <div>
+                        <span class="text-gray-500 dark:text-gray-400">Status:</span>
+                        <p class="text-gray-800 dark:text-white">${task.status}</p>
+                    </div>
+                    <div>
+                        <span class="text-gray-500 dark:text-gray-400">Priority:</span>
+                        <p class="text-gray-800 dark:text-white capitalize">${task.priority}</p>
+                    </div>
+                    <div>
+                        <span class="text-gray-500 dark:text-gray-400">Date:</span>
+                        <p class="text-gray-800 dark:text-white">${new Date(task.date).toLocaleDateString()}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        taskDrawer.classList.add('drawer-open');
+    }
+
+    // Close task drawer
+    function closeTaskDrawer() {
+        taskDrawer.classList.remove('drawer-open');
+    }
+</script>
+{% endblock %}

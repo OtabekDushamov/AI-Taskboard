@@ -1,0 +1,1991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mind Map</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --secondary: #64748b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #06b6d4;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+
+        .dark {
+            --bg-primary: #1e293b;
+            --bg-secondary: #0f172a;
+            --text-primary: #f8fafc;
+            --text-secondary: #e2e8f0;
+            --border-color: #334155;
+        }
+
+        .light {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f1f5f9;
+            --text-primary: #0f172a;
+            --text-secondary: #334155;
+            --border-color: #e2e8f0;
+        }
+
+        .node {
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .node:hover {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .node.dragging {
+            opacity: 0.8;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+            transform: scale(1.02);
+        }
+
+        .connection {
+            stroke: var(--secondary);
+            stroke-width: 2;
+            fill: none;
+        }
+
+        .minimap {
+            position: absolute;
+            right: 20px;
+            bottom: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .minimap-viewport {
+            position: absolute;
+            border: 2px solid var(--primary);
+            background: rgba(59, 130, 246, 0.2);
+        }
+
+        .sidebar {
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-collapsed {
+            transform: translateX(-100%);
+        }
+
+        .details-panel {
+            transition: all 0.3s ease;
+        }
+
+        .details-collapsed {
+            transform: translateX(100%);
+        }
+
+        .status-backlog { background-color: #94a3b8; }
+        .status-todo { background-color: #60a5fa; }
+        .status-in_progress { background-color: #f59e0b; }
+        .status-done { background-color: #10b981; }
+        .status-archived { background-color: #64748b; }
+
+        .priority-low { background-color: #10b981; }
+        .priority-med { background-color: #f59e0b; }
+        .priority-high { background-color: #ef4444; }
+        .priority-urgent { background-color: #b91c1c; }
+
+        .overdue { background-color: #ef4444; }
+
+        .rich-text-editor {
+            min-height: 100px;
+        }
+
+        .rich-text-editor:focus {
+            outline: none;
+        }
+
+        .canvas-container {
+            touch-action: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .loading {
+            animation: pulse 1.5s infinite;
+        }
+
+        /* Custom scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: rgba(100, 116, 139, 0.5);
+            border-radius: 3px;
+        }
+
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: rgba(148, 163, 184, 0.5);
+        }
+        
+        /* Notification styles */
+        .notification {
+            animation: slideInRight 0.3s ease-out;
+        }
+        
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        /* Improved node selection */
+        .node.selected {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+            transform: scale(1.02);
+        }
+        
+        /* Better connection lines */
+        .connection {
+            transition: all 0.2s ease;
+        }
+        
+        .connection:hover {
+            stroke-width: 3;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+        }
+        
+        /* Improved zoom controls */
+        .zoom-controls button {
+            transition: all 0.2s ease;
+        }
+        
+        .zoom-controls button:hover {
+            transform: scale(1.1);
+        }
+        
+        .zoom-controls button:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body class="light bg-gray-50 text-gray-900 dark:bg-slate-900 dark:text-slate-100">
+    <div class="flex flex-col h-screen">
+        <!-- Top Bar -->
+        <div class="flex items-center justify-between p-3 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700">
+            <div class="flex items-center space-x-4">
+                <button id="toggle-sidebar" class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+                <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                    <h1 class="ml-2 text-xl font-bold">Mind Map</h1>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2">
+                <div class="relative">
+                    <button id="search-button" class="flex items-center space-x-2 px-3 py-2 bg-gray-100 dark:bg-slate-700 rounded-md hover:bg-gray-200 dark:hover:bg-slate-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                        </svg>
+                        <span class="text-sm">Search (Ctrl+K)</span>
+                    </button>
+                </div>
+
+                <button id="create-node" class="flex items-center space-x-1 px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                    </svg>
+                    <span>Create Node</span>
+                </button>
+
+                <div class="flex space-x-1">
+                    <button id="undo" class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700" title="Undo (Ctrl+Z)">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M7.707 3.293a1 1 0 010 1.414L5.414 7H11a7 7 0 017 7v2a1 1 0 11-2 0v-2a5 5 0 00-5-5H5.414l2.293 2.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <button id="redo" class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700" title="Redo (Ctrl+Shift+Z)">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                </div>
+
+                <button id="export" class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700" title="Export">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+
+                <button id="toggle-theme" class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700">
+                    <svg id="theme-icon-light" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd" />
+                    </svg>
+                    <svg id="theme-icon-dark" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex flex-1 overflow-hidden">
+            <!-- Left Sidebar -->
+            <div id="sidebar" class="sidebar w-64 bg-white dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700 flex flex-col">
+                <div class="p-4 border-b border-gray-200 dark:border-slate-700">
+                    <h2 class="font-semibold text-lg">Projects</h2>
+                    <div class="mt-2">
+                        <button id="create-map" class="w-full flex items-center justify-center px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                            </svg>
+                            New Map
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto custom-scrollbar">
+                    <div class="p-4">
+                        <div class="mb-4">
+                            <h3 class="font-medium text-sm uppercase text-gray-500 dark:text-slate-400 mb-2">Recent Maps</h3>
+                            <ul>
+                                <li class="mb-1">
+                                    <a href="#" class="flex items-center px-3 py-2 rounded-md bg-blue-50 dark:bg-slate-700 text-blue-600 dark:text-blue-400">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
+                                        </svg>
+                                        Product Roadmap
+                                    </a>
+                                </li>
+                                <li class="mb-1">
+                                    <a href="#" class="flex items-center px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
+                                        </svg>
+                                        Marketing Strategy
+                                    </a>
+                                </li>
+                                <li class="mb-1">
+                                    <a href="#" class="flex items-center px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
+                                        </svg>
+                                        Team Structure
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="mb-4">
+                            <h3 class="font-medium text-sm uppercase text-gray-500 dark:text-slate-400 mb-2">Filters</h3>
+                            <div class="space-y-2">
+                                <div>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" class="rounded text-blue-500 focus:ring-blue-500">
+                                        <span class="ml-2">Backlog</span>
+                                    </label>
+                                </div>
+                                <div>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" class="rounded text-blue-500 focus:ring-blue-500" checked>
+                                        <span class="ml-2">Todo</span>
+                                    </label>
+                                </div>
+                                <div>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" class="rounded text-blue-500 focus:ring-blue-500" checked>
+                                        <span class="ml-2">In Progress</span>
+                                    </label>
+                                </div>
+                                <div>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" class="rounded text-blue-500 focus:ring-blue-500">
+                                        <span class="ml-2">Done</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 class="font-medium text-sm uppercase text-gray-500 dark:text-slate-400 mb-2">Tags</h3>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">Feature</span>
+                                <span class="px-2 py-1 text-xs rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">Bug</span>
+                                <span class="px-2 py-1 text-xs rounded-full bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">Research</span>
+                                <span class="px-2 py-1 text-xs rounded-full bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200">Design</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Canvas Area -->
+            <div class="flex-1 relative overflow-hidden">
+                <div id="canvas-container" class="canvas-container w-full h-full relative">
+                    <svg id="connections-layer" class="absolute top-0 left-0 w-full h-full pointer-events-none"></svg>
+                    
+                    <div id="nodes-container" class="absolute top-0 left-0 w-full h-full">
+                        <!-- Nodes will be dynamically added here -->
+                    </div>
+                    
+                    <!-- Minimap -->
+                    <div id="minimap" class="minimap w-40 h-30 hidden md:block">
+                        <svg id="minimap-svg" class="w-full h-full"></svg>
+                        <div id="minimap-viewport" class="minimap-viewport"></div>
+                    </div>
+                </div>
+                
+                <!-- Auto Layout Button -->
+                <button id="auto-layout" class="absolute bottom-4 left-4 p-2 bg-white dark:bg-slate-800 rounded-md shadow-md hover:bg-gray-100 dark:hover:bg-slate-700" title="Auto Layout (F)">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                    </svg>
+                </button>
+                
+                <!-- Zoom Controls -->
+                <div class="absolute bottom-4 right-4 flex flex-col space-y-2 zoom-controls">
+                    <button id="zoom-in" class="p-2 bg-white dark:bg-slate-800 rounded-md shadow-md hover:bg-gray-100 dark:hover:bg-slate-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <button id="zoom-out" class="p-2 bg-white dark:bg-slate-800 rounded-md shadow-md hover:bg-gray-100 dark:hover:bg-slate-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <button id="zoom-reset" class="p-2 bg-white dark:bg-slate-800 rounded-md shadow-md hover:bg-gray-100 dark:hover:bg-slate-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Sidebar - Details Panel -->
+            <div id="details-panel" class="details-panel w-80 bg-white dark:bg-slate-800 border-l border-gray-200 dark:border-slate-700 flex flex-col">
+                <div class="p-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center">
+                    <h2 class="font-semibold text-lg">Task Details</h2>
+                    <button id="close-details" class="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-4">
+                    <div id="task-details-content">
+                        <div class="mb-6">
+                            <input type="text" id="task-title" class="w-full text-xl font-bold bg-transparent border-none focus:ring-0 px-0" value="Implement user authentication">
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-500 dark:text-slate-400 mb-1">Description</label>
+                            <div id="task-description" class="rich-text-editor p-3 bg-gray-50 dark:bg-slate-700 rounded-md" contenteditable="true">
+                                <p>Implement JWT-based authentication for the API endpoints. Should include:</p>
+                                <ul class="list-disc pl-5">
+                                    <li>User registration</li>
+                                    <li>Login/logout</li>
+                                    <li>Password reset</li>
+                                    <li>Role-based access control</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-500 dark:text-slate-400 mb-2">Subtasks</label>
+                            <div id="subtasks-list" class="space-y-2">
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="subtask1" class="rounded text-blue-500 focus:ring-blue-500" checked>
+                                    <label for="subtask1" class="ml-2">Design database schema</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="subtask2" class="rounded text-blue-500 focus:ring-blue-500" checked>
+                                    <label for="subtask2" class="ml-2">Implement registration endpoint</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="subtask3" class="rounded text-blue-500 focus:ring-blue-500">
+                                    <label for="subtask3" class="ml-2">Implement login endpoint</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="subtask4" class="rounded text-blue-500 focus:ring-blue-500">
+                                    <label for="subtask4" class="ml-2">Add password reset functionality</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="subtask5" class="rounded text-blue-500 focus:ring-blue-500">
+                                    <label for="subtask5" class="ml-2">Implement role-based access control</label>
+                                </div>
+                            </div>
+                            <button id="add-subtask" class="mt-2 text-sm text-blue-500 hover:text-blue-700 dark:hover:text-blue-400 flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                                </svg>
+                                Add subtask
+                            </button>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4 mb-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-500 dark:text-slate-400 mb-1">Status</label>
+                                <select id="task-status" class="w-full rounded-md border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="backlog">Backlog</option>
+                                    <option value="todo" selected>Todo</option>
+                                    <option value="in_progress">In Progress</option>
+                                    <option value="done">Done</option>
+                                    <option value="archived">Archived</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-500 dark:text-slate-400 mb-1">Priority</label>
+                                <select id="task-priority" class="w-full rounded-md border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="low">Low</option>
+                                    <option value="med" selected>Medium</option>
+                                    <option value="high">High</option>
+                                    <option value="urgent">Urgent</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-500 dark:text-slate-400 mb-1">Due Date</label>
+                                <input type="date" id="task-due-date" class="w-full rounded-md border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-500 dark:text-slate-400 mb-1">Estimate</label>
+                                <input type="number" id="task-estimate" class="w-full rounded-md border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="hours">
+                            </div>
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-500 dark:text-slate-400 mb-2">Assignee</label>
+                            <div class="flex items-center">
+                                <div class="relative">
+                                    <img class="h-8 w-8 rounded-full" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="">
+                                </div>
+                                <select id="task-assignee" class="ml-2 flex-1 rounded-md border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="1" selected>John Doe</option>
+                                    <option value="2">Jane Smith</option>
+                                    <option value="3">Robert Johnson</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-500 dark:text-slate-400 mb-2">Tags</label>
+                            <div class="flex flex-wrap gap-2 mb-2">
+                                <span class="px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 flex items-center">
+                                    Feature
+                                    <button class="ml-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </span>
+                                <span class="px-2 py-1 text-xs rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 flex items-center">
+                                    API
+                                    <button class="ml-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </span>
+                            </div>
+                            <div class="relative">
+                                <input type="text" id="task-tags-input" class="w-full rounded-md border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="Add tag...">
+                                <div id="tags-suggestions" class="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 shadow-lg rounded-md hidden">
+                                    <ul class="py-1">
+                                        <li class="px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer">Security</li>
+                                        <li class="px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer">Backend</li>
+                                        <li class="px-3 py-2 hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer">Frontend</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-500 dark:text-slate-400 mb-2">Attachments</label>
+                            <div class="space-y-2">
+                                <div class="flex items-center p-2 border border-gray-200 dark:border-slate-700 rounded-md">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    <div class="ml-3 flex-1">
+                                        <p class="text-sm">auth_spec.pdf</p>
+                                        <p class="text-xs text-gray-500 dark:text-slate-400">250 KB</p>
+                                    </div>
+                                    <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <button id="add-attachment" class="mt-2 text-sm text-blue-500 hover:text-blue-700 dark:hover:text-blue-400 flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                                Add attachment
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 border-t border-gray-200 dark:border-slate-700 flex justify-between">
+                    <button id="archive-task" class="px-4 py-2 text-sm rounded-md bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600">
+                        Archive
+                    </button>
+                    <div class="space-x-2">
+                        <button id="cancel-changes" class="px-4 py-2 text-sm rounded-md bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600">
+                            Cancel
+                        </button>
+                        <button id="save-changes" class="px-4 py-2 text-sm rounded-md bg-blue-500 text-white hover:bg-blue-600">
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="context-menu" class="absolute hidden bg-white dark:bg-slate-800 shadow-lg rounded-md py-1 z-50 w-48 border border-gray-200 dark:border-slate-700">
+        <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+            </svg>
+            Add Child
+        </a>
+        <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M8 4a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1zM8 8a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1zM8 12a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" clip-rule="evenodd" />
+            </svg>
+            Add Sibling
+        </a>
+        <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828L11.828 15H9a1 1 0 01-1-1v-3a1 1 0 011-1h2.828l3.586-3.586a2 2 0 00-2.828-2.828L9 9.172V6a1 1 0 00-2 0v3.172l-3.586 3.586a2 2 0 00-2.828 2.828L6.172 15H9a1 1 0 011 1v3a1 1 0 01-1 1H6.172l-3.586-3.586a2 2 0 112.828-2.828L9 14.828V18a1 1 0 102 0v-3.172l3.586-3.586z" clip-rule="evenodd" />
+            </svg>
+            Link To...
+        </a>
+        <div class="border-t border-gray-200 dark:border-slate-700 my-1"></div>
+        <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1zM8 7a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1zM8 11a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+            </svg>
+            Duplicate
+        </a>
+        <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+            </svg>
+            Change Color
+        </a>
+        <div class="border-t border-gray-200 dark:border-slate-700 my-1"></div>
+        <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
+            </svg>
+            Collapse Children
+        </a>
+        <div class="border-t border-gray-200 dark:border-slate-700 my-1"></div>
+        <a href="#" class="block px-4 py-2 text-sm text-red-500 hover:bg-gray-100 dark:hover:bg-slate-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+            </svg>
+            Delete
+        </a>
+    </div>
+
+    <!-- Search Modal -->
+    <div id="search-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md max-h-[80vh] overflow-hidden">
+            <div class="p-4 border-b border-gray-200 dark:border-slate-700">
+                <div class="relative">
+                    <input type="text" id="search-input" class="w-full px-4 py-2 pl-10 bg-gray-100 dark:bg-slate-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Search nodes...">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 absolute left-3 top-2.5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+            </div>
+            <div id="search-results" class="overflow-y-auto max-h-[60vh]">
+                <div class="p-4 border-b border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer">
+                    <div class="font-medium">Implement user authentication</div>
+                    <div class="text-sm text-gray-500 dark:text-slate-400">Todo • Medium priority</div>
+                </div>
+                <div class="p-4 border-b border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer">
+                    <div class="font-medium">Design database schema</div>
+                    <div class="text-sm text-gray-500 dark:text-slate-400">Done • Subtask</div>
+                </div>
+                <div class="p-4 border-b border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer">
+                    <div class="font-medium">User registration endpoint</div>
+                    <div class="text-sm text-gray-500 dark:text-slate-400">In Progress • Subtask</div>
+                </div>
+            </div>
+            <div class="p-3 bg-gray-50 dark:bg-slate-700 text-xs text-gray-500 dark:text-slate-400">
+                Press Esc to close
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md">
+            <div class="p-6">
+                <h3 class="text-lg font-medium mb-4" id="confirm-title">Delete Task</h3>
+                <p class="text-gray-600 dark:text-slate-300 mb-6" id="confirm-message">Are you sure you want to delete this task? This action cannot be undone.</p>
+                <div class="flex justify-end space-x-3">
+                    <button id="confirm-cancel" class="px-4 py-2 text-sm rounded-md bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600">
+                        Cancel
+                    </button>
+                    <button id="confirm-action" class="px-4 py-2 text-sm rounded-md bg-red-500 text-white hover:bg-red-600">
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Attachment Modal -->
+    <div id="attachment-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md">
+            <div class="p-6">
+                <h3 class="text-lg font-medium mb-4">Add Attachment</h3>
+                <div class="border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-md p-8 text-center mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    <p class="mt-2 text-sm text-gray-600 dark:text-slate-300">Drag and drop files here, or click to select</p>
+                    <input type="file" id="file-upload" class="hidden">
+                    <button id="browse-files" class="mt-3 px-4 py-2 text-sm rounded-md bg-blue-500 text-white hover:bg-blue-600">
+                        Browse Files
+                    </button>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button id="attachment-cancel" class="px-4 py-2 text-sm rounded-md bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600">
+                        Cancel
+                    </button>
+                    <button id="attachment-upload" class="px-4 py-2 text-sm rounded-md bg-blue-500 text-white hover:bg-blue-600" disabled>
+                        Upload
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample data for the mind map
+        const sampleNodes = [
+            {
+                id: '1',
+                title: 'Product Roadmap',
+                description: 'Main product development roadmap',
+                status: 'todo',
+                priority: 'med',
+                assignee: { id: '1', name: 'John Doe', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
+                tags: ['planning'],
+                x: 400,
+                y: 50,
+                width: 200,
+                height: 80,
+                children: ['2', '3', '4']
+            },
+            {
+                id: '2',
+                title: 'User Authentication',
+                description: 'Implement authentication system',
+                status: 'todo',
+                priority: 'med',
+                assignee: { id: '1', name: 'John Doe', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
+                tags: ['feature', 'security'],
+                x: 200,
+                y: 200,
+                width: 200,
+                height: 80,
+                children: ['5', '6', '7', '8', '9']
+            },
+            {
+                id: '3',
+                title: 'Dashboard UI',
+                description: 'Design and implement dashboard interface',
+                status: 'in_progress',
+                priority: 'high',
+                assignee: { id: '2', name: 'Jane Smith', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
+                tags: ['frontend'],
+                x: 400,
+                y: 200,
+                width: 200,
+                height: 80,
+                children: ['10', '11']
+            },
+            {
+                id: '4',
+                title: 'API Documentation',
+                description: 'Create comprehensive API docs',
+                status: 'backlog',
+                priority: 'low',
+                assignee: null,
+                tags: ['documentation'],
+                x: 600,
+                y: 200,
+                width: 200,
+                height: 80,
+                children: []
+            },
+            {
+                id: '5',
+                title: 'Database Schema',
+                description: 'Design user tables and relationships',
+                status: 'done',
+                priority: 'med',
+                assignee: { id: '1', name: 'John Doe', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
+                tags: ['backend'],
+                x: 100,
+                y: 350,
+                width: 180,
+                height: 70,
+                children: []
+            },
+            {
+                id: '6',
+                title: 'Registration Endpoint',
+                description: 'Implement user registration API',
+                status: 'in_progress',
+                priority: 'med',
+                assignee: { id: '1', name: 'John Doe', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
+                tags: ['api'],
+                x: 300,
+                y: 350,
+                width: 180,
+                height: 70,
+                children: []
+            },
+            {
+                id: '7',
+                title: 'Login Endpoint',
+                description: 'Implement user login API',
+                status: 'todo',
+                priority: 'med',
+                assignee: null,
+                tags: ['api'],
+                x: 500,
+                y: 350,
+                width: 180,
+                height: 70,
+                children: []
+            },
+            {
+                id: '8',
+                title: 'Password Reset',
+                description: 'Implement password reset flow',
+                status: 'todo',
+                priority: 'med',
+                assignee: null,
+                tags: ['security'],
+                x: 700,
+                y: 350,
+                width: 180,
+                height: 70,
+                children: []
+            },
+            {
+                id: '9',
+                title: 'Role-based Access',
+                description: 'Implement RBAC system',
+                status: 'todo',
+                priority: 'high',
+                assignee: null,
+                tags: ['security'],
+                x: 900,
+                y: 350,
+                width: 180,
+                height: 70,
+                children: []
+            },
+            {
+                id: '10',
+                title: 'Dashboard Layout',
+                description: 'Design dashboard wireframes',
+                status: 'done',
+                priority: 'med',
+                assignee: { id: '2', name: 'Jane Smith', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
+                tags: ['design'],
+                x: 300,
+                y: 500,
+                width: 180,
+                height: 70,
+                children: []
+            },
+            {
+                id: '11',
+                title: 'Data Visualization',
+                description: 'Implement charts and graphs',
+                status: 'in_progress',
+                priority: 'high',
+                assignee: { id: '2', name: 'Jane Smith', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
+                tags: ['frontend'],
+                x: 500,
+                y: 500,
+                width: 180,
+                height: 70,
+                children: []
+            }
+        ];
+
+        // State management
+        let state = {
+            nodes: [...sampleNodes],
+            selectedNode: null,
+            isDragging: false,
+            dragStartX: 0,
+            dragStartY: 0,
+            offsetX: 0,
+            offsetY: 0,
+            scale: 1,
+            panX: 0,
+            panY: 0,
+            contextMenu: {
+                visible: false,
+                x: 0,
+                y: 0,
+                nodeId: null
+            },
+            selectedNodes: [],
+            connectionMode: false,
+            connectionStart: null,
+            draggingNode: null,
+            originalNodeData: null // Store original data for canceling edits
+        };
+
+        // DOM elements
+        const canvasContainer = document.getElementById('canvas-container');
+        const nodesContainer = document.getElementById('nodes-container');
+        const connectionsLayer = document.getElementById('connections-layer');
+        const minimap = document.getElementById('minimap');
+        const minimapSvg = document.getElementById('minimap-svg');
+        const minimapViewport = document.getElementById('minimap-viewport');
+        const detailsPanel = document.getElementById('details-panel');
+        const closeDetails = document.getElementById('close-details');
+        const taskDetailsContent = document.getElementById('task-details-content');
+        const contextMenu = document.getElementById('context-menu');
+        const searchModal = document.getElementById('search-modal');
+        const searchButton = document.getElementById('search-button');
+        const searchInput = document.getElementById('search-input');
+        const searchResults = document.getElementById('search-results');
+        const confirmModal = document.getElementById('confirm-modal');
+        const confirmTitle = document.getElementById('confirm-title');
+        const confirmMessage = document.getElementById('confirm-message');
+        const confirmCancel = document.getElementById('confirm-cancel');
+        const confirmAction = document.getElementById('confirm-action');
+        const attachmentModal = document.getElementById('attachment-modal');
+        const browseFiles = document.getElementById('browse-files');
+        const fileUpload = document.getElementById('file-upload');
+        const attachmentCancel = document.getElementById('attachment-cancel');
+        const attachmentUpload = document.getElementById('attachment-upload');
+        const toggleSidebar = document.getElementById('toggle-sidebar');
+        const sidebar = document.getElementById('sidebar');
+        const toggleTheme = document.getElementById('toggle-theme');
+        const themeIconLight = document.getElementById('theme-icon-light');
+        const themeIconDark = document.getElementById('theme-icon-dark');
+        const createNodeBtn = document.getElementById('create-node');
+        const autoLayoutBtn = document.getElementById('auto-layout');
+        const zoomInBtn = document.getElementById('zoom-in');
+        const zoomOutBtn = document.getElementById('zoom-out');
+        const zoomResetBtn = document.getElementById('zoom-reset');
+        const undoBtn = document.getElementById('undo');
+        const redoBtn = document.getElementById('redo');
+        const exportBtn = document.getElementById('export');
+
+        // Initialize the app
+        function init() {
+            renderNodes();
+            renderConnections();
+            updateMinimap();
+            setupEventListeners();
+            setupTheme();
+        }
+
+        // Render nodes on the canvas
+        function renderNodes() {
+            nodesContainer.innerHTML = '';
+            
+            state.nodes.forEach(node => {
+                const nodeEl = document.createElement('div');
+                nodeEl.className = `node absolute rounded-xl p-3 cursor-move ${getStatusClass(node.status)} ${getPriorityClass(node.priority)}`;
+                nodeEl.style.width = `${node.width}px`;
+                nodeEl.style.height = `${node.height}px`;
+                nodeEl.style.left = `${node.x}px`;
+                nodeEl.style.top = `${node.y}px`;
+                nodeEl.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${state.scale})`;
+                nodeEl.style.transformOrigin = '0 0';
+                nodeEl.dataset.id = node.id;
+                
+                // Add selected class if node is selected
+                if (state.selectedNodes.includes(node.id)) {
+                    nodeEl.classList.add('ring-2', 'ring-blue-500');
+                }
+                
+                // Node content
+                nodeEl.innerHTML = `
+                    <div class="flex justify-between items-start mb-1">
+                        <h3 class="font-medium truncate">${node.title}</h3>
+                        ${node.assignee ? `<img src="${node.assignee.avatar}" class="h-6 w-6 rounded-full ml-2" alt="${node.assignee.name}" title="${node.assignee.name}">` : ''}
+                    </div>
+                    <div class="flex flex-wrap gap-1 mt-2">
+                        ${node.tags.map(tag => `<span class="px-1.5 py-0.5 text-xs rounded-full bg-gray-100 dark:bg-slate-700">${tag}</span>`).join('')}
+                    </div>
+                    ${node.children.length > 0 ? `<div class="absolute -bottom-2 -right-2 bg-gray-200 dark:bg-slate-700 rounded-full w-5 h-5 flex items-center justify-center text-xs">${node.children.length}</div>` : ''}
+                `;
+                
+                nodesContainer.appendChild(nodeEl);
+            });
+        }
+
+        // Render connections between nodes
+        function renderConnections() {
+            connectionsLayer.innerHTML = '';
+            
+            // Add arrowhead marker definition first
+            const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+            marker.setAttribute('id', 'arrowhead');
+            marker.setAttribute('markerWidth', '10');
+            marker.setAttribute('markerHeight', '7');
+            marker.setAttribute('refX', '8');
+            marker.setAttribute('refY', '3.5');
+            marker.setAttribute('orient', 'auto');
+            const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+            polygon.setAttribute('points', '0 0, 10 3.5, 0 7');
+            polygon.setAttribute('class', 'connection');
+            marker.appendChild(polygon);
+            defs.appendChild(marker);
+            connectionsLayer.appendChild(defs);
+            
+            state.nodes.forEach(node => {
+                if (node.children && node.children.length > 0) {
+                    const parentX = node.x + node.width / 2;
+                    const parentY = node.y + node.height;
+                    
+                    node.children.forEach(childId => {
+                        const child = state.nodes.find(n => n.id === childId);
+                        if (child) {
+                            const childX = child.x + child.width / 2;
+                            const childY = child.y;
+                            
+                            // Create path element
+                            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                            
+                            // Calculate control points for curved lines
+                            const midY = (parentY + childY) / 2;
+                            const controlPoint1X = parentX;
+                            const controlPoint1Y = midY;
+                            const controlPoint2X = childX;
+                            const controlPoint2Y = midY;
+                            
+                            // Create curved path
+                            const d = `M ${parentX} ${parentY} C ${controlPoint1X} ${controlPoint1Y}, ${controlPoint2X} ${controlPoint2Y}, ${childX} ${childY}`;
+                            path.setAttribute('d', d);
+                            path.setAttribute('class', 'connection');
+                            path.setAttribute('marker-end', 'url(#arrowhead)');
+                            path.setAttribute('stroke-width', '2');
+                            path.setAttribute('fill', 'none');
+                            
+                            connectionsLayer.appendChild(path);
+                        }
+                    });
+                }
+            });
+        }
+
+        // Update minimap with current view
+        function updateMinimap() {
+            minimapSvg.innerHTML = '';
+            
+            // Calculate scale factor for minimap
+            const canvasRect = canvasContainer.getBoundingClientRect();
+            const contentWidth = 1200; // Approximate content width
+            const contentHeight = 800; // Approximate content height
+            const scaleX = minimap.clientWidth / contentWidth;
+            const scaleY = minimap.clientHeight / contentHeight;
+            const scale = Math.min(scaleX, scaleY);
+            
+            // Draw nodes on minimap
+            state.nodes.forEach(node => {
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('x', node.x * scale);
+                rect.setAttribute('y', node.y * scale);
+                rect.setAttribute('width', node.width * scale);
+                rect.setAttribute('height', node.height * scale);
+                rect.setAttribute('rx', '8');
+                rect.setAttribute('class', 'fill-gray-300 dark:fill-slate-600');
+                minimapSvg.appendChild(rect);
+            });
+            
+            // Draw connections on minimap
+            state.nodes.forEach(node => {
+                if (node.children && node.children.length > 0) {
+                    const parentX = (node.x + node.width / 2) * scale;
+                    const parentY = (node.y + node.height) * scale;
+                    
+                    node.children.forEach(childId => {
+                        const child = state.nodes.find(n => n.id === childId);
+                        if (child) {
+                            const childX = (child.x + child.width / 2) * scale;
+                            const childY = child.y * scale;
+                            
+                            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                            path.setAttribute('d', `M ${parentX} ${parentY} L ${childX} ${childY}`);
+                            path.setAttribute('class', 'stroke-gray-400 dark:stroke-slate-500');
+                            path.setAttribute('stroke-width', '1');
+                            minimapSvg.appendChild(path);
+                        }
+                    });
+                }
+            });
+            
+            // Update viewport rectangle
+            const viewportWidth = canvasRect.width / state.scale * scale;
+            const viewportHeight = canvasRect.height / state.scale * scale;
+            const viewportX = -state.panX / state.scale * scale;
+            const viewportY = -state.panY / state.scale * scale;
+            
+            minimapViewport.style.width = `${viewportWidth}px`;
+            minimapViewport.style.height = `${viewportHeight}px`;
+            minimapViewport.style.left = `${viewportX}px`;
+            minimapViewport.style.top = `${viewportY}px`;
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Canvas panning
+            canvasContainer.addEventListener('mousedown', (e) => {
+                if (e.target === canvasContainer || e.target === connectionsLayer) {
+                    state.isDragging = true;
+                    state.dragStartX = e.clientX;
+                    state.dragStartY = e.clientY;
+                    canvasContainer.style.cursor = 'grabbing';
+                }
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (state.isDragging) {
+                    const dx = e.clientX - state.dragStartX;
+                    const dy = e.clientY - state.dragStartY;
+                    
+                    state.panX += dx;
+                    state.panY += dy;
+                    
+                    state.dragStartX = e.clientX;
+                    state.dragStartY = e.clientY;
+                    
+                    updateTransform();
+                }
+            });
+            
+            document.addEventListener('mouseup', () => {
+                if (state.isDragging) {
+                    state.isDragging = false;
+                    canvasContainer.style.cursor = '';
+                }
+            });
+            
+            // Zoom with mouse wheel
+            canvasContainer.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                
+                const delta = e.deltaY < 0 ? 1.1 : 0.9;
+                const mouseX = e.clientX - canvasContainer.getBoundingClientRect().left;
+                const mouseY = e.clientY - canvasContainer.getBoundingClientRect().top;
+                
+                // Calculate new scale
+                const newScale = Math.max(0.1, Math.min(3, state.scale * delta));
+                
+                // Adjust pan to zoom toward mouse position
+                state.panX = mouseX - (mouseX - state.panX) * (newScale / state.scale);
+                state.panY = mouseY - (mouseY - state.panY) * (newScale / state.scale);
+                state.scale = newScale;
+                
+                updateTransform();
+            });
+            
+            // Node selection
+            nodesContainer.addEventListener('mousedown', (e) => {
+                const nodeEl = e.target.closest('.node');
+                if (nodeEl) {
+                    e.stopPropagation();
+                    const nodeId = nodeEl.dataset.id;
+                    
+                    if (e.ctrlKey || e.metaKey) {
+                        // Multi-select with Ctrl/Cmd key
+                        const index = state.selectedNodes.indexOf(nodeId);
+                        if (index === -1) {
+                            state.selectedNodes.push(nodeId);
+                        } else {
+                            state.selectedNodes.splice(index, 1);
+                        }
+                    } else {
+                        // Single select
+                        state.selectedNodes = [nodeId];
+                    }
+                    
+                    renderNodes();
+                    
+                    // Show details panel for single selection
+                    if (state.selectedNodes.length === 1) {
+                        showNodeDetails(nodeId);
+                    } else {
+                        detailsPanel.classList.add('details-collapsed');
+                    }
+                }
+            });
+            
+            // Node dragging
+            nodesContainer.addEventListener('mousedown', (e) => {
+                const nodeEl = e.target.closest('.node');
+                if (nodeEl) {
+                    const nodeId = nodeEl.dataset.id;
+                    const node = state.nodes.find(n => n.id === nodeId);
+                    
+                    if (node) {
+                        state.draggingNode = nodeId;
+                        state.offsetX = e.clientX - node.x;
+                        state.offsetY = e.clientY - node.y;
+                    }
+                }
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (state.draggingNode) {
+                    const node = state.nodes.find(n => n.id === state.draggingNode);
+                    if (node) {
+                        node.x = e.clientX - state.offsetX;
+                        node.y = e.clientY - state.offsetY;
+                        
+                        // Add dragging class to node
+                        const nodeEl = document.querySelector(`.node[data-id="${state.draggingNode}"]`);
+                        if (nodeEl) {
+                            nodeEl.classList.add('dragging');
+                        }
+                        
+                        renderNodes();
+                        renderConnections();
+                    }
+                }
+            });
+            
+            document.addEventListener('mouseup', () => {
+                if (state.draggingNode) {
+                    const nodeEl = document.querySelector(`.node[data-id="${state.draggingNode}"]`);
+                    if (nodeEl) {
+                        nodeEl.classList.remove('dragging');
+                    }
+                    state.draggingNode = null;
+                }
+            });
+            
+            // Context menu
+            canvasContainer.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                
+                const nodeEl = e.target.closest('.node');
+                if (nodeEl) {
+                    state.contextMenu.nodeId = nodeEl.dataset.id;
+                    state.contextMenu.x = e.clientX;
+                    state.contextMenu.y = e.clientY;
+                    
+                    showContextMenu();
+                }
+            });
+            
+            // Close context menu when clicking elsewhere
+            document.addEventListener('click', () => {
+                if (state.contextMenu.visible) {
+                    hideContextMenu();
+                }
+            });
+            
+            // Context menu actions
+            setupContextMenuActions();
+            
+            // Close details panel
+            closeDetails.addEventListener('click', () => {
+                detailsPanel.classList.add('details-collapsed');
+                state.selectedNodes = [];
+                renderNodes();
+            });
+            
+            // Search functionality
+            searchButton.addEventListener('click', () => {
+                searchModal.classList.remove('hidden');
+                searchInput.focus();
+            });
+            
+            searchInput.addEventListener('input', () => {
+                const query = searchInput.value.toLowerCase();
+                if (query.length > 0) {
+                    const results = state.nodes.filter(node => 
+                        node.title.toLowerCase().includes(query) || 
+                        node.description.toLowerCase().includes(query)
+                    );
+                    
+                    renderSearchResults(results);
+                } else {
+                    searchResults.innerHTML = '';
+                }
+            });
+            
+            // Close search modal with Escape
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && !searchModal.classList.contains('hidden')) {
+                    searchModal.classList.add('hidden');
+                }
+            });
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', handleKeyboardShortcuts);
+            
+            // Theme toggle
+            toggleTheme.addEventListener('click', toggleDarkMode);
+            
+            // Sidebar toggle
+            toggleSidebar.addEventListener('click', () => {
+                sidebar.classList.toggle('sidebar-collapsed');
+            });
+            
+            // Create new node
+            createNodeBtn.addEventListener('click', createNewNode);
+            
+            // Zoom controls
+            zoomInBtn.addEventListener('click', () => {
+                state.scale = Math.min(3, state.scale * 1.1);
+                updateTransform();
+            });
+            
+            zoomOutBtn.addEventListener('click', () => {
+                state.scale = Math.max(0.1, state.scale * 0.9);
+                updateTransform();
+            });
+            
+            zoomResetBtn.addEventListener('click', () => {
+                state.scale = 1;
+                state.panX = 0;
+                state.panY = 0;
+                updateTransform();
+            });
+            
+            // Auto layout
+            autoLayoutBtn.addEventListener('click', applyAutoLayout);
+            
+            // Details panel actions
+            setupDetailsPanelActions();
+        }
+        
+        // Handle keyboard shortcuts
+        function handleKeyboardShortcuts(e) {
+            // Don't handle shortcuts when typing in input fields
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.contentEditable === 'true') {
+                return;
+            }
+            
+            switch (e.key) {
+                case 'Delete':
+                case 'Backspace':
+                    if (state.selectedNodes.length > 0) {
+                        e.preventDefault();
+                        showDeleteConfirmation(state.selectedNodes[0]);
+                    }
+                    break;
+                case 'n':
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        createNewNode();
+                    }
+                    break;
+                case 'f':
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        searchModal.classList.remove('hidden');
+                        searchInput.focus();
+                    }
+                    break;
+                case 'Escape':
+                    if (state.contextMenu.visible) {
+                        hideContextMenu();
+                    }
+                    if (!detailsPanel.classList.contains('details-collapsed')) {
+                        detailsPanel.classList.add('details-collapsed');
+                        state.selectedNodes = [];
+                        renderNodes();
+                    }
+                    break;
+                case 'a':
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        state.selectedNodes = state.nodes.map(n => n.id);
+                        renderNodes();
+                    }
+                    break;
+            }
+        }
+        
+        // Update transform for all nodes
+        function updateTransform() {
+            document.querySelectorAll('.node').forEach(nodeEl => {
+                nodeEl.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${state.scale})`;
+            });
+            
+            // Update connections layer transform
+            connectionsLayer.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${state.scale})`;
+            connectionsLayer.style.transformOrigin = '0 0';
+            
+            // Re-render connections to ensure proper positioning
+            renderConnections();
+            
+            updateMinimap();
+        }
+        
+        // Show node details in right panel
+        function showNodeDetails(nodeId) {
+            const node = state.nodes.find(n => n.id === nodeId);
+            if (node) {
+                // Update details panel content
+                document.getElementById('task-title').value = node.title;
+                document.getElementById('task-description').innerHTML = node.description || '';
+                document.getElementById('task-status').value = node.status;
+                document.getElementById('task-priority').value = node.priority;
+                
+                // Show panel
+                detailsPanel.classList.remove('details-collapsed');
+            }
+        }
+        
+        // Show context menu
+        function showContextMenu() {
+            contextMenu.style.left = `${state.contextMenu.x}px`;
+            contextMenu.style.top = `${state.contextMenu.y}px`;
+            contextMenu.classList.remove('hidden');
+            state.contextMenu.visible = true;
+        }
+        
+        // Hide context menu
+        function hideContextMenu() {
+            contextMenu.classList.add('hidden');
+            state.contextMenu.visible = false;
+        }
+        
+        // Render search results
+        function renderSearchResults(results) {
+            searchResults.innerHTML = '';
+            
+            results.forEach(node => {
+                const resultEl = document.createElement('div');
+                resultEl.className = 'p-4 border-b border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer';
+                resultEl.innerHTML = `
+                    <div class="font-medium">${node.title}</div>
+                    <div class="text-sm text-gray-500 dark:text-slate-400">${getStatusLabel(node.status)} • ${getPriorityLabel(node.priority)}</div>
+                `;
+                
+                resultEl.addEventListener('click', () => {
+                    // Center view on the node
+                    const canvasRect = canvasContainer.getBoundingClientRect();
+                    state.panX = canvasRect.width / 2 - node.x - node.width / 2;
+                    state.panY = canvasRect.height / 2 - node.y - node.height / 2;
+                    state.scale = 1;
+                    
+                    updateTransform();
+                    
+                    // Select the node
+                    state.selectedNodes = [node.id];
+                    renderNodes();
+                    showNodeDetails(node.id);
+                    
+                    // Close search modal
+                    searchModal.classList.add('hidden');
+                });
+                
+                searchResults.appendChild(resultEl);
+            });
+        }
+        
+        // Setup theme based on user preference
+        function setupTheme() {
+            if (localStorage.getItem('darkMode') === 'true' || 
+                (!localStorage.getItem('darkMode') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                themeIconLight.classList.add('hidden');
+                themeIconDark.classList.remove('hidden');
+            } else {
+                document.documentElement.classList.remove('dark');
+                themeIconLight.classList.remove('hidden');
+                themeIconDark.classList.add('hidden');
+            }
+        }
+        
+        // Toggle dark mode
+        function toggleDarkMode() {
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('darkMode', 'false');
+                themeIconLight.classList.remove('hidden');
+                themeIconDark.classList.add('hidden');
+            } else {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('darkMode', 'true');
+                themeIconLight.classList.add('hidden');
+                themeIconDark.classList.remove('hidden');
+            }
+        }
+        
+        // Create new node
+        function createNewNode() {
+            const newNode = {
+                id: Date.now().toString(),
+                title: 'New Node',
+                description: '',
+                status: 'todo',
+                priority: 'med',
+                assignee: null,
+                tags: [],
+                x: 100,
+                y: 100,
+                width: 200,
+                height: 80,
+                children: []
+            };
+            
+            state.nodes.push(newNode);
+            renderNodes();
+            renderConnections();
+            
+            // Select and show details for new node
+            state.selectedNodes = [newNode.id];
+            renderNodes();
+            showNodeDetails(newNode.id);
+        }
+        
+        // Apply auto layout to nodes
+        function applyAutoLayout() {
+            // Simple hierarchical layout for demo purposes
+            const rootNodes = state.nodes.filter(node => !state.nodes.some(n => n.children.includes(node.id)));
+            
+            let y = 50;
+            rootNodes.forEach((node, i) => {
+                node.x = 400 + (i - (rootNodes.length - 1) / 2) * 250;
+                node.y = y;
+                
+                if (node.children && node.children.length > 0) {
+                    layoutChildren(node, node.x, node.y + 120);
+                }
+            });
+            
+            renderNodes();
+            renderConnections();
+        }
+        
+        // Layout child nodes recursively
+        function layoutChildren(parentNode, startX, startY) {
+            const children = state.nodes.filter(node => parentNode.children.includes(node.id));
+            
+            children.forEach((child, i) => {
+                child.x = startX + (i - (children.length - 1) / 2) * 200;
+                child.y = startY;
+                
+                if (child.children && child.children.length > 0) {
+                    layoutChildren(child, child.x, child.y + 120);
+                }
+            });
+        }
+        
+        // Helper functions for status/priority classes and labels
+        function getStatusClass(status) {
+            return `status-${status}`;
+        }
+        
+        function getPriorityClass(priority) {
+            return `priority-${priority}`;
+        }
+        
+        function getStatusLabel(status) {
+            const labels = {
+                backlog: 'Backlog',
+                todo: 'Todo',
+                in_progress: 'In Progress',
+                done: 'Done',
+                archived: 'Archived'
+            };
+            return labels[status] || status;
+        }
+        
+        function getPriorityLabel(priority) {
+            const labels = {
+                low: 'Low priority',
+                med: 'Medium priority',
+                high: 'High priority',
+                urgent: 'Urgent priority'
+            };
+            return labels[priority] || priority;
+        }
+        
+        // Setup context menu actions
+        function setupContextMenuActions() {
+            const contextMenuItems = contextMenu.querySelectorAll('a');
+            
+            contextMenuItems.forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const action = item.textContent.toLowerCase();
+                    
+                    if (state.contextMenu.nodeId) {
+                        switch (action) {
+                            case 'delete':
+                                showDeleteConfirmation(state.contextMenu.nodeId);
+                                break;
+                            case 'duplicate':
+                                duplicateNode(state.contextMenu.nodeId);
+                                break;
+                            case 'add child':
+                                addChildNode(state.contextMenu.nodeId);
+                                break;
+                            case 'add sibling':
+                                addSiblingNode(state.contextMenu.nodeId);
+                                break;
+                        }
+                    }
+                    
+                    hideContextMenu();
+                });
+            });
+        }
+        
+        // Show delete confirmation modal
+        function showDeleteConfirmation(nodeId) {
+            const node = state.nodes.find(n => n.id === nodeId);
+            if (node) {
+                confirmTitle.textContent = 'Delete Task';
+                confirmMessage.textContent = `Are you sure you want to delete "${node.title}"? This action cannot be undone.`;
+                confirmModal.classList.remove('hidden');
+                
+                // Store node ID for deletion
+                confirmAction.onclick = () => deleteNode(nodeId);
+            }
+        }
+        
+        // Delete node from mindmap
+        function deleteNode(nodeId) {
+            // Remove node from nodes array
+            state.nodes = state.nodes.filter(n => n.id !== nodeId);
+            
+            // Remove node from children arrays of other nodes
+            state.nodes.forEach(node => {
+                node.children = node.children.filter(childId => childId !== nodeId);
+            });
+            
+            // Remove from selected nodes if it was selected
+            state.selectedNodes = state.selectedNodes.filter(id => id !== nodeId);
+            
+            // Close details panel if it was showing the deleted node
+            if (state.selectedNodes.length === 0) {
+                detailsPanel.classList.add('details-collapsed');
+            }
+            
+            // Re-render everything
+            renderNodes();
+            renderConnections();
+            updateMinimap();
+            
+            // Close confirmation modal
+            confirmModal.classList.add('hidden');
+            
+            // Show delete feedback
+            showDeleteFeedback(node.title);
+        }
+        
+        // Duplicate node
+        function duplicateNode(nodeId) {
+            const originalNode = state.nodes.find(n => n.id === nodeId);
+            if (originalNode) {
+                const newNode = {
+                    ...originalNode,
+                    id: Date.now().toString(),
+                    title: `${originalNode.title} (Copy)`,
+                    x: originalNode.x + 50,
+                    y: originalNode.y + 50,
+                    children: []
+                };
+                
+                state.nodes.push(newNode);
+                renderNodes();
+                renderConnections();
+                updateMinimap();
+            }
+        }
+        
+        // Add child node
+        function addChildNode(nodeId) {
+            const parentNode = state.nodes.find(n => n.id === nodeId);
+            if (parentNode) {
+                const newNode = {
+                    id: Date.now().toString(),
+                    title: 'New Child Node',
+                    description: '',
+                    status: 'todo',
+                    priority: 'med',
+                    assignee: null,
+                    tags: [],
+                    x: parentNode.x,
+                    y: parentNode.y + parentNode.height + 50,
+                    width: 180,
+                    height: 70,
+                    children: []
+                };
+                
+                // Add to parent's children
+                parentNode.children.push(newNode.id);
+                
+                state.nodes.push(newNode);
+                renderNodes();
+                renderConnections();
+                updateMinimap();
+            }
+        }
+        
+        // Add sibling node
+        function addSiblingNode(nodeId) {
+            const currentNode = state.nodes.find(n => n.id === nodeId);
+            if (currentNode) {
+                // Find parent node
+                const parentNode = state.nodes.find(n => n.children.includes(nodeId));
+                
+                const newNode = {
+                    id: Date.now().toString(),
+                    title: 'New Sibling Node',
+                    description: '',
+                    status: 'todo',
+                    priority: 'med',
+                    assignee: null,
+                    tags: [],
+                    x: currentNode.x + currentNode.width + 50,
+                    y: currentNode.y,
+                    width: 180,
+                    height: 70,
+                    children: []
+                };
+                
+                // Add to parent's children if parent exists
+                if (parentNode) {
+                    parentNode.children.push(newNode.id);
+                }
+                
+                state.nodes.push(newNode);
+                renderNodes();
+                renderConnections();
+                updateMinimap();
+            }
+        }
+        
+        // Initialize the app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', init);
+
+        // Setup details panel actions
+        function setupDetailsPanelActions() {
+            // Save changes button
+            const saveChangesBtn = document.getElementById('save-changes');
+            const cancelChangesBtn = document.getElementById('cancel-changes');
+            const archiveTaskBtn = document.getElementById('archive-task');
+            
+            saveChangesBtn.addEventListener('click', saveNodeChanges);
+            cancelChangesBtn.addEventListener('click', cancelNodeChanges);
+            archiveTaskBtn.addEventListener('click', archiveNode);
+            
+            // Add input event listeners for real-time updates
+            const taskTitle = document.getElementById('task-title');
+            const taskDescription = document.getElementById('task-description');
+            const taskStatus = document.getElementById('task-status');
+            const taskPriority = document.getElementById('task-priority');
+            const taskDueDate = document.getElementById('task-due-date');
+            const taskEstimate = document.getElementById('task-estimate');
+            const taskAssignee = document.getElementById('task-assignee');
+            
+            // Store original values when editing starts
+            taskTitle.addEventListener('focus', storeOriginalValues);
+            taskDescription.addEventListener('focus', storeOriginalValues);
+            taskStatus.addEventListener('focus', storeOriginalValues);
+            taskPriority.addEventListener('focus', storeOriginalValues);
+            taskDueDate.addEventListener('focus', storeOriginalValues);
+            taskEstimate.addEventListener('focus', storeOriginalValues);
+            taskAssignee.addEventListener('focus', storeOriginalValues);
+            
+            // Real-time updates to mindmap
+            taskTitle.addEventListener('input', updateNodeInRealTime);
+            taskStatus.addEventListener('change', updateNodeInRealTime);
+            taskPriority.addEventListener('change', updateNodeInRealTime);
+            taskAssignee.addEventListener('change', updateNodeInRealTime);
+            
+            // Rich text editor for description
+            taskDescription.addEventListener('input', updateNodeInRealTime);
+        }
+        
+        // Update node in real-time as user types/changes values
+        function updateNodeInRealTime() {
+            if (state.selectedNodes.length === 1) {
+                const nodeId = state.selectedNodes[0];
+                const node = state.nodes.find(n => n.id === nodeId);
+                
+                if (node) {
+                    // Update node data from form fields
+                    const newTitle = document.getElementById('task-title').value;
+                    const newDescription = document.getElementById('task-description').innerHTML;
+                    const newStatus = document.getElementById('task-status').value;
+                    const newPriority = document.getElementById('task-priority').value;
+                    const newAssigneeId = document.getElementById('task-assignee').value;
+                    
+                    // Only update if values actually changed
+                    let hasChanges = false;
+                    
+                    if (node.title !== newTitle) {
+                        node.title = newTitle;
+                        hasChanges = true;
+                    }
+                    
+                    if (node.description !== newDescription) {
+                        node.description = newDescription;
+                        hasChanges = true;
+                    }
+                    
+                    if (node.status !== newStatus) {
+                        node.status = newStatus;
+                        hasChanges = true;
+                    }
+                    
+                    if (node.priority !== newPriority) {
+                        node.priority = newPriority;
+                        hasChanges = true;
+                    }
+                    
+                    // Handle assignee changes
+                    if (newAssigneeId) {
+                        const assigneeName = document.getElementById('task-assignee').options[document.getElementById('task-assignee').selectedIndex].text;
+                        const newAssignee = { 
+                            id: newAssigneeId, 
+                            name: assigneeName, 
+                            avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' 
+                        };
+                        
+                        if (!node.assignee || node.assignee.id !== newAssigneeId) {
+                            node.assignee = newAssignee;
+                            hasChanges = true;
+                        }
+                    } else if (node.assignee) {
+                        node.assignee = null;
+                        hasChanges = true;
+                    }
+                    
+                    // Only re-render if there were actual changes
+                    if (hasChanges) {
+                        renderNodes();
+                        renderConnections();
+                    }
+                }
+            }
+        }
+        
+        // Store original values when editing starts
+        function storeOriginalValues() {
+            if (state.selectedNodes.length === 1) {
+                const nodeId = state.selectedNodes[0];
+                const node = state.nodes.find(n => n.id === nodeId);
+                if (node && !state.originalNodeData) {
+                    state.originalNodeData = { ...node };
+                }
+            }
+        }
+        
+        // Save changes to the selected node
+        function saveNodeChanges() {
+            if (state.selectedNodes.length === 1) {
+                const nodeId = state.selectedNodes[0];
+                const node = state.nodes.find(n => n.id === nodeId);
+                
+                if (node) {
+                    // Update node data from form fields
+                    node.title = document.getElementById('task-title').value;
+                    node.description = document.getElementById('task-description').innerHTML;
+                    node.status = document.getElementById('task-status').value;
+                    node.priority = document.getElementById('task-priority').value;
+                    
+                    // Update assignee if changed
+                    const assigneeSelect = document.getElementById('task-assignee');
+                    if (assigneeSelect.value) {
+                        const assigneeId = assigneeSelect.value;
+                        const assigneeName = assigneeSelect.options[assigneeSelect.selectedIndex].text;
+                        node.assignee = { 
+                            id: assigneeId, 
+                            name: assigneeName, 
+                            avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' 
+                        };
+                    } else {
+                        node.assignee = null;
+                    }
+                    
+                    // Clear original data
+                    state.originalNodeData = null;
+                    
+                    // Re-render the mindmap to show updated data
+                    renderNodes();
+                    renderConnections();
+                    
+                    // Show success feedback
+                    showSaveFeedback(true);
+                }
+            }
+        }
+        
+        // Cancel changes and restore original values
+        function cancelNodeChanges() {
+            if (state.selectedNodes.length === 1 && state.originalNodeData) {
+                const nodeId = state.selectedNodes[0];
+                const node = state.nodes.find(n => n.id === nodeId);
+                
+                if (node) {
+                    // Restore original values
+                    Object.assign(node, state.originalNodeData);
+                    
+                    // Update form fields
+                    document.getElementById('task-title').value = node.title;
+                    document.getElementById('task-description').innerHTML = node.description || '';
+                    document.getElementById('task-status').value = node.status;
+                    document.getElementById('task-priority').value = node.priority;
+                    
+                    // Clear original data
+                    state.originalNodeData = null;
+                    
+                    // Re-render the mindmap
+                    renderNodes();
+                    renderConnections();
+                    
+                    showSaveFeedback(false);
+                }
+            }
+        }
+        
+        // Archive the selected node
+        function archiveNode() {
+            if (state.selectedNodes.length === 1) {
+                const nodeId = state.selectedNodes[0];
+                const node = state.nodes.find(n => n.id === nodeId);
+                
+                if (node) {
+                    node.status = 'archived';
+                    document.getElementById('task-status').value = 'archived';
+                    
+                    // Re-render the mindmap
+                    renderNodes();
+                    renderConnections();
+                    
+                    showSaveFeedback(true);
+                }
+            }
+        }
+        
+        // Show save feedback
+        function showSaveFeedback(success) {
+            const saveBtn = document.getElementById('save-changes');
+            const originalText = saveBtn.textContent;
+            
+            if (success) {
+                saveBtn.textContent = 'Saved!';
+                saveBtn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                saveBtn.classList.add('bg-green-500', 'hover:bg-green-600');
+                
+                // Show success notification
+                showNotification('Changes saved successfully!', 'success');
+                
+                setTimeout(() => {
+                    saveBtn.textContent = originalText;
+                    saveBtn.classList.remove('bg-green-500', 'hover:bg-green-600');
+                    saveBtn.classList.add('bg-blue-500', 'hover:bg-blue-600');
+                }, 2000);
+            } else {
+                saveBtn.textContent = 'Cancelled';
+                saveBtn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                saveBtn.classList.add('bg-gray-500', 'hover:bg-gray-600');
+                
+                // Show info notification
+                showNotification('Changes cancelled', 'info');
+                
+                setTimeout(() => {
+                    saveBtn.textContent = originalText;
+                    saveBtn.classList.remove('bg-gray-500', 'hover:bg-gray-600');
+                    saveBtn.classList.add('bg-blue-500', 'hover:bg-blue-600');
+                }, 2000);
+            }
+        }
+        
+        // Show notification
+        function showNotification(message, type = 'info') {
+            // Remove existing notifications
+            const existingNotifications = document.querySelectorAll('.notification');
+            existingNotifications.forEach(n => n.remove());
+            
+            const notification = document.createElement('div');
+            notification.className = `notification fixed top-4 right-4 z-50 px-4 py-2 rounded-md shadow-lg transition-all duration-300 transform translate-x-full`;
+            
+            const colors = {
+                success: 'bg-green-500 text-white',
+                error: 'bg-red-500 text-white',
+                warning: 'bg-yellow-500 text-white',
+                info: 'bg-blue-500 text-white'
+            };
+            
+            notification.className += ` ${colors[type] || colors.info}`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // Animate in
+            setTimeout(() => {
+                notification.classList.remove('translate-x-full');
+            }, 100);
+            
+            // Auto remove after 3 seconds
+            setTimeout(() => {
+                notification.classList.add('translate-x-full');
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+        
+        // Show delete feedback
+        function showDeleteFeedback(nodeTitle) {
+            showNotification(`Task "${nodeTitle}" deleted successfully`, 'success');
+        }
+    </script>
+</body>
+</html>

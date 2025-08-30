@@ -1,0 +1,399 @@
+{% extends 'base.html' %}
+
+{% block title %}Habit Tracker - AI Taskboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .habit-cell {
+        width: 28px;
+        height: 28px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .habit-cell:hover {
+        transform: scale(1.1);
+    }
+    .completed {
+        background-color: #10b981;
+    }
+    .missed {
+        background-color: #ef4444;
+    }
+    .pending {
+        background-color: #d1d5db;
+    }
+    .future {
+        background-color: #f3f4f6;
+    }
+    .scroll-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    @media (max-width: 640px) {
+        .habit-cell {
+            width: 22px;
+            height: 22px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+    <div>
+        <h1 class="text-3xl font-bold text-gray-800 dark:text-white">Habit Tracker</h1>
+        <p class="text-gray-600 dark:text-gray-400">Track your daily routines and build better habits</p>
+    </div>
+    <div class="flex flex-col sm:flex-row gap-3">
+        <button id="exportBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Export as PNG
+        </button>
+        <div class="flex gap-2">
+            <select id="filterSelect" class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                <option value="all">All Habits</option>
+                <option value="active">Only Active</option>
+                <option value="missed">Only Missed</option>
+            </select>
+            <button id="addHabitBtn" class="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                <span class="hidden sm:inline">Add Habit</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-8">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-indigo-50 dark:bg-indigo-900/30 p-4 rounded-lg">
+            <p class="text-sm text-indigo-600 dark:text-indigo-400 font-medium">Total Habits</p>
+            <p id="totalHabits" class="text-2xl font-bold text-indigo-800 dark:text-indigo-200">0</p>
+        </div>
+        <div class="bg-green-50 dark:bg-green-900/30 p-4 rounded-lg">
+            <p class="text-sm text-green-600 dark:text-green-400 font-medium">Current Streak</p>
+            <p id="currentStreak" class="text-2xl font-bold text-green-800 dark:text-green-200">0 days</p>
+        </div>
+        <div class="bg-purple-50 dark:bg-purple-900/30 p-4 rounded-lg">
+            <p class="text-sm text-purple-600 dark:text-purple-400 font-medium">Best Streak</p>
+            <p id="bestStreak" class="text-2xl font-bold text-purple-800 dark:text-purple-200">0 days</p>
+        </div>
+        <div class="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg">
+            <p class="text-sm text-blue-600 dark:text-blue-400 font-medium">Completion Rate</p>
+            <p id="completionRate" class="text-2xl font-bold text-blue-800 dark:text-blue-200">0%</p>
+        </div>
+    </div>
+</div>
+
+<div id="trackerContainer" class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+    <div class="scroll-container">
+        <table class="w-full">
+            <thead>
+                <tr>
+                    <th class="sticky left-0 z-10 bg-white dark:bg-gray-800 pl-4 pr-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white min-w-[200px]">Habit</th>
+                    <!-- Date headers will be dynamically generated -->
+                </tr>
+            </thead>
+            <tbody id="trackerBody">
+                <!-- Habit rows will be dynamically generated -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Habit Modal -->
+<div id="addHabitModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+        <div class="mt-3">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white">Add New Habit</h3>
+                <button id="closeModalBtn" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form class="space-y-4">
+                <div>
+                    <label for="habitName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Habit Name</label>
+                    <input type="text" id="habitName" required class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm text-gray-900 dark:text-gray-100">
+                </div>
+                
+                <div>
+                    <label for="habitStartDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date</label>
+                    <input type="date" id="habitStartDate" required class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm text-gray-900 dark:text-gray-100">
+                </div>
+                
+                <div class="flex space-x-3">
+                    <button type="button" id="saveHabitBtn" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-md text-sm font-medium transition-colors duration-200">
+                        Save
+                    </button>
+                    <button type="button" id="cancelAddHabitBtn" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 dark:text-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 py-2 px-4 rounded-md text-sm font-medium transition-colors duration-200">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script>
+    // Sample data - in a real app, this would come from the backend
+    let habits = [
+        {
+            id: 1,
+            name: 'Morning Exercise',
+            startDate: '2023-11-01',
+            completions: ['completed', 'completed', 'missed', 'completed', 'completed', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending'],
+            active: true
+        },
+        {
+            id: 2,
+            name: 'Read 20 Pages',
+            startDate: '2023-11-01',
+            completions: ['completed', 'completed', 'completed', 'completed', 'completed', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending'],
+            active: true
+        },
+        {
+            id: 3,
+            name: 'Drink 8 Glasses of Water',
+            startDate: '2023-11-01',
+            completions: ['completed', 'missed', 'completed', 'missed', 'completed', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending', 'pending'],
+            active: true
+        }
+    ];
+
+    // DOM elements
+    const trackerBody = document.getElementById('trackerBody');
+    const totalHabitsElement = document.getElementById('totalHabits');
+    const currentStreakElement = document.getElementById('currentStreak');
+    const bestStreakElement = document.getElementById('bestStreak');
+    const completionRateElement = document.getElementById('completionRate');
+    const filterSelect = document.getElementById('filterSelect');
+
+    // Initialize the app
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load habits from localStorage if available
+        const savedHabits = localStorage.getItem('habits');
+        if (savedHabits) {
+            habits = JSON.parse(savedHabits);
+        }
+        
+        setupEventListeners();
+        renderTracker();
+    });
+
+    // Setup event listeners
+    function setupEventListeners() {
+        filterSelect.addEventListener('change', function() {
+            renderTracker(this.value);
+        });
+
+        // Handle habit cell clicks
+        trackerBody.addEventListener('click', function(e) {
+            if (e.target.classList.contains('habit-cell') && !e.target.classList.contains('future')) {
+                const habitId = parseInt(e.target.dataset.habitId);
+                const dateIndex = parseInt(e.target.dataset.dateIndex);
+                
+                const habit = habits.find(h => h.id === habitId);
+                if (habit) {
+                    const currentStatus = habit.completions[dateIndex];
+                    let newStatus;
+                    
+                    if (currentStatus === 'completed') {
+                        newStatus = 'missed';
+                    } else if (currentStatus === 'missed') {
+                        newStatus = 'pending';
+                    } else {
+                        newStatus = 'completed';
+                    }
+                    
+                    habit.completions[dateIndex] = newStatus;
+                    localStorage.setItem('habits', JSON.stringify(habits));
+                    renderTracker(filterSelect.value);
+                }
+            }
+            
+            // Handle habit settings button clicks
+            if (e.target.closest('.habit-toggle-btn')) {
+                const habitId = parseInt(e.target.closest('.habit-toggle-btn').dataset.habitId);
+                const habit = habits.find(h => h.id === habitId);
+                if (habit) {
+                    habit.active = !habit.active;
+                    localStorage.setItem('habits', JSON.stringify(habits));
+                    renderTracker(filterSelect.value);
+                }
+            }
+        });
+
+        // Add habit modal
+        const addHabitModal = document.getElementById('addHabitModal');
+        document.getElementById('addHabitBtn').addEventListener('click', function() {
+            addHabitModal.classList.remove('hidden');
+            document.getElementById('habitStartDate').value = new Date().toISOString().split('T')[0];
+        });
+
+        document.getElementById('closeModalBtn').addEventListener('click', function() {
+            addHabitModal.classList.add('hidden');
+        });
+
+        document.getElementById('cancelAddHabitBtn').addEventListener('click', function() {
+            addHabitModal.classList.add('hidden');
+        });
+
+        document.getElementById('saveHabitBtn').addEventListener('click', function() {
+            const name = document.getElementById('habitName').value.trim();
+            const startDate = document.getElementById('habitStartDate').value;
+            
+            if (name) {
+                const newHabit = {
+                    id: habits.length > 0 ? Math.max(...habits.map(h => h.id)) + 1 : 1,
+                    name: name,
+                    startDate: startDate,
+                    completions: Array(30).fill('pending'),
+                    active: true
+                };
+                
+                habits.push(newHabit);
+                localStorage.setItem('habits', JSON.stringify(habits));
+                
+                document.getElementById('habitName').value = '';
+                addHabitModal.classList.add('hidden');
+                renderTracker(filterSelect.value);
+            }
+        });
+
+        // Export as PNG
+        document.getElementById('exportBtn').addEventListener('click', function() {
+            const trackerContainer = document.getElementById('trackerContainer');
+            
+            html2canvas(trackerContainer, {
+                scale: 2,
+                logging: false,
+                useCORS: true,
+                allowTaint: true,
+                scrollX: -window.scrollX,
+                scrollY: -window.scrollY,
+                windowWidth: trackerContainer.scrollWidth,
+                windowHeight: trackerContainer.scrollHeight
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'habit-tracker-' + new Date().toISOString().split('T')[0] + '.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        });
+    }
+
+    // Render the habit tracker
+    function renderTracker(filter = 'all') {
+        const today = new Date();
+        const dates = [];
+        
+        // Generate dates for the last 30 days
+        for (let i = 29; i >= 0; i--) {
+            const date = new Date(today);
+            date.setDate(date.getDate() - i);
+            dates.push(date);
+        }
+        
+        // Filter habits based on selection
+        let filteredHabits = habits;
+        if (filter === 'active') {
+            filteredHabits = habits.filter(h => h.active);
+        } else if (filter === 'missed') {
+            filteredHabits = habits.filter(h => h.active && h.completions.some(c => c === 'missed'));
+        }
+        
+        // Render header row with dates
+        const headerRow = document.createElement('tr');
+        headerRow.innerHTML = `
+            <th class="sticky left-0 z-10 bg-white dark:bg-gray-800 pl-4 pr-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white min-w-[200px]">Habit</th>
+            ${dates.map(date => `
+                <th class="px-2 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 min-w-[40px]">
+                    ${date.getDate()}<br>
+                    <span class="text-gray-400 dark:text-gray-500">${date.toLocaleDateString('en-US', { month: 'short' })}</span>
+                </th>
+            `).join('')}
+        `;
+        
+        trackerBody.innerHTML = '';
+        trackerBody.appendChild(headerRow);
+        
+        // Render habit rows
+        filteredHabits.forEach(habit => {
+            const row = document.createElement('tr');
+            row.className = 'border-t border-gray-200 dark:border-gray-700';
+            
+            row.innerHTML = `
+                <td class="sticky left-0 z-10 bg-white dark:bg-gray-800 pl-4 pr-6 py-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <button class="habit-toggle-btn ${habit.active ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}" data-habit-id="${habit.id}">
+                                <i class="fas ${habit.active ? 'fa-toggle-on' : 'fa-toggle-off'}"></i>
+                            </button>
+                            <span class="text-sm font-medium text-gray-900 dark:text-white">${habit.name}</span>
+                        </div>
+                    </div>
+                </td>
+                ${dates.map((date, index) => {
+                    let status = 'future';
+                    if (index < habit.completions.length) {
+                        status = habit.completions[index];
+                    }
+                    
+                    return `
+                        <td class="px-2 py-3 text-center">
+                            <div class="habit-cell ${status} mx-auto" data-habit-id="${habit.id}" data-date-index="${index}"></div>
+                        </td>
+                    `;
+                }).join('')}
+            `;
+            
+            trackerBody.appendChild(row);
+        });
+        
+        updateStats();
+    }
+
+    // Update statistics
+    function updateStats() {
+        const activeHabits = habits.filter(h => h.active);
+        totalHabitsElement.textContent = activeHabits.length;
+        
+        let totalCompletions = 0;
+        let totalPossible = 0;
+        let currentStreak = 0;
+        let bestStreak = 0;
+        
+        activeHabits.forEach(habit => {
+            const today = new Date();
+            const startDate = new Date(habit.startDate);
+            const daysSinceStart = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+            
+            for (let i = 0; i <= Math.min(daysSinceStart, 29); i++) {
+                if (habit.completions[i] === 'completed') {
+                    totalCompletions++;
+                    currentStreak++;
+                    bestStreak = Math.max(bestStreak, currentStreak);
+                } else if (habit.completions[i] === 'missed') {
+                    currentStreak = 0;
+                }
+                totalPossible++;
+            }
+        });
+        
+        currentStreakElement.textContent = `${currentStreak} days`;
+        bestStreakElement.textContent = `${bestStreak} days`;
+        
+        const completionRate = totalPossible > 0 ? Math.round((totalCompletions / totalPossible) * 100) : 0;
+        completionRateElement.textContent = `${completionRate}%`;
+    }
+</script>
+{% endblock %}

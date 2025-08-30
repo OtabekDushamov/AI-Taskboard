@@ -1,0 +1,519 @@
+{% extends 'base.html' %}
+
+{% block title %}Routine Manager - AI Taskboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #cbd5e0;
+        border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #a0aec0;
+    }
+    
+    /* Modal transition */
+    .modal-enter {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    .modal-enter-active {
+        opacity: 1;
+        transform: scale(1);
+        transition: opacity 200ms, transform 200ms;
+    }
+    .modal-exit {
+        opacity: 1;
+        transform: scale(1);
+    }
+    .modal-exit-active {
+        opacity: 0;
+        transform: scale(0.95);
+        transition: opacity 200ms, transform 200ms;
+    }
+    
+    /* Day picker styles */
+    .day-picker {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 0.5rem;
+    }
+    .day-option {
+        width: 2.5rem;
+        height: 2.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9999px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .day-option:hover {
+        background-color: #edf2f7;
+    }
+    .day-option.selected {
+        background-color: #4299e1;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-800 dark:text-white">Daily Routine Manager</h1>
+    <p class="text-gray-600 dark:text-gray-400">Track and manage your recurring tasks</p>
+</header>
+
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden mb-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border-b border-gray-200 dark:border-gray-700">
+        <div class="mb-4 sm:mb-0">
+            <button id="bulkEnableBtn" class="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-4 py-2 rounded-md mr-2 hover:bg-blue-200 dark:hover:bg-blue-800/50 transition">
+                <i class="fas fa-toggle-on mr-2"></i>Enable Selected
+            </button>
+            <button id="bulkDisableBtn" class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition">
+                <i class="fas fa-toggle-off mr-2"></i>Disable Selected
+            </button>
+        </div>
+        <button id="createRoutineBtn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition flex items-center">
+            <i class="fas fa-plus mr-2"></i> Create Routine
+        </button>
+    </div>
+    
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead class="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        <input type="checkbox" id="selectAll" class="rounded text-blue-600">
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Name</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Schedule</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Time</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Streak</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Last Done</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="routinesTableBody" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                <!-- Routines will be dynamically inserted here -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Create/Edit Routine Modal -->
+<div id="routineModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+        <div class="mt-3">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="modalTitle" class="text-lg font-medium text-gray-900 dark:text-white">Create New Routine</h3>
+                <button id="closeModal" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="routineForm" class="space-y-4">
+                <input type="hidden" id="routineId">
+                
+                <div>
+                    <label for="routineName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Routine Name</label>
+                    <input type="text" id="routineName" required class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm text-gray-900 dark:text-gray-100">
+                </div>
+                
+                <div>
+                    <label for="routineDescription" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                    <textarea id="routineDescription" rows="3" class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm text-gray-900 dark:text-gray-100"></textarea>
+                </div>
+                
+                <div>
+                    <label for="routineTime" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time</label>
+                    <input type="time" id="routineTime" required class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm text-gray-900 dark:text-gray-100">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Days of Week</label>
+                    <div class="day-picker">
+                        <div class="day-option" data-day="mon">Mon</div>
+                        <div class="day-option" data-day="tue">Tue</div>
+                        <div class="day-option" data-day="wed">Wed</div>
+                        <div class="day-option" data-day="thu">Thu</div>
+                        <div class="day-option" data-day="fri">Fri</div>
+                        <div class="day-option" data-day="sat">Sat</div>
+                        <div class="day-option" data-day="sun">Sun</div>
+                    </div>
+                    <input type="hidden" id="routineDays" required>
+                </div>
+                
+                <div class="flex items-center">
+                    <input type="checkbox" id="routineActive" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" checked>
+                    <label for="routineActive" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">Active</label>
+                </div>
+                
+                <div class="flex space-x-3">
+                    <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md text-sm font-medium transition-colors duration-200">
+                        Save
+                    </button>
+                    <button type="button" id="cancelModal" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 dark:text-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 py-2 px-4 rounded-md text-sm font-medium transition-colors duration-200">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Sample data - in a real app, this would come from the backend
+    let routines = [
+        {
+            id: 1,
+            name: 'Morning Meditation',
+            description: '10-minute mindfulness session',
+            time: '08:00',
+            days: ['mon', 'wed', 'fri'],
+            active: true,
+            streak: 7,
+            lastDone: '2023-12-01'
+        },
+        {
+            id: 2,
+            name: 'Evening Walk',
+            description: '30-minute walk around the neighborhood',
+            time: '18:00',
+            days: ['mon', 'tue', 'wed', 'thu', 'fri'],
+            active: true,
+            streak: 12,
+            lastDone: '2023-12-01'
+        },
+        {
+            id: 3,
+            name: 'Read Before Bed',
+            description: 'Read for 20 minutes',
+            time: '21:00',
+            days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
+            active: false,
+            streak: 5,
+            lastDone: '2023-11-28'
+        }
+    ];
+
+    let editingRoutineId = null;
+    let dayOptions = [];
+
+    // DOM elements
+    const routinesTableBody = document.getElementById('routinesTableBody');
+    const routineModal = document.getElementById('routineModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const routineForm = document.getElementById('routineForm');
+    const routineIdInput = document.getElementById('routineId');
+    const routineNameInput = document.getElementById('routineName');
+    const routineDescriptionInput = document.getElementById('routineDescription');
+    const routineTimeInput = document.getElementById('routineTime');
+    const routineDaysInput = document.getElementById('routineDays');
+    const routineActiveInput = document.getElementById('routineActive');
+    const createRoutineBtn = document.getElementById('createRoutineBtn');
+    const closeModalBtn = document.getElementById('closeModal');
+    const cancelModalBtn = document.getElementById('cancelModal');
+    const selectAllCheckbox = document.getElementById('selectAll');
+    const bulkEnableBtn = document.getElementById('bulkEnableBtn');
+    const bulkDisableBtn = document.getElementById('bulkDisableBtn');
+
+    // Initialize the app
+    document.addEventListener('DOMContentLoaded', function() {
+        renderRoutines();
+        setupEventListeners();
+        setupDayPicker();
+    });
+
+    // Setup event listeners
+    function setupEventListeners() {
+        createRoutineBtn.addEventListener('click', openCreateModal);
+        closeModalBtn.addEventListener('click', closeModal);
+        cancelModalBtn.addEventListener('click', closeModal);
+        routineForm.addEventListener('submit', handleFormSubmit);
+        selectAllCheckbox.addEventListener('change', toggleSelectAll);
+        bulkEnableBtn.addEventListener('click', bulkEnable);
+        bulkDisableBtn.addEventListener('click', bulkDisable);
+    }
+
+    // Setup day picker
+    function setupDayPicker() {
+        dayOptions = document.querySelectorAll('.day-option');
+        dayOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                this.classList.toggle('selected');
+                updateSelectedDays();
+            });
+        });
+    }
+
+    // Render all routines
+    function renderRoutines() {
+        routinesTableBody.innerHTML = '';
+        
+        routines.forEach(routine => {
+            const row = createRoutineRow(routine);
+            routinesTableBody.appendChild(row);
+        });
+    }
+
+    // Create a routine table row
+    function createRoutineRow(routine) {
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-gray-50 dark:hover:bg-gray-700';
+        
+        // Format days for display
+        const dayNames = {
+            'mon': 'Mon', 'tue': 'Tue', 'wed': 'Wed', 'thu': 'Thu',
+            'fri': 'Fri', 'sat': 'Sat', 'sun': 'Sun'
+        };
+        const displayDays = routine.days.map(day => dayNames[day]).join(', ');
+        
+        // Format last done date
+        let lastDoneText = 'Never';
+        if (routine.lastDone) {
+            const lastDone = new Date(routine.lastDone);
+            const today = new Date();
+            const diffTime = Math.abs(today - lastDone);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays === 1) {
+                lastDoneText = 'Yesterday';
+            } else if (diffDays === 0) {
+                lastDoneText = 'Today';
+            } else {
+                lastDoneText = `${diffDays} days ago`;
+            }
+        }
+        
+        row.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap">
+                <input type="checkbox" class="routine-checkbox rounded text-blue-600" data-id="${routine.id}">
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <div>
+                    <div class="text-sm font-medium text-gray-900 dark:text-white">${routine.name}</div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">${routine.description}</div>
+                </div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">${displayDays}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">${routine.time}</td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${routine.active ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'}">
+                    ${routine.active ? 'Active' : 'Inactive'}
+                </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                <div class="flex items-center">
+                    <i class="fas fa-fire text-orange-500 mr-1"></i>
+                    ${routine.streak} days
+                </div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${lastDoneText}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <div class="flex space-x-2">
+                    <button onclick="editRoutine(${routine.id})" class="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button onclick="completeRoutine(${routine.id})" class="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300">
+                        <i class="fas fa-check"></i>
+                    </button>
+                    <button onclick="deleteRoutine(${routine.id})" class="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        `;
+        
+        return row;
+    }
+
+    // Open create routine modal
+    function openCreateModal() {
+        editingRoutineId = null;
+        modalTitle.textContent = 'Create New Routine';
+        routineForm.reset();
+        routineActiveInput.checked = true;
+        
+        // Reset day selection
+        dayOptions.forEach(option => {
+            option.classList.remove('selected');
+        });
+        
+        routineModal.classList.remove('hidden');
+    }
+
+    // Open edit routine modal
+    function editRoutine(id) {
+        const routine = routines.find(r => r.id === id);
+        if (!routine) return;
+        
+        editingRoutineId = id;
+        modalTitle.textContent = 'Edit Routine';
+        
+        // Populate form fields
+        routineIdInput.value = routine.id;
+        routineNameInput.value = routine.name;
+        routineDescriptionInput.value = routine.description;
+        routineTimeInput.value = routine.time;
+        routineActiveInput.checked = routine.active;
+        
+        // Set day selection
+        dayOptions.forEach(option => {
+            option.classList.remove('selected');
+            if (routine.days.includes(option.getAttribute('data-day'))) {
+                option.classList.add('selected');
+            }
+        });
+        
+        updateSelectedDays();
+        routineModal.classList.remove('hidden');
+    }
+
+    // Close modal
+    function closeModal() {
+        routineModal.classList.add('hidden');
+        routineForm.reset();
+        editingRoutineId = null;
+    }
+
+    // Handle form submission
+    function handleFormSubmit(e) {
+        e.preventDefault();
+        
+        const formData = {
+            id: editingRoutineId || routines.length + 1,
+            name: routineNameInput.value,
+            description: routineDescriptionInput.value,
+            time: routineTimeInput.value,
+            days: routineDaysInput.value.split(',').filter(day => day.trim()),
+            active: routineActiveInput.checked,
+            streak: editingRoutineId ? routines.find(r => r.id === editingRoutineId).streak : 0,
+            lastDone: editingRoutineId ? routines.find(r => r.id === editingRoutineId).lastDone : null
+        };
+        
+        if (editingRoutineId) {
+            // Update existing routine
+            const index = routines.findIndex(r => r.id === editingRoutineId);
+            routines[index] = formData;
+        } else {
+            // Add new routine
+            routines.push(formData);
+        }
+        
+        renderRoutines();
+        closeModal();
+    }
+
+    // Delete a routine
+    function deleteRoutine(id) {
+        if (confirm('Are you sure you want to delete this routine?')) {
+            routines = routines.filter(r => r.id !== id);
+            renderRoutines();
+        }
+    }
+
+    // Mark a routine as completed
+    function completeRoutine(id) {
+        const routine = routines.find(r => r.id === id);
+        if (!routine) return;
+        
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Check if it was already done today
+        if (routine.lastDone === today) {
+            alert('This routine was already marked as completed today!');
+            return;
+        }
+        
+        // Check if this continues a streak (done yesterday)
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+        
+        if (routine.lastDone === yesterdayStr) {
+            routine.streak += 1;
+        } else {
+            routine.streak = 1;
+        }
+        
+        routine.lastDone = today;
+        renderRoutines();
+        
+        // Show a success message
+        alert(`Great job completing "${routine.name}"! Your streak is now ${routine.streak} days.`);
+    }
+
+    // Bulk enable selected routines
+    function bulkEnable() {
+        const selectedIds = getSelectedRoutineIds();
+        if (selectedIds.length === 0) {
+            alert('Please select at least one routine');
+            return;
+        }
+        
+        routines.forEach(routine => {
+            if (selectedIds.includes(routine.id)) {
+                routine.active = true;
+            }
+        });
+        
+        renderRoutines();
+        selectAllCheckbox.checked = false;
+    }
+
+    // Bulk disable selected routines
+    function bulkDisable() {
+        const selectedIds = getSelectedRoutineIds();
+        if (selectedIds.length === 0) {
+            alert('Please select at least one routine');
+            return;
+        }
+        
+        routines.forEach(routine => {
+            if (selectedIds.includes(routine.id)) {
+                routine.active = false;
+            }
+        });
+        
+        renderRoutines();
+        selectAllCheckbox.checked = false;
+    }
+
+    // Get IDs of selected routines
+    function getSelectedRoutineIds() {
+        const checkboxes = document.querySelectorAll('.routine-checkbox:checked');
+        return Array.from(checkboxes).map(cb => cb.getAttribute('data-id'));
+    }
+
+    // Toggle select all checkboxes
+    function toggleSelectAll() {
+        const checkboxes = document.querySelectorAll('.routine-checkbox');
+        checkboxes.forEach(cb => {
+            cb.checked = selectAllCheckbox.checked;
+        });
+    }
+
+    // Update the hidden input with selected days
+    function updateSelectedDays() {
+        const selectedDays = [];
+        dayOptions.forEach(option => {
+            if (option.classList.contains('selected')) {
+                selectedDays.push(option.getAttribute('data-day'));
+            }
+        });
+        routineDaysInput.value = selectedDays.join(',');
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,744 @@
+{% extends 'base.html' %}
+
+{% block title %}Workspace Settings - AI Taskboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .priority-color-picker {
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        width: 30px;
+        height: 30px;
+        border: none;
+        cursor: pointer;
+        border-radius: 50%;
+        padding: 0;
+    }
+    .priority-color-picker::-webkit-color-swatch {
+        border-radius: 50%;
+        border: 2px solid #e5e7eb;
+    }
+    .priority-color-picker::-moz-color-swatch {
+        border-radius: 50%;
+        border: 2px solid #e5e7eb;
+    }
+    .tab-content {
+        display: none;
+    }
+    .tab-content.active {
+        display: block;
+    }
+    .save-btn-pulse {
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+        }
+        70% {
+            box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-6xl">
+    <div class="flex items-center justify-between mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Workspace Settings</h1>
+        <div class="flex items-center space-x-4">
+            <button id="saveBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg flex items-center space-x-2 shadow-lg save-btn-pulse">
+                <i class="fas fa-save"></i>
+                <span>Save Changes</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+        <div class="border-b border-gray-200 dark:border-gray-700">
+            <nav class="flex overflow-x-auto">
+                <button class="tab-btn active px-6 py-4 font-medium text-sm border-b-2 border-blue-500 text-blue-600 dark:text-blue-400" data-tab="appearance">
+                    <i class="fas fa-palette mr-2"></i>Appearance
+                </button>
+                <button class="tab-btn px-6 py-4 font-medium text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" data-tab="filters">
+                    <i class="fas fa-filter mr-2"></i>Filters
+                </button>
+                <button class="tab-btn px-6 py-4 font-medium text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" data-tab="datetime">
+                    <i class="far fa-clock mr-2"></i>Date & Time
+                </button>
+                <button class="tab-btn px-6 py-4 font-medium text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" data-tab="priority">
+                    <i class="fas fa-layer-group mr-2"></i>Priority Colors
+                </button>
+                <button class="tab-btn px-6 py-4 font-medium text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" data-tab="shortcuts">
+                    <i class="fas fa-keyboard mr-2"></i>Shortcuts
+                </button>
+                <button class="tab-btn px-6 py-4 font-medium text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" data-tab="danger">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>Danger Zone
+                </button>
+            </nav>
+        </div>
+
+        <div class="p-6">
+            <!-- Appearance Tab -->
+            <div id="appearance" class="tab-content active">
+                <h2 class="text-xl font-semibold mb-6 text-gray-900 dark:text-white">Appearance Settings</h2>
+                
+                <div class="space-y-6">
+                    <div>
+                        <h3 class="text-lg font-medium mb-3 text-gray-900 dark:text-white">Theme</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <label class="theme-option cursor-pointer">
+                                <input type="radio" name="theme" value="light" class="sr-only peer">
+                                <div class="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg peer-checked:border-blue-500 peer-checked:bg-blue-50 dark:peer-checked:bg-gray-700">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <div class="font-medium text-gray-900 dark:text-white">Light</div>
+                                            <div class="text-sm text-gray-500 dark:text-gray-400">Clean and bright</div>
+                                        </div>
+                                        <div class="w-8 h-8 bg-white border border-gray-200 rounded"></div>
+                                    </div>
+                                </div>
+                            </label>
+                            
+                            <label class="theme-option cursor-pointer">
+                                <input type="radio" name="theme" value="dark" class="sr-only peer" checked>
+                                <div class="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg peer-checked:border-blue-500 peer-checked:bg-blue-50 dark:peer-checked:bg-gray-700">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <div class="font-medium text-gray-900 dark:text-white">Dark</div>
+                                            <div class="text-sm text-gray-500 dark:text-gray-400">Easy on the eyes</div>
+                                        </div>
+                                        <div class="w-8 h-8 bg-gray-800 border border-gray-600 rounded"></div>
+                                    </div>
+                                </div>
+                            </label>
+                            
+                            <label class="theme-option cursor-pointer">
+                                <input type="radio" name="theme" value="auto" class="sr-only peer">
+                                <div class="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg peer-checked:border-blue-500 peer-checked:bg-blue-50 dark:peer-checked:bg-gray-700">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <div class="font-medium text-gray-900 dark:text-white">Auto</div>
+                                            <div class="text-sm text-gray-500 dark:text-gray-400">Follow system</div>
+                                        </div>
+                                        <div class="w-8 h-8 bg-gradient-to-r from-white to-gray-800 border border-gray-200 rounded"></div>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-medium mb-3 text-gray-900 dark:text-white">Color Scheme</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <label class="color-option cursor-pointer">
+                                <input type="radio" name="colorScheme" value="blue" class="sr-only peer" checked>
+                                <div class="p-3 border-2 border-gray-200 dark:border-gray-700 rounded-lg peer-checked:border-blue-500 peer-checked:bg-blue-50 dark:peer-checked:bg-gray-700 text-center">
+                                    <div class="w-8 h-8 bg-blue-500 rounded mx-auto mb-2"></div>
+                                    <div class="text-sm font-medium text-gray-900 dark:text-white">Blue</div>
+                                </div>
+                            </label>
+                            
+                            <label class="color-option cursor-pointer">
+                                <input type="radio" name="colorScheme" value="green" class="sr-only peer">
+                                <div class="p-3 border-2 border-gray-200 dark:border-gray-700 rounded-lg peer-checked:border-blue-500 peer-checked:bg-blue-50 dark:peer-checked:bg-gray-700 text-center">
+                                    <div class="w-8 h-8 bg-green-500 rounded mx-auto mb-2"></div>
+                                    <div class="text-sm font-medium text-gray-900 dark:text-white">Green</div>
+                                </div>
+                            </label>
+                            
+                            <label class="color-option cursor-pointer">
+                                <input type="radio" name="colorScheme" value="purple" class="sr-only peer">
+                                <div class="p-3 border-2 border-gray-200 dark:border-gray-700 rounded-lg peer-checked:border-blue-500 peer-checked:bg-blue-50 dark:peer-checked:bg-gray-700 text-center">
+                                    <div class="w-8 h-8 bg-purple-500 rounded mx-auto mb-2"></div>
+                                    <div class="text-sm font-medium text-gray-900 dark:text-white">Purple</div>
+                                </div>
+                            </label>
+                            
+                            <label class="color-option cursor-pointer">
+                                <input type="radio" name="colorScheme" value="orange" class="sr-only peer">
+                                <div class="p-3 border-2 border-gray-200 dark:border-gray-700 rounded-lg peer-checked:border-blue-500 peer-checked:bg-blue-50 dark:peer-checked:bg-gray-700 text-center">
+                                    <div class="w-8 h-8 bg-orange-500 rounded mx-auto mb-2"></div>
+                                    <div class="text-sm font-medium text-gray-900 dark:text-white">Orange</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-medium mb-3 text-gray-900 dark:text-white">Layout</h3>
+                        <div class="space-y-4">
+                            <label class="flex items-center">
+                                <input type="checkbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" checked>
+                                <span class="ml-2 text-gray-700 dark:text-gray-300">Compact mode</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                <span class="ml-2 text-gray-700 dark:text-gray-300">Show animations</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" checked>
+                                <span class="ml-2 text-gray-700 dark:text-gray-300">Sidebar always visible</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters Tab -->
+            <div id="filters" class="tab-content">
+                <h2 class="text-xl font-semibold mb-6 text-gray-900 dark:text-white">Filter Settings</h2>
+                
+                <div class="space-y-6">
+                    <div>
+                        <h3 class="text-lg font-medium mb-3 text-gray-900 dark:text-white">Default Filters</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Default Status Filter</label>
+                                <select class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                                    <option>All Statuses</option>
+                                    <option>To Do</option>
+                                    <option>In Progress</option>
+                                    <option>In Review</option>
+                                    <option>Done</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Default Priority Filter</label>
+                                <select class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                                    <option>All Priorities</option>
+                                    <option>Low</option>
+                                    <option>Medium</option>
+                                    <option>High</option>
+                                    <option>Critical</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Default Assignee Filter</label>
+                                <select class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                                    <option>All Assignees</option>
+                                    <option>Unassigned</option>
+                                    <option>Assigned to me</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-medium mb-3 text-gray-900 dark:text-white">Saved Filters</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                <div>
+                                    <div class="font-medium text-gray-900 dark:text-white">My Active Tasks</div>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400">Status: In Progress, Assignee: Me</div>
+                                </div>
+                                <button class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                <div>
+                                    <div class="font-medium text-gray-900 dark:text-white">High Priority</div>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400">Priority: High, Critical</div>
+                                </div>
+                                <button class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Date & Time Tab -->
+            <div id="datetime" class="tab-content">
+                <h2 class="text-xl font-semibold mb-6 text-gray-900 dark:text-white">Date & Time Settings</h2>
+                
+                <div class="space-y-6">
+                    <div>
+                        <h3 class="text-lg font-medium mb-3 text-gray-900 dark:text-white">Date Format</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <label class="date-format-option cursor-pointer">
+                                <input type="radio" name="dateFormat" value="MM/DD/YYYY" class="sr-only peer" checked>
+                                <div class="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg peer-checked:border-blue-500 peer-checked:bg-blue-50 dark:peer-checked:bg-gray-700 text-center">
+                                    <div class="font-medium text-gray-900 dark:text-white">MM/DD/YYYY</div>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400">12/25/2023</div>
+                                </div>
+                            </label>
+                            
+                            <label class="date-format-option cursor-pointer">
+                                <input type="radio" name="dateFormat" value="DD/MM/YYYY" class="sr-only peer">
+                                <div class="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg peer-checked:border-blue-500 peer-checked:bg-blue-50 dark:peer-checked:bg-gray-700 text-center">
+                                    <div class="font-medium text-gray-900 dark:text-white">DD/MM/YYYY</div>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400">25/12/2023</div>
+                                </div>
+                            </label>
+                            
+                            <label class="date-format-option cursor-pointer">
+                                <input type="radio" name="dateFormat" value="YYYY-MM-DD" class="sr-only peer">
+                                <div class="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg peer-checked:border-blue-500 peer-checked:bg-blue-50 dark:peer-checked:bg-gray-700 text-center">
+                                    <div class="font-medium text-gray-900 dark:text-white">YYYY-MM-DD</div>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400">2023-12-25</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-medium mb-3 text-gray-900 dark:text-white">Time Zone</h3>
+                        <select class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                            <option>UTC (Coordinated Universal Time)</option>
+                            <option>EST (Eastern Standard Time)</option>
+                            <option>CST (Central Standard Time)</option>
+                            <option>MST (Mountain Standard Time)</option>
+                            <option>PST (Pacific Standard Time)</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-medium mb-3 text-gray-900 dark:text-white">Week Start</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <label class="week-start-option cursor-pointer">
+                                <input type="radio" name="weekStart" value="sunday" class="sr-only peer" checked>
+                                <div class="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg peer-checked:border-blue-500 peer-checked:bg-blue-50 dark:peer-checked:bg-gray-700 text-center">
+                                    <div class="font-medium text-gray-900 dark:text-white">Sunday</div>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400">S M T W T F S</div>
+                                </div>
+                            </label>
+                            
+                            <label class="week-start-option cursor-pointer">
+                                <input type="radio" name="weekStart" value="monday" class="sr-only peer">
+                                <div class="p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg peer-checked:border-blue-500 peer-checked:bg-blue-50 dark:peer-checked:bg-gray-700 text-center">
+                                    <div class="font-medium text-gray-900 dark:text-white">Monday</div>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400">M T W T F S S</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Priority Colors Tab -->
+            <div id="priority" class="tab-content">
+                <h2 class="text-xl font-semibold mb-6 text-gray-900 dark:text-white">Priority Color Settings</h2>
+                
+                <div class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-lg font-medium mb-3 text-gray-900 dark:text-white">Low Priority</h3>
+                            <div class="flex items-center space-x-4">
+                                <input type="color" class="priority-color-picker" value="#10B981">
+                                <div>
+                                    <div class="font-medium text-gray-900 dark:text-white">Green</div>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400">#10B981</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h3 class="text-lg font-medium mb-3 text-gray-900 dark:text-white">Medium Priority</h3>
+                            <div class="flex items-center space-x-4">
+                                <input type="color" class="priority-color-picker" value="#F59E0B">
+                                <div>
+                                    <div class="font-medium text-gray-900 dark:text-white">Yellow</div>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400">#F59E0B</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h3 class="text-lg font-medium mb-3 text-gray-900 dark:text-white">High Priority</h3>
+                            <div class="flex items-center space-x-4">
+                                <input type="color" class="priority-color-picker" value="#EF4444">
+                                <div>
+                                    <div class="font-medium text-gray-900 dark:text-white">Red</div>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400">#EF4444</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h3 class="text-lg font-medium mb-3 text-gray-900 dark:text-white">Critical Priority</h3>
+                            <div class="flex items-center space-x-4">
+                                <input type="color" class="priority-color-picker" value="#8B5CF6">
+                                <div>
+                                    <div class="font-medium text-gray-900 dark:text-white">Purple</div>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400">#8B5CF6</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <button class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md">
+                            Reset to Defaults
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shortcuts Tab -->
+            <div id="shortcuts" class="tab-content">
+                <h2 class="text-xl font-semibold mb-6 text-gray-900 dark:text-white">Keyboard Shortcuts</h2>
+                
+                <div class="space-y-6">
+                    <div>
+                        <h3 class="text-lg font-medium mb-3 text-gray-900 dark:text-white">Navigation</h3>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                <span class="text-gray-700 dark:text-gray-300">Go to Dashboard</span>
+                                <kbd class="px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded text-sm">Ctrl + D</kbd>
+                            </div>
+                            <div class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                <span class="text-gray-700 dark:text-gray-300">Go to Tasks</span>
+                                <kbd class="px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded text-sm">Ctrl + T</kbd>
+                            </div>
+                            <div class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                <span class="text-gray-700 dark:text-gray-300">Go to Projects</span>
+                                <kbd class="px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded text-sm">Ctrl + P</kbd>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-medium mb-3 text-gray-900 dark:text-white">Actions</h3>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                <span class="text-gray-700 dark:text-gray-300">Create New Task</span>
+                                <kbd class="px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded text-sm">Ctrl + N</kbd>
+                            </div>
+                            <div class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                <span class="text-gray-700 dark:text-gray-300">Save Changes</span>
+                                <kbd class="px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded text-sm">Ctrl + S</kbd>
+                            </div>
+                            <div class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                <span class="text-gray-700 dark:text-gray-300">Search</span>
+                                <kbd class="px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded text-sm">Ctrl + K</kbd>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-medium mb-3 text-gray-900 dark:text-white">Customize Shortcuts</h3>
+                        <p class="text-gray-600 dark:text-gray-400 mb-4">You can customize these shortcuts by clicking on any shortcut and pressing your desired key combination.</p>
+                        <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">
+                            Customize Shortcuts
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Danger Zone Tab -->
+            <div id="danger" class="tab-content">
+                <h2 class="text-xl font-semibold mb-6 text-red-600 dark:text-red-400">Danger Zone</h2>
+                
+                <div class="space-y-6">
+                    <div class="border border-red-200 dark:border-red-800 rounded-lg p-6 bg-red-50 dark:bg-red-900/20">
+                        <h3 class="text-lg font-medium mb-3 text-red-800 dark:text-red-200">Export Workspace Data</h3>
+                        <p class="text-red-700 dark:text-red-300 mb-4">Download all your workspace data including tasks, projects, and settings as a backup.</p>
+                        <button class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md">
+                            Export Data
+                        </button>
+                    </div>
+                    
+                    <div class="border border-red-200 dark:border-red-800 rounded-lg p-6 bg-red-50 dark:bg-red-900/20">
+                        <h3 class="text-lg font-medium mb-3 text-red-800 dark:text-red-200">Delete Workspace</h3>
+                        <p class="text-red-700 dark:text-red-300 mb-4">This action cannot be undone. This will permanently delete your workspace and all associated data.</p>
+                        <button class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md">
+                            Delete Workspace
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Settings data
+    let settings = {
+        theme: 'dark',
+        colorScheme: 'blue',
+        dateFormat: 'MM/DD/YYYY',
+        weekStart: 'sunday',
+        priorityColors: {
+            low: '#10B981',
+            medium: '#F59E0B',
+            high: '#EF4444',
+            critical: '#8B5CF6'
+        },
+        layout: {
+            compactMode: true,
+            showAnimations: false,
+            sidebarAlwaysVisible: true
+        },
+        filters: {
+            defaultStatus: 'All Statuses',
+            defaultPriority: 'All Priorities',
+            defaultAssignee: 'All Assignees'
+        }
+    };
+
+    // DOM elements
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+    const saveBtn = document.getElementById('saveBtn');
+    const themeOptions = document.querySelectorAll('input[name="theme"]');
+    const colorOptions = document.querySelectorAll('input[name="colorScheme"]');
+    const dateFormatOptions = document.querySelectorAll('input[name="dateFormat"]');
+    const weekStartOptions = document.querySelectorAll('input[name="weekStart"]');
+    const priorityColorPickers = document.querySelectorAll('.priority-color-picker');
+
+    // Initialize the app
+    document.addEventListener('DOMContentLoaded', function() {
+        setupEventListeners();
+        loadSettings();
+        updateUI();
+    });
+
+    // Setup event listeners
+    function setupEventListeners() {
+        // Tab switching
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const tabName = this.dataset.tab;
+                switchTab(tabName);
+            });
+        });
+
+        // Save button
+        saveBtn.addEventListener('click', saveSettings);
+
+        // Theme selection
+        themeOptions.forEach(option => {
+            option.addEventListener('change', function() {
+                settings.theme = this.value;
+                applyTheme(this.value);
+                updateUI();
+            });
+        });
+
+        // Color scheme selection
+        colorOptions.forEach(option => {
+            option.addEventListener('change', function() {
+                settings.colorScheme = this.value;
+                applyColorScheme(this.value);
+                updateUI();
+            });
+        });
+
+        // Date format selection
+        dateFormatOptions.forEach(option => {
+            option.addEventListener('change', function() {
+                settings.dateFormat = this.value;
+                updateUI();
+            });
+        });
+
+        // Week start selection
+        weekStartOptions.forEach(option => {
+            option.addEventListener('change', function() {
+                settings.weekStart = this.value;
+                updateUI();
+            });
+        });
+
+        // Priority color changes
+        priorityColorPickers.forEach(picker => {
+            picker.addEventListener('change', function() {
+                const priority = this.closest('div').querySelector('h3').textContent.toLowerCase().split(' ')[0];
+                settings.priorityColors[priority] = this.value;
+                updatePriorityColorDisplay(priority, this.value);
+            });
+        });
+    }
+
+    // Switch tabs
+    function switchTab(tabName) {
+        // Hide all tab contents
+        tabContents.forEach(content => {
+            content.classList.remove('active');
+        });
+
+        // Remove active class from all tab buttons
+        tabBtns.forEach(btn => {
+            btn.classList.remove('active', 'border-blue-500', 'text-blue-600', 'dark:text-blue-400');
+            btn.classList.add('text-gray-500', 'dark:text-gray-400');
+        });
+
+        // Show selected tab content
+        const selectedTab = document.getElementById(tabName);
+        if (selectedTab) {
+            selectedTab.classList.add('active');
+        }
+
+        // Activate selected tab button
+        const selectedBtn = document.querySelector(`[data-tab="${tabName}"]`);
+        if (selectedBtn) {
+            selectedBtn.classList.add('active', 'border-blue-500', 'text-blue-600', 'dark:text-blue-400');
+            selectedBtn.classList.remove('text-gray-500', 'dark:text-gray-400');
+        }
+    }
+
+    // Apply theme
+    function applyTheme(theme) {
+        if (theme === 'auto') {
+            // Check system preference
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            document.documentElement.classList.toggle('dark', prefersDark);
+        } else {
+            document.documentElement.classList.toggle('dark', theme === 'dark');
+        }
+        
+        // Save to localStorage
+        localStorage.setItem('theme', theme);
+    }
+
+    // Apply color scheme
+    function applyColorScheme(scheme) {
+        // Remove existing color scheme classes
+        document.documentElement.classList.remove('color-scheme-blue', 'color-scheme-green', 'color-scheme-purple', 'color-scheme-orange');
+        
+        // Add new color scheme class
+        document.documentElement.classList.add(`color-scheme-${scheme}`);
+        
+        // Save to localStorage
+        localStorage.setItem('colorScheme', scheme);
+    }
+
+    // Update priority color display
+    function updatePriorityColorDisplay(priority, color) {
+        const container = document.querySelector(`[data-priority="${priority}"]`);
+        if (container) {
+            const colorDisplay = container.querySelector('.text-sm.text-gray-500');
+            if (colorDisplay) {
+                colorDisplay.textContent = color;
+            }
+        }
+    }
+
+    // Load settings from localStorage
+    function loadSettings() {
+        const savedTheme = localStorage.getItem('theme');
+        const savedColorScheme = localStorage.getItem('colorScheme');
+        
+        if (savedTheme) {
+            settings.theme = savedTheme;
+        }
+        
+        if (savedColorScheme) {
+            settings.colorScheme = savedColorScheme;
+        }
+    }
+
+    // Update UI based on current settings
+    function updateUI() {
+        // Update theme selection
+        themeOptions.forEach(option => {
+            if (option.value === settings.theme) {
+                option.checked = true;
+            }
+        });
+
+        // Update color scheme selection
+        colorOptions.forEach(option => {
+            if (option.value === settings.colorScheme) {
+                option.checked = true;
+            }
+        });
+
+        // Update date format selection
+        dateFormatOptions.forEach(option => {
+            if (option.value === settings.dateFormat) {
+                option.checked = true;
+            }
+        });
+
+        // Update week start selection
+        weekStartOptions.forEach(option => {
+            if (option.value === settings.weekStart) {
+                option.checked = true;
+            }
+        });
+
+        // Update priority colors
+        Object.entries(settings.priorityColors).forEach(([priority, color]) => {
+            const picker = document.querySelector(`[data-priority="${priority}"] input[type="color"]`);
+            if (picker) {
+                picker.value = color;
+            }
+        });
+    }
+
+    // Save settings
+    function saveSettings() {
+        // In a real app, this would send an API request
+        console.log('Saving settings:', settings);
+        
+        // Save to localStorage
+        localStorage.setItem('workspaceSettings', JSON.stringify(settings));
+        
+        // Show success message
+        showNotification('Settings saved successfully!', 'success');
+        
+        // Stop save button pulse
+        saveBtn.classList.remove('save-btn-pulse');
+        
+        // Restart pulse after a delay
+        setTimeout(() => {
+            saveBtn.classList.add('save-btn-pulse');
+        }, 3000);
+    }
+
+    // Show notification
+    function showNotification(message, type = 'info') {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${
+            type === 'success' ? 'bg-green-500 text-white' : 
+            type === 'error' ? 'bg-red-500 text-white' : 
+            'bg-blue-500 text-white'
+        }`;
+        notification.textContent = message;
+        
+        document.body.appendChild(notification);
+        
+        // Remove after 3 seconds
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Ctrl+S to save
+        if (e.ctrlKey && e.key === 's') {
+            e.preventDefault();
+            saveSettings();
+        }
+        
+        // Tab navigation with arrow keys
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+            const currentTab = document.querySelector('.tab-btn.active');
+            const currentIndex = Array.from(tabBtns).indexOf(currentTab);
+            
+            if (e.key === 'ArrowLeft' && currentIndex > 0) {
+                const prevTab = tabBtns[currentIndex - 1];
+                prevTab.click();
+            } else if (e.key === 'ArrowRight' && currentIndex < tabBtns.length - 1) {
+                const nextTab = tabBtns[currentIndex + 1];
+                nextTab.click();
+            }
+        }
+    });
+</script>
+{% endblock %}

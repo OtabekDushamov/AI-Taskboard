@@ -1,0 +1,367 @@
+{% extends 'base.html' %}
+
+{% block title %}Daily Routines Checklist - AI Taskboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Custom animations */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .task-card {
+        animation: fadeIn 0.3s ease-out forwards;
+        opacity: 0;
+    }
+    
+    .progress-bar {
+        transition: width 0.5s ease;
+    }
+    
+    .streak-fire {
+        animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+    
+    /* Custom checkbox */
+    .custom-checkbox {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 24px;
+        height: 24px;
+        border: 2px solid #d1d5db;
+        border-radius: 6px;
+        outline: none;
+        cursor: pointer;
+        position: relative;
+        transition: all 0.2s;
+    }
+    
+    .custom-checkbox:checked {
+        background-color: #4f46e5;
+        border-color: #4f46e5;
+    }
+    
+    .custom-checkbox:checked::after {
+        content: "✓";
+        position: absolute;
+        color: white;
+        font-size: 14px;
+        font-weight: bold;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto">
+    <!-- Header -->
+    <header class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-800 dark:text-white mb-2">Today's Routines</h1>
+        <p class="text-gray-600 dark:text-gray-400">Build your day, one habit at a time</p>
+        
+        <!-- Progress bar -->
+        <div class="mt-6 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <div class="flex justify-between items-center mb-3">
+                <h2 class="font-bold text-gray-800 dark:text-white">Today's Progress</h2>
+                <span id="progress-count" class="font-bold text-indigo-600 dark:text-indigo-400 text-lg">0/5 done</span>
+            </div>
+            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4 mb-2">
+                <div id="progress-bar" class="progress-bar bg-gradient-to-r from-indigo-500 to-purple-500 h-4 rounded-full" style="width: 0%"></div>
+            </div>
+            <p id="progress-message" class="text-sm text-gray-600 dark:text-gray-400 text-center">Let's get started!</p>
+        </div>
+    </header>
+    
+    <!-- Motivational message (hidden by default) -->
+    <div id="motivation-message" class="hidden mb-6 p-4 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg text-green-800 dark:text-green-200">
+        <div class="flex items-center">
+            <i class="fas fa-sparkle text-green-500 mr-3"></i>
+            <span id="motivation-text">Great start! Keep the momentum going.</span>
+        </div>
+    </div>
+    
+    <!-- Tasks container -->
+    <div id="tasks-container" class="space-y-4">
+        <!-- Tasks will be dynamically inserted here -->
+    </div>
+    
+    <!-- Empty state -->
+    <div id="empty-state" class="hidden text-center py-12">
+        <div class="text-gray-400 dark:text-gray-500 mb-4">
+            <i class="fas fa-list-check text-6xl"></i>
+        </div>
+        <h3 class="text-lg font-medium text-gray-600 dark:text-gray-400 mb-2">No routines scheduled for today</h3>
+        <p class="text-gray-500 dark:text-gray-500 mb-6">Add some daily routines to get started with building healthy habits.</p>
+        <button class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+            <i class="fas fa-plus mr-2"></i>Add Routine
+        </button>
+    </div>
+    
+    <!-- Add new routine button -->
+    <div class="mt-8 text-center">
+        <button class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400 px-6 py-3 rounded-lg font-medium border-2 border-indigo-200 dark:border-indigo-700 hover:border-indigo-300 dark:hover:border-indigo-600 transition-colors">
+            <i class="fas fa-plus mr-2"></i>Add New Routine
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Sample data - in a real app, this would come from the backend
+    const tasks = [
+        {
+            id: 1,
+            name: 'Morning Meditation',
+            description: '10-minute mindfulness session to start the day',
+            time: '8:00 AM',
+            completed: false,
+            streak: 7,
+            lastDone: '2023-12-01'
+        },
+        {
+            id: 2,
+            name: 'Drink Water',
+            description: 'Drink 8 glasses of water throughout the day',
+            time: 'All day',
+            completed: false,
+            streak: 12,
+            lastDone: '2023-12-01'
+        },
+        {
+            id: 3,
+            name: 'Exercise',
+            description: '30-minute workout or walk',
+            time: '6:00 PM',
+            completed: false,
+            streak: 5,
+            lastDone: '2023-12-01'
+        },
+        {
+            id: 4,
+            name: 'Read',
+            description: 'Read for at least 20 minutes',
+            time: '9:00 PM',
+            completed: false,
+            streak: 15,
+            lastDone: '2023-12-01'
+        },
+        {
+            id: 5,
+            name: 'Journal',
+            description: 'Write down thoughts and gratitude',
+            time: '10:00 PM',
+            completed: false,
+            streak: 3,
+            lastDone: '2023-12-01'
+        }
+    ];
+
+    // Progress messages based on completion percentage
+    const progressMessages = [
+        { threshold: 0, message: "Let's get started!" },
+        { threshold: 0.2, message: "Great start! Keep going!" },
+        { threshold: 0.4, message: "You're making progress!" },
+        { threshold: 0.6, message: "More than halfway there!" },
+        { threshold: 0.8, message: "Almost there! Finish strong!" },
+        { threshold: 1, message: "Perfect! You've completed all routines!" }
+    ];
+
+    // Motivational messages
+    const motivationalMessages = [
+        "Great job! Every completed routine builds momentum.",
+        "You're building a stronger version of yourself!",
+        "Consistency is the key to success. Keep it up!",
+        "Small steps lead to big changes. You're doing amazing!",
+        "Your future self will thank you for today's effort!"
+    ];
+
+    // DOM elements
+    const tasksContainer = document.getElementById('tasks-container');
+    const emptyState = document.getElementById('empty-state');
+    const progressCount = document.getElementById('progress-count');
+    const progressBar = document.getElementById('progress-bar');
+    const progressMessage = document.getElementById('progress-message');
+    const motivationMessage = document.getElementById('motivation-message');
+    const motivationText = document.getElementById('motivation-text');
+
+    // Initialize the app
+    function init() {
+        loadCompletedTasks();
+        renderTasks();
+        updateProgress();
+    }
+
+    // Load completed tasks from localStorage
+    function loadCompletedTasks() {
+        const completedIds = JSON.parse(localStorage.getItem('completedTasks') || '[]');
+        tasks.forEach(task => {
+            task.completed = completedIds.includes(task.id);
+        });
+    }
+
+    // Render all tasks
+    function renderTasks() {
+        if (tasks.length === 0) {
+            tasksContainer.classList.add('hidden');
+            emptyState.classList.remove('hidden');
+            return;
+        }
+
+        tasksContainer.classList.remove('hidden');
+        emptyState.classList.add('hidden');
+        tasksContainer.innerHTML = '';
+
+        tasks.forEach((task, index) => {
+            const taskElement = createTaskElement(task, index);
+            tasksContainer.appendChild(taskElement);
+        });
+    }
+
+    // Create a task element
+    function createTaskElement(task, index) {
+        const taskElement = document.createElement('div');
+        taskElement.className = 'task-card bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700';
+        taskElement.style.animationDelay = `${index * 0.1}s`;
+
+        // Determine streak icon and color
+        let streakIcon = 'fa-fire';
+        let streakColor = 'text-orange-500';
+        
+        if (task.streak >= 10) {
+            streakIcon = 'fa-crown';
+            streakColor = 'text-yellow-500';
+        } else if (task.streak >= 5) {
+            streakIcon = 'fa-fire';
+            streakColor = 'text-orange-500';
+        } else if (task.streak >= 3) {
+            streakIcon = 'fa-star';
+            streakColor = 'text-blue-500';
+        }
+
+        // Format last done text
+        let lastDoneText = 'Never';
+        if (task.lastDone) {
+            const lastDone = new Date(task.lastDone);
+            const today = new Date();
+            const diffTime = Math.abs(today - lastDone);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays === 1) {
+                lastDoneText = 'Yesterday';
+            } else if (diffDays === 0) {
+                lastDoneText = 'Today';
+            } else {
+                lastDoneText = `${diffDays} days ago`;
+            }
+        }
+
+        taskElement.innerHTML = `
+            <div class="flex items-start gap-4">
+                <label for="task-${task.id}" class="flex-shrink-0 mt-1">
+                    <input type="checkbox" id="task-${task.id}" ${task.completed ? 'checked' : ''} 
+                        class="custom-checkbox w-8 h-8" aria-label="Mark ${task.name} as done">
+                </label>
+                <div class="flex-grow">
+                    <div class="flex justify-between items-start mb-1">
+                        <h3 class="font-semibold text-lg ${task.completed ? 'text-gray-500 dark:text-gray-400 line-through' : 'text-gray-800 dark:text-white'}">${task.name}</h3>
+                        <span class="text-sm font-medium text-gray-500 dark:text-gray-400">${task.time}</span>
+                    </div>
+                    <p class="text-sm ${task.completed ? 'text-gray-400 dark:text-gray-500' : 'text-gray-600 dark:text-gray-300'} mb-3">${task.description}</p>
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center">
+                            <i class="fas ${streakIcon} ${streakColor} mr-1"></i>
+                            <span class="text-sm font-medium ${streakColor}">${task.streak} day streak</span>
+                        </div>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">Last: ${lastDoneText}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Add event listener to checkbox
+        const checkbox = taskElement.querySelector(`#task-${task.id}`);
+        checkbox.addEventListener('change', () => toggleTaskCompletion(task.id));
+        
+        return taskElement;
+    }
+
+    // Toggle task completion status
+    function toggleTaskCompletion(taskId) {
+        const task = tasks.find(t => t.id === taskId);
+        if (!task) return;
+        
+        task.completed = !task.completed;
+        
+        if (task.completed) {
+            // Update streak and last done date if completing today
+            const today = new Date().toISOString().split('T')[0];
+            if (task.lastDone !== today) {
+                task.streak += 1;
+                task.lastDone = today;
+            }
+            
+            // Show motivational message
+            showMotivationalMessage();
+        }
+        
+        // Save to localStorage
+        saveCompletedTasks();
+        
+        // Re-render tasks and update progress
+        renderTasks();
+        updateProgress();
+    }
+
+    // Update progress bar and count
+    function updateProgress() {
+        const completedCount = tasks.filter(task => task.completed).length;
+        const totalCount = tasks.length;
+        const percentage = completedCount / totalCount;
+        
+        progressCount.textContent = `${completedCount}/${totalCount} done`;
+        progressBar.style.width = `${percentage * 100}%`;
+        
+        // Update progress message
+        let message = progressMessages[0].message;
+        for (let i = progressMessages.length - 1; i >= 0; i--) {
+            if (percentage >= progressMessages[i].threshold) {
+                message = progressMessages[i].message;
+                break;
+            }
+        }
+        progressMessage.textContent = message;
+    }
+
+    // Show random motivational message
+    function showMotivationalMessage() {
+        const randomMessage = motivationalMessages[Math.floor(Math.random() * motivationalMessages.length)];
+        motivationText.textContent = randomMessage;
+        
+        motivationMessage.classList.remove('hidden');
+        
+        // Hide after 5 seconds
+        setTimeout(() => {
+            motivationMessage.classList.add('hidden');
+        }, 5000);
+    }
+
+    // Save completed tasks to localStorage
+    function saveCompletedTasks() {
+        const completedIds = tasks.filter(task => task.completed).map(task => task.id);
+        localStorage.setItem('completedTasks', JSON.stringify(completedIds));
+    }
+
+    // Initialize the app when DOM is loaded
+    document.addEventListener('DOMContentLoaded', init);
+</script>
+{% endblock %}

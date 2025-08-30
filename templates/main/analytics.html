@@ -1,0 +1,357 @@
+{% extends 'base.html' %}
+
+{% block title %}Task Analytics Dashboard - AI Taskboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .sticky-filters {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        backdrop-filter: blur(10px);
+    }
+    .dark .sticky-filters {
+        background-color: rgba(31, 41, 55, 0.8);
+    }
+    .light .sticky-filters {
+        background-color: rgba(255, 255, 255, 0.8);
+    }
+    .chart-container {
+        position: relative;
+        height: 300px;
+    }
+    @media (min-width: 1024px) {
+        .chart-container {
+            height: 350px;
+        }
+    }
+    .sortable:hover {
+        background-color: rgba(59, 130, 246, 0.1);
+        cursor: pointer;
+    }
+    .sort-icon {
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+    .sortable:hover .sort-icon {
+        opacity: 1;
+    }
+    .active-sort .sort-icon {
+        opacity: 1;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Task Analytics Dashboard</h1>
+    </div>
+
+    <!-- Filter toolbar (sticky) -->
+    <div class="sticky-filters py-4 mb-6 rounded-lg shadow-sm bg-white dark:bg-gray-800">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+                <label for="date-range" class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Date Range</label>
+                <select id="date-range" class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm text-gray-900 dark:text-gray-100">
+                    <option value="7">Last 7 Days</option>
+                    <option value="14">Last 14 Days</option>
+                    <option value="30" selected>Last 30 Days</option>
+                    <option value="90">Last 90 Days</option>
+                    <option value="custom">Custom Range</option>
+                </select>
+            </div>
+            <div id="custom-range" class="hidden col-span-2">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="start-date" class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Start Date</label>
+                        <input type="date" id="start-date" class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm text-gray-900 dark:text-gray-100">
+                    </div>
+                    <div>
+                        <label for="end-date" class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">End Date</label>
+                        <input type="date" id="end-date" class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm text-gray-900 dark:text-gray-100">
+                    </div>
+                </div>
+            </div>
+            <div>
+                <label for="project" class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Project</label>
+                <select id="project" class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm text-gray-900 dark:text-gray-100">
+                    <option value="all">All Projects</option>
+                    <option value="website">Website Redesign</option>
+                    <option value="mobile">Mobile App</option>
+                    <option value="marketing">Marketing Campaign</option>
+                    <option value="api">API Development</option>
+                </select>
+            </div>
+            <div>
+                <label for="assignee" class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Assignee</label>
+                <select id="assignee" class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm text-gray-900 dark:text-gray-100">
+                    <option value="all">All Team Members</option>
+                    <option value="john">John Doe</option>
+                    <option value="sarah">Sarah Smith</option>
+                    <option value="mike">Mike Johnson</option>
+                    <option value="emma">Emma Wilson</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- Task Completion Chart -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Task Completion Trend</h3>
+            <div class="chart-container">
+                <canvas id="completionChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Priority Distribution -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Priority Distribution</h3>
+            <div class="chart-container">
+                <canvas id="priorityChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Metrics -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
+                    <i class="fas fa-check-circle text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Completion Rate</p>
+                    <p class="text-2xl font-semibold text-gray-900 dark:text-white">87%</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+                    <i class="fas fa-clock text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Avg. Time</p>
+                    <p class="text-2xl font-semibold text-gray-900 dark:text-white">2.3 days</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
+                    <i class="fas fa-exclamation-triangle text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Overdue</p>
+                    <p class="text-2xl font-semibold text-gray-900 dark:text-white">3</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
+                    <i class="fas fa-users text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Team Members</p>
+                    <p class="text-2xl font-semibold text-gray-900 dark:text-white">8</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Analytics Table -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Detailed Performance</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider sortable">
+                            <div class="flex items-center">
+                                <span>Team Member</span>
+                                <i class="fas fa-sort sort-icon ml-2"></i>
+                            </div>
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider sortable">
+                            <div class="flex items-center">
+                                <span>Tasks Completed</span>
+                                <i class="fas fa-sort sort-icon ml-2"></i>
+                            </div>
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider sortable">
+                            <div class="flex items-center">
+                                <span>Avg. Time</span>
+                                <i class="fas fa-sort sort-icon ml-2"></i>
+                            </div>
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider sortable">
+                            <div class="flex items-center">
+                                <span>Success Rate</span>
+                                <i class="fas fa-sort sort-icon ml-2"></i>
+                            </div>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                                    <span class="text-sm font-medium">JD</span>
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-white">John Doe</div>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400">Frontend Developer</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">24</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">1.8 days</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">92%</td>
+                    </tr>
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400">
+                                    <span class="text-sm font-medium">SS</span>
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-white">Sarah Smith</div>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400">Backend Developer</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">31</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">2.1 days</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">89%</td>
+                    </tr>
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400">
+                                    <span class="text-sm font-medium">MJ</span>
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-white">Mike Johnson</div>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400">Designer</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">18</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">3.2 days</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">78%</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+    // Chart.js configuration
+    Chart.register(ChartDataLabels);
+
+    // Task Completion Chart
+    const completionCtx = document.getElementById('completionChart').getContext('2d');
+    new Chart(completionCtx, {
+        type: 'line',
+        data: {
+            labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+            datasets: [{
+                label: 'Tasks Completed',
+                data: [12, 19, 15, 22],
+                borderColor: 'rgb(59, 130, 246)',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                datalabels: {
+                    color: '#374151',
+                    anchor: 'end',
+                    align: 'top',
+                    formatter: function(value) {
+                        return value;
+                    }
+                }
+            }
+        }
+    });
+
+    // Priority Distribution Chart
+    const priorityCtx = document.getElementById('priorityChart').getContext('2d');
+    new Chart(priorityCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['High', 'Medium', 'Low'],
+            datasets: [{
+                data: [30, 45, 25],
+                backgroundColor: [
+                    'rgb(239, 68, 68)',
+                    'rgb(245, 158, 11)',
+                    'rgb(34, 197, 94)'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                datalabels: {
+                    color: '#ffffff',
+                    formatter: function(value) {
+                        return value + '%';
+                    }
+                }
+            }
+        }
+    });
+
+    // Custom date range functionality
+    document.getElementById('date-range').addEventListener('change', function() {
+        const customRange = document.getElementById('custom-range');
+        if (this.value === 'custom') {
+            customRange.classList.remove('hidden');
+        } else {
+            customRange.classList.add('hidden');
+        }
+    });
+
+    // Table sorting functionality
+    document.querySelectorAll('.sortable').forEach(header => {
+        header.addEventListener('click', function() {
+            const icon = this.querySelector('.sort-icon');
+            const isActive = this.classList.contains('active-sort');
+            
+            // Remove active class from all headers
+            document.querySelectorAll('.sortable').forEach(h => h.classList.remove('active-sort'));
+            
+            if (!isActive) {
+                this.classList.add('active-sort');
+                icon.className = 'fas fa-sort-up sort-icon ml-2';
+            } else {
+                icon.className = 'fas fa-sort-down sort-icon ml-2';
+            }
+        });
+    });
+</script>
+{% endblock %}

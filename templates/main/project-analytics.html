@@ -1,0 +1,298 @@
+{% extends 'base.html' %}
+
+{% block title %}Project Analytics Dashboard - AI Taskboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+    }
+    .scrollable-table {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    /* Custom scrollbar */
+    .scrollable-table::-webkit-scrollbar {
+        width: 6px;
+    }
+    .scrollable-table::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+    .scrollable-table::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 3px;
+    }
+    .scrollable-table::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+    .dark .scrollable-table::-webkit-scrollbar-track {
+        background: #374151;
+    }
+    .dark .scrollable-table::-webkit-scrollbar-thumb {
+        background: #6b7280;
+    }
+    .dark .scrollable-table::-webkit-scrollbar-thumb:hover {
+        background: #9ca3af;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Header with Project Selector -->
+    <header class="mb-8">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Project Analytics Dashboard</h1>
+            <div class="w-full md:w-64">
+                <label for="project-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Select Project</label>
+                <select id="project-select" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                    <option>Website Redesign</option>
+                    <option>Mobile App Development</option>
+                    <option>Marketing Campaign</option>
+                    <option>Product Launch</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <!-- Filters -->
+    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-6">
+        <div class="flex flex-col md:flex-row gap-4">
+            <div class="flex-1">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date Range</label>
+                <div class="flex gap-2">
+                    <input type="date" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    <span class="flex items-center text-gray-700 dark:text-gray-300">to</span>
+                    <input type="date" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                </div>
+            </div>
+            <div class="w-full md:w-48">
+                <label for="category-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
+                <select id="category-filter" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    <option>All Categories</option>
+                    <option>Design</option>
+                    <option>Development</option>
+                    <option>Marketing</option>
+                    <option>QA</option>
+                </select>
+            </div>
+            <div class="w-full md:w-48">
+                <label for="assignee-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Assignee</label>
+                <select id="assignee-filter" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    <option>All Team</option>
+                    <option>John Doe</option>
+                    <option>Jane Smith</option>
+                    <option>Mike Johnson</option>
+                </select>
+            </div>
+            <div class="flex items-end">
+                <button class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition">Apply Filters</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Metrics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-medium text-gray-700 dark:text-gray-300">Completion %</h3>
+                <div class="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center">
+                    <i class="fas fa-check-circle text-indigo-600 dark:text-indigo-400"></i>
+                </div>
+            </div>
+            <div class="mt-4">
+                <div class="text-3xl font-bold text-gray-900 dark:text-white">78%</div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">+5% from last week</div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-medium text-gray-700 dark:text-gray-300">Tasks Completed</h3>
+                <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                    <i class="fas fa-tasks text-green-600 dark:text-green-400"></i>
+                </div>
+            </div>
+            <div class="mt-4">
+                <div class="text-3xl font-bold text-gray-900 dark:text-white">156</div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">+12 from last week</div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-medium text-gray-700 dark:text-gray-300">Avg. Time</h3>
+                <div class="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center">
+                    <i class="fas fa-clock text-yellow-600 dark:text-yellow-400"></i>
+                </div>
+            </div>
+            <div class="mt-4">
+                <div class="text-3xl font-bold text-gray-900 dark:text-white">2.3 days</div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">-0.5 from last week</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- Progress Chart -->
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <h3 class="text-lg font-medium text-gray-700 dark:text-gray-300 mb-4">Progress Over Time</h3>
+            <div class="chart-container">
+                <canvas id="progressChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Task Distribution -->
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <h3 class="text-lg font-medium text-gray-700 dark:text-gray-300 mb-4">Tasks by Status</h3>
+            <div class="chart-container">
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Table -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-medium text-gray-700 dark:text-gray-300">Team Performance</h3>
+        </div>
+        <div class="scrollable-table">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Team Member</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tasks Completed</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Avg. Time</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Quality Score</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Trend</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                                    <span class="text-sm font-medium text-blue-600 dark:text-blue-400">JD</span>
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-white">John Doe</div>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400">Frontend Developer</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">45</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">1.8 days</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">92%</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center text-green-600 dark:text-green-400">
+                                <i class="fas fa-arrow-up mr-1"></i>
+                                <span>+8%</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                                    <span class="text-sm font-medium text-green-600 dark:text-green-400">SS</span>
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-white">Sarah Smith</div>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400">Backend Developer</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">38</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">2.1 days</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">89%</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center text-green-600 dark:text-green-400">
+                                <i class="fas fa-arrow-up mr-1"></i>
+                                <span>+5%</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                                    <span class="text-sm font-medium text-purple-600 dark:text-purple-400">MJ</span>
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-white">Mike Johnson</div>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400">Designer</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">32</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">3.2 days</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">78%</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center text-red-600 dark:text-red-400">
+                                <i class="fas fa-arrow-down mr-1"></i>
+                                <span>-3%</span>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Progress Chart
+    const progressCtx = document.getElementById('progressChart').getContext('2d');
+    new Chart(progressCtx, {
+        type: 'line',
+        data: {
+            labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6'],
+            datasets: [{
+                label: 'Progress %',
+                data: [45, 52, 58, 65, 72, 78],
+                borderColor: 'rgb(99, 102, 241)',
+                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100
+                }
+            }
+        }
+    });
+
+    // Status Chart
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    new Chart(statusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Completed', 'In Progress', 'To Do', 'Blocked'],
+            datasets: [{
+                data: [45, 25, 20, 10],
+                backgroundColor: [
+                    'rgb(34, 197, 94)',
+                    'rgb(59, 130, 246)',
+                    'rgb(156, 163, 175)',
+                    'rgb(239, 68, 68)'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+</script>
+{% endblock %}
