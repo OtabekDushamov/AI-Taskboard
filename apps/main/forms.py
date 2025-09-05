@@ -101,6 +101,11 @@ class TaskForm(forms.ModelForm):
                 'placeholder': 'Enter estimated hours'
             }),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Make category optional
+        self.fields['category'].required = False
 
 
 class TaskCommentForm(forms.ModelForm):

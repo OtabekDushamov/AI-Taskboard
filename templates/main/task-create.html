@@ -87,20 +87,49 @@
                 ></textarea>
             </div>
             
+            <!-- First Row: Project and Category -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <!-- Project & Category -->
+                <!-- Project -->
                 <div>
-                    <label for="category" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Project & Category</label>
+                    <label for="project" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Project *</label>
+                    <select 
+                        id="project" 
+                        name="project" 
+                        required
+                        class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200"
+                    >
+                        <option value="">Select project</option>
+                        {% for project in user_projects %}
+                            <option value="{{ project.id }}" {% if selected_project and selected_project.id == project.id %}selected{% endif %}>
+                                {{ project.name }}
+                            </option>
+                        {% empty %}
+                            <option value="" disabled>No projects available</option>
+                        {% endfor %}
+                    </select>
+                    {% if not user_projects %}
+                        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                            <a href="{% url 'main:project_crud' %}" class="text-blue-600 dark:text-blue-400 hover:underline">Create a project first</a> to add tasks.
+                        </p>
+                    {% endif %}
+                </div>
+                
+                <!-- Category -->
+                <div>
+                    <label for="category" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category (Optional)</label>
                     <select 
                         id="category" 
                         name="category" 
                         class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200"
                     >
-                        <option value="">Select project & category</option>
-                        <!-- Options will be populated dynamically -->
+                        <option value="">Select category (optional)</option>
                     </select>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Categories will load after selecting a project</p>
                 </div>
-                
+            </div>
+            
+            <!-- Second Row: Priority, Status, Deadline -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <!-- Priority -->
                 <div>
                     <label for="priority" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Priority</label>
@@ -115,9 +144,7 @@
                         <option value="urgent">Urgent</option>
                     </select>
                 </div>
-            </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                
                 <!-- Status -->
                 <div>
                     <label for="status" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
@@ -168,7 +195,9 @@
                     multiple
                     class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200"
                 >
-                    <!-- Options will be populated dynamically -->
+                    {% for user in users %}
+                        <option value="{{ user.id }}">{{ user.get_full_name }}</option>
+                    {% endfor %}
                 </select>
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Hold Ctrl/Cmd to select multiple assignees</p>
             </div>
@@ -248,24 +277,97 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Category change handler to update dependencies
+    // Populate assignees based on selected project
+    function populateAssignees(projectId) {
+        if (projectId) {
+            // Get project members
+            fetch(`/api/project/${projectId}/members/`)
+                .then(response => response.json())
+                .then(data => {
+                    const assigneesSelect = document.getElementById('assignees');
+                    assigneesSelect.innerHTML = '';
+                    
+                    data.members.forEach(member => {
+                        const option = document.createElement('option');
+                        option.value = member.id;
+                        option.textContent = member.name;
+                        assigneesSelect.appendChild(option);
+                    });
+                    
+                    // Refresh Select2
+                    $(assigneesSelect).trigger('change');
+                })
+                .catch(error => {
+                    console.error('Error fetching project members:', error);
+                });
+        }
+    }
+    
+    // Project change handler to load categories
+    const projectSelect = document.getElementById('project');
     const categorySelect = document.getElementById('category');
+    
+    if (projectSelect && categorySelect) {
+        projectSelect.addEventListener('change', function() {
+            const projectId = this.value;
+            
+            // Clear category options
+            categorySelect.innerHTML = '<option value="">Select category (optional)</option>';
+            
+            if (projectId) {
+                // Show loading state
+                categorySelect.innerHTML = '<option value="">Loading categories...</option>';
+                categorySelect.disabled = true;
+                
+                // Fetch categories for the selected project
+                fetch(`{% url 'main:get_project_categories' 0 %}`.replace('0', projectId))
+                    .then(response => response.json())
+                    .then(data => {
+                        // Clear loading state
+                        categorySelect.innerHTML = '<option value="">Select category (optional)</option>';
+                        
+                        if (data.categories && data.categories.length > 0) {
+                            // Add category options
+                            data.categories.forEach(category => {
+                                const option = document.createElement('option');
+                                option.value = category.id;
+                                option.textContent = category.name;
+                                categorySelect.appendChild(option);
+                            });
+                        } else {
+                            // No categories available
+                            const option = document.createElement('option');
+                            option.value = '';
+                            option.textContent = 'No categories available';
+                            option.disabled = true;
+                            categorySelect.appendChild(option);
+                        }
+                        
+                        categorySelect.disabled = false;
+                    })
+                    .catch(error => {
+                        console.error('Error fetching project categories:', error);
+                        categorySelect.innerHTML = '<option value="">Error loading categories</option>';
+                        categorySelect.disabled = false;
+                    });
+            }
+        });
+        
+        // Trigger change event if project is pre-selected
+        if (projectSelect.value) {
+            projectSelect.dispatchEvent(new Event('change'));
+        }
+    }
+    
+    // Category change handler to update dependencies
     const dependenciesSelectElement = document.getElementById('dependencies');
     
     if (categorySelect && dependenciesSelectElement) {
         categorySelect.addEventListener('change', function() {
-            const projectId = this.value;
-            if (projectId) {
-                // Fetch tasks for the selected project
-                fetch(`{% url 'main:get_project_categories' 0 %}`.replace('0', projectId))
-                    .then(response => response.json())
-                    .then(data => {
-                        // Update dependencies select with project tasks
-                        // This would need to be implemented in the backend
-                    })
-                    .catch(error => {
-                        console.error('Error fetching project tasks:', error);
-                    });
+            const categoryId = this.value;
+            if (categoryId) {
+                // Fetch tasks for the selected category/project
+                // This would need to be implemented in the backend
             }
         });
     }
@@ -275,9 +377,17 @@ document.addEventListener('DOMContentLoaded', function() {
     form.addEventListener('submit', function(e) {
         // Basic validation
         const titleInput = document.getElementById('title');
+        const projectSelect = document.getElementById('project');
+        
         if (!titleInput.value.trim()) {
             e.preventDefault();
             showError('Title is required');
+            return;
+        }
+        
+        if (!projectSelect.value) {
+            e.preventDefault();
+            showError('Please select a project');
             return;
         }
         

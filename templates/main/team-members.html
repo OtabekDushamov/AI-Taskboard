@@ -1,38 +1,40 @@
 {% extends 'base.html' %}
 
-{% block title %}Team Members - {{ project.name }} - AI Taskboard{% endblock %}
+{% block title %}Team Members{% if selected_project %} - {{ selected_project.name }}{% endif %} - AI Taskboard{% endblock %}
 
 {% block extra_css %}
-<style>
-    .fade-in {
-        animation: fadeIn 0.3s ease-in-out;
-    }
-    
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(-10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .role-pill {
-        font-size: 0.75rem;
-        font-weight: 600;
-        padding: 0.25rem 0.5rem;
-        border-radius: 9999px;
-    }
+    <style>
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .role-pill {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+        }
 </style>
 {% endblock %}
 
 {% block content %}
-<!-- Header -->
-<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
-    <div>
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
+            <div>
         <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Team Members</h1>
-        <p class="text-gray-600 dark:text-gray-400">Manage team members for {{ project.name }}</p>
+        <p class="text-gray-600 dark:text-gray-400">Manage team members{% if selected_project %} for {{ selected_project.name }}{% endif %}</p>
     </div>
     <div class="flex items-center gap-3 mt-4 sm:mt-0">
-        <a href="{% url 'main:project_detail' project.id %}" class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
+        {% if selected_project %}
+        <a href="{% url 'main:project_detail' selected_project.id %}" class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
             <i class="fas fa-arrow-left mr-2"></i>Back to Project
         </a>
+        {% endif %}
         <button id="inviteButton" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center">
             <i class="fas fa-user-plus mr-2"></i> Add Member
         </button>
@@ -57,7 +59,7 @@
         <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ completed_tasks }}</div>
         <div class="text-sm text-gray-500 dark:text-gray-400">Completed Tasks</div>
     </div>
-</div>
+            </div>
 
 <!-- Add Member Modal -->
 <div id="inviteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
@@ -114,7 +116,7 @@
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
         <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Team Members</h2>
-    </div>
+                </div>
     
     <div class="divide-y divide-gray-200 dark:divide-gray-700">
         {% for member in team_members %}
@@ -134,10 +136,10 @@
                             <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">
                                 Joined {{ member.joined_at|date:"M j, Y" }}
                             </span>
-                        </div>
-                    </div>
                 </div>
-                
+            </div>
+        </div>
+        
                 <div class="flex items-center space-x-4">
                     <div class="text-right">
                         <div class="text-sm font-medium text-gray-900 dark:text-white">{{ member.tasks.count }} tasks</div>
@@ -147,9 +149,9 @@
                             {% else %}
                                 No tasks assigned
                             {% endif %}
-                        </div>
-                    </div>
-                    
+            </div>
+        </div>
+        
                     <div class="relative">
                         <button class="member-actions-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-600">
                             <i class="fas fa-ellipsis-h"></i>
@@ -167,11 +169,11 @@
                                 <hr class="my-1 border-gray-200 dark:border-gray-700">
                                 <button class="remove-member-btn block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700" data-member-id="{{ member.id }}" data-member-name="{{ member.user.get_full_name }}">
                                     <i class="fas fa-user-times mr-2"></i>Remove Member
-                                </button>
+                    </button>
                                 {% endif %}
                             </div>
-                        </div>
-                    </div>
+                </div>
+                </div>
                 </div>
             </div>
         </div>
@@ -190,26 +192,26 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+    <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Modal elements
     const inviteModal = document.getElementById('inviteModal');
-    const inviteButton = document.getElementById('inviteButton');
+        const inviteButton = document.getElementById('inviteButton');
     const inviteButtonEmpty = document.getElementById('inviteButtonEmpty');
-    const closeInviteModal = document.getElementById('closeInviteModal');
+        const closeInviteModal = document.getElementById('closeInviteModal');
     const addMemberForm = document.getElementById('addMemberForm');
     
     // Role selectors
-    const roleSelectors = document.querySelectorAll('.role-selector');
-    
+        const roleSelectors = document.querySelectorAll('.role-selector');
+        
     // Show invite modal
     function showInviteModal() {
-        inviteModal.classList.remove('hidden');
+                inviteModal.classList.remove('hidden');
     }
     
     // Hide invite modal
     function hideInviteModal() {
-        inviteModal.classList.add('hidden');
+                inviteModal.classList.add('hidden');
         addMemberForm.reset();
         document.getElementById('selectedRole').value = 'member';
         roleSelectors.forEach(btn => btn.classList.remove('ring-2', 'ring-blue-500'));
@@ -226,9 +228,9 @@ document.addEventListener('DOMContentLoaded', function() {
             roleSelectors.forEach(b => b.classList.remove('ring-2', 'ring-blue-500'));
             this.classList.add('ring-2', 'ring-blue-500');
             document.getElementById('selectedRole').value = this.dataset.role;
-        });
-    });
-    
+                });
+            });
+            
     // Add member form submission
     addMemberForm.addEventListener('submit', function(e) {
         e.preventDefault();
@@ -246,13 +248,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // AJAX function to add member
     function addMember(userId, role) {
-        fetch('{% url "main:add_project_member" project.id %}', {
+        {% if selected_project %}
+        fetch('{% url "main:add_project_member" %}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': '{{ csrf_token }}'
             },
             body: JSON.stringify({
+                project_id: {{ selected_project.id }},
                 user_id: userId,
                 role: role
             })
@@ -270,7 +274,10 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error:', error);
             alert('Error adding member');
         });
+        {% else %}
+        alert('No project selected');
+        {% endif %}
     }
 });
-</script>
+    </script>
 {% endblock %}

@@ -39,6 +39,7 @@ urlpatterns = [
     # Habits and settings
     path('habit-tracker/', login_required(views.habit_tracker_view), name='habit_tracker'),
     path('settings/', login_required(views.settings_view), name='settings'),
+    path('team-members/', login_required(views.team_members_view), name='team_members'),
     path('team-members/<int:project_id>/', login_required(views.team_members_view), name='team_members'),
     path('tasks-calendar/', login_required(views.tasks_calendar_view), name='tasks_calendar'),
     

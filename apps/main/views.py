@@ -393,11 +393,64 @@ def task_create_view(request):
             username=request.user.username or ''
         )
     
+    # Get project from URL parameter
+    project_id = request.GET.get('project')
+    selected_project = None
+    if project_id:
+        try:
+            selected_project = Project.objects.get(id=project_id)
+            # Check if user has access to this project
+            if not (selected_project.creator == bot_user or bot_user in selected_project.members.all()):
+                selected_project = None
+        except Project.DoesNotExist:
+            selected_project = None
+    
     if request.method == 'POST':
-        form = TaskForm(request.POST)
-        if form.is_valid():
+        # Get project and category from form
+        project_id = request.POST.get('project')
+        category_id = request.POST.get('category', '')
+        
+        # Create form data without category for validation
+        form_data = request.POST.copy()
+        form = TaskForm(form_data)
+        
+        # Make category optional
+        form.fields['category'].required = False
+        
+        if form.is_valid() and project_id:
             task = form.save(commit=False)
             task.creator = bot_user
+            
+            # Get the project
+            try:
+                project = Project.objects.get(id=project_id)
+            except Project.DoesNotExist:
+                messages.error(request, 'Selected project not found')
+                return render(request, 'main/task-create.html', context)
+            
+            # Handle category assignment
+            if category_id:
+                # Category was selected
+                try:
+                    category = Category.objects.get(id=category_id, project=project)
+                    task.category = category
+                except Category.DoesNotExist:
+                    messages.error(request, 'Selected category not found')
+                    return render(request, 'main/task-create.html', context)
+            else:
+                # No category selected, create a default one
+                default_category, created = Category.objects.get_or_create(
+                    project=project,
+                    name='General',
+                    defaults={
+                        'description': 'Default category for tasks',
+                        'color': '#3498db'
+                    }
+                )
+                task.category = default_category
+                if created:
+                    messages.info(request, f'Created default "General" category for project "{project.name}"')
+            
             task.save()
             
             # Save many-to-many relationships
@@ -413,6 +466,9 @@ def task_create_view(request):
             
             messages.success(request, f'Task "{task.title}" created successfully!')
             return redirect('main:task_detail', task_id=task.id)
+        else:
+            if not project_id:
+                messages.error(request, 'Please select a project')
     else:
         form = TaskForm()
     
@@ -425,6 +481,7 @@ def task_create_view(request):
         'form': form,
         'user_projects': user_projects,
         'users': BotUser.objects.all(),
+        'selected_project': selected_project,
     }
     
     return render(request, 'main/task-create.html', context)
@@ -637,7 +694,7 @@ def project_analytics_view(request):
     return render(request, 'main/project-analytics.html')
 
 
-def team_members_view(request):
+def team_members_view(request, project_id=None):
     """Team members view with real functionality"""
     try:
         bot_user = BotUser.objects.get(user=request.user)
@@ -668,10 +725,28 @@ def team_members_view(request):
         Q(id__in=admin_projects)
     ).distinct()
     
+    # If a specific project is requested, get its details
+    selected_project = None
+    project_members = []
+    if project_id:
+        try:
+            selected_project = Project.objects.get(id=project_id)
+            # Check if user has access to this project
+            if not (selected_project.creator == bot_user or bot_user in selected_project.members.all()):
+                messages.error(request, 'You do not have access to this project.')
+                return redirect('main:team_members')
+            
+            project_members = ProjectMember.objects.filter(project=selected_project)
+        except Project.DoesNotExist:
+            messages.error(request, 'Project not found.')
+            return redirect('main:team_members')
+    
     context = {
         'all_users': all_users,
         'user_memberships': user_memberships,
         'manageable_projects': manageable_projects,
+        'selected_project': selected_project,
+        'project_members': project_members,
     }
     
     return render(request, 'main/team-members.html', context)
