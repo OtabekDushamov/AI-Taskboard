@@ -1,10 +1,9 @@
 {% extends 'base.html' %}
 
-{% block title %}Project Form - AI Taskboard{% endblock %}
+{% block title %}{% if project %}Edit{% else %}Create{% endif %} Project - AI Taskboard{% endblock %}
 
 {% block extra_css %}
 <style>
-    /* Custom styles for multi-select and dropzone */
     .multi-select-container {
         position: relative;
     }
@@ -98,730 +97,355 @@
         color: #ef4444;
         cursor: pointer;
     }
-    
-    .step-indicator {
-        position: relative;
-        flex: 1;
-        text-align: center;
-        padding-bottom: 1rem;
-    }
-    
-    .step-indicator:not(:last-child):after {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 100%;
-        height: 2px;
-        background-color: #e2e8f0;
-        z-index: 1;
-    }
-    
-    .step-indicator.active:not(:last-child):after {
-        background-color: #3b82f6;
-    }
-    
-    .step-number {
-        position: relative;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 2rem;
-        height: 2rem;
-        border-radius: 9999px;
-        background-color: #e2e8f0;
-        color: #64748b;
-        z-index: 2;
-    }
-    
-    .step-indicator.active .step-number {
-        background-color: #3b82f6;
-        color: white;
-    }
-    
-    .step-indicator.completed .step-number {
-        background-color: #10b981;
-        color: white;
-    }
-    
-    @media (max-width: 1023px) {
-        .preview-column {
-            display: none;
-        }
-    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="min-h-screen flex flex-col">
+<div class="container mx-auto px-4 py-6 max-w-4xl">
     <!-- Header -->
-    <header class="bg-white dark:bg-gray-800 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex justify-between items-center">
-            <h1 class="text-xl font-semibold text-gray-900 dark:text-white">Project Management</h1>
-            <div class="flex items-center space-x-4">
-                <span id="autosave-indicator" class="text-sm text-gray-500 dark:text-gray-400 hidden">
-                    <i class="fas fa-save mr-1"></i> Saving...
-                </span>
-                <span id="autosave-success" class="text-sm text-green-500 hidden">
-                    <i class="fas fa-check-circle mr-1"></i> Saved
-                </span>
+    <div class="mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+                    {% if project %}Edit Project{% else %}Create New Project{% endif %}
+                </h1>
+                <p class="text-gray-600 dark:text-gray-400 mt-1">
+                    {% if project %}Update project details and settings{% else %}Set up a new project for your team{% endif %}
+                </p>
+            </div>
+            <div class="flex items-center gap-3">
+                <a href="{% if project %}{% url 'main:project_detail' project.id %}{% else %}{% url 'main:project_list' %}{% endif %}" class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
+                    <i class="fas fa-arrow-left mr-2"></i>Back
+                </a>
             </div>
         </div>
-    </header>
+    </div>
 
-    <!-- Main Content -->
-    <main class="flex-grow">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <!-- Step Header -->
-            <div class="mb-8">
-                <div class="flex justify-between mb-4">
-                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Create New Project</h2>
-                    <div class="text-sm text-gray-500 dark:text-gray-400">
-                        <span id="form-status">Draft</span>
-                    </div>
+    <!-- Form -->
+    <form method="post" enctype="multipart/form-data" class="space-y-6">
+        {% csrf_token %}
+        
+        <!-- Basic Information -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Basic Information</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Project Name *
+                    </label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                        <div class="text-red-600 text-sm mt-1">{{ form.name.errors.0 }}</div>
+                    {% endif %}
                 </div>
                 
-                <div class="flex">
-                    <div class="step-indicator active">
-                        <div class="step-number">1</div>
-                        <div class="text-sm font-medium text-gray-900 dark:text-white mt-1">Basic Info</div>
-                    </div>
-                    <div class="step-indicator">
-                        <div class="step-number">2</div>
-                        <div class="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">Details</div>
-                    </div>
-                    <div class="step-indicator">
-                        <div class="step-number">3</div>
-                        <div class="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">Team</div>
-                    </div>
-                    <div class="step-indicator">
-                        <div class="step-number">4</div>
-                        <div class="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">Review</div>
-                    </div>
+                <div>
+                    <label for="{{ form.priority.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Priority
+                    </label>
+                    {{ form.priority }}
+                    {% if form.priority.errors %}
+                        <div class="text-red-600 text-sm mt-1">{{ form.priority.errors.0 }}</div>
+                    {% endif %}
                 </div>
             </div>
-
-            <!-- Form and Preview -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <!-- Form Column -->
-                <div class="lg:col-span-2">
-                    <form id="projectForm" class="space-y-6">
-                        <!-- Basic Info Section -->
-                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Basic Information</h3>
-                            
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label for="projectName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Project Name *</label>
-                                    <input type="text" id="projectName" name="projectName" required class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-                                </div>
-                                
-                                <div>
-                                    <label for="projectKey" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Project Key</label>
-                                    <input type="text" id="projectKey" name="projectKey" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-                                </div>
-                            </div>
-                            
-                            <div class="mt-4">
-                                <label for="projectDescription" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
-                                <textarea id="projectDescription" name="projectDescription" rows="3" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"></textarea>
-                            </div>
-                        </div>
-
-                        <!-- Details Section -->
-                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Project Details</h3>
-                            
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Priority</label>
-                                    <div class="flex space-x-2">
-                                        <button type="button" class="priority-btn px-3 py-1 rounded text-sm" data-priority="low">Low</button>
-                                        <button type="button" class="priority-btn px-3 py-1 rounded text-sm active" data-priority="medium">Medium</button>
-                                        <button type="button" class="priority-btn px-3 py-1 rounded text-sm" data-priority="high">High</button>
-                                        <button type="button" class="priority-btn px-3 py-1 rounded text-sm" data-priority="critical">Critical</button>
-                                    </div>
-                                </div>
-                                
-                                <div>
-                                    <label for="projectStatus" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
-                                    <select id="projectStatus" name="projectStatus" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-                                        <option value="planning">Planning</option>
-                                        <option value="active">Active</option>
-                                        <option value="on-hold">On Hold</option>
-                                        <option value="completed">Completed</option>
-                                        <option value="cancelled">Cancelled</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                                <div>
-                                    <label for="startDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Start Date</label>
-                                    <input type="date" id="startDate" name="startDate" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-                                </div>
-                                
-                                <div>
-                                    <label for="endDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">End Date</label>
-                                    <input type="date" id="endDate" name="endDate" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Team Section -->
-                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Team & Labels</h3>
-                            
-                            <div class="mb-4">
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Team Members</label>
-                                <div class="multi-select-container">
-                                    <div class="flex flex-wrap min-h-[40px] p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700" id="teamTags">
-                                        <input type="text" placeholder="Add team members..." class="flex-1 min-w-[120px] outline-none bg-transparent text-gray-900 dark:text-gray-100" id="teamInput">
-                                    </div>
-                                    <div class="multi-select-dropdown" id="teamDropdown">
-                                        <!-- Team members will be populated here -->
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Labels</label>
-                                <div class="flex flex-wrap gap-2" id="labelsContainer">
-                                    <span class="label-tag px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded text-sm cursor-pointer" data-label="frontend">Frontend</span>
-                                    <span class="label-tag px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded text-sm cursor-pointer" data-label="backend">Backend</span>
-                                    <span class="label-tag px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200 rounded text-sm cursor-pointer" data-label="design">Design</span>
-                                    <span class="label-tag px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 rounded text-sm cursor-pointer" data-label="testing">Testing</span>
-                                    <span class="label-tag px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded text-sm cursor-pointer" data-label="urgent">Urgent</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Attachments Section -->
-                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Attachments</h3>
-                            
-                            <div class="dropzone" id="dropzone">
-                                <div class="text-gray-600 dark:text-gray-400">
-                                    <i class="fas fa-cloud-upload-alt text-4xl mb-4"></i>
-                                    <p class="text-lg font-medium">Drop files here or click to browse</p>
-                                    <p class="text-sm">Supports: PDF, DOC, XLS, images, and more</p>
-                                </div>
-                                <input type="file" id="fileInput" multiple class="hidden">
-                            </div>
-                            
-                            <div id="filePreviews" class="mt-4">
-                                <!-- File previews will be shown here -->
-                            </div>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Preview Column -->
-                <div class="preview-column">
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 sticky top-6">
-                        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Project Preview</h3>
-                        
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Name</label>
-                                <p id="previewName" class="text-gray-900 dark:text-white font-medium">Project Name</p>
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Description</label>
-                                <p id="previewDescription" class="text-gray-900 dark:text-white text-sm">Project description will appear here</p>
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Priority</label>
-                                <span id="previewPriority" class="px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200">Medium</span>
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Dates</label>
-                                <p id="previewDates" class="text-gray-900 dark:text-white text-sm">No dates set</p>
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Owner</label>
-                                <p id="previewOwner" class="text-gray-900 dark:text-white text-sm">No owner selected</p>
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Status</label>
-                                <p id="previewStatus" class="text-gray-900 dark:text-white text-sm">No status selected</p>
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Team</label>
-                                <div id="previewTeam" class="text-gray-900 dark:text-white text-sm">No team members selected</div>
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Labels</label>
-                                <div id="previewLabels" class="flex flex-wrap gap-1">
-                                    <span class="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-400">No labels</span>
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Attachments</label>
-                                <div id="previewAttachments" class="text-gray-900 dark:text-white text-sm">No files attached</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            
+            <div class="mt-6">
+                <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Description
+                </label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                    <div class="text-red-600 text-sm mt-1">{{ form.description.errors.0 }}</div>
+                {% endif %}
             </div>
-
-            <!-- Action Buttons -->
-            <div class="flex justify-between items-center mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-                <div class="flex space-x-3">
-                    <button id="cancelBtn" class="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
-                        Cancel
-                    </button>
-                    <button id="deleteBtn" class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md hidden">
-                        Delete Project
-                    </button>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                <div>
+                    <label for="{{ form.start_date.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Start Date
+                    </label>
+                    {{ form.start_date }}
+                    {% if form.start_date.errors %}
+                        <div class="text-red-600 text-sm mt-1">{{ form.start_date.errors.0 }}</div>
+                    {% endif %}
                 </div>
                 
-                <div class="flex space-x-3">
-                    <button id="saveBtn" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md">
-                        Save Project
-                    </button>
+                <div>
+                    <label for="{{ form.end_date.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        End Date
+                    </label>
+                    {{ form.end_date }}
+                    {% if form.end_date.errors %}
+                        <div class="text-red-600 text-sm mt-1">{{ form.end_date.errors.0 }}</div>
+                    {% endif %}
                 </div>
+            </div>
+            
+            <div class="mt-6">
+                <label for="{{ form.status.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Status
+                </label>
+                {{ form.status }}
+                {% if form.status.errors %}
+                    <div class="text-red-600 text-sm mt-1">{{ form.status.errors.0 }}</div>
+                {% endif %}
             </div>
         </div>
-    </main>
+
+        <!-- Labels -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Labels</h2>
+            
+            <div>
+                <label for="{{ form.labels.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Project Labels
+                </label>
+                {{ form.labels }}
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ form.labels.help_text }}</p>
+                {% if form.labels.errors %}
+                    <div class="text-red-600 text-sm mt-1">{{ form.labels.errors.0 }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Team Members -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Team Members</h2>
+            
+            {% if project %}
+            <div class="mb-4">
+                <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Current Members</h3>
+                <div class="space-y-2">
+                    {% for member in project.members.all %}
+                    <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-medium">
+                                {{ member.user.first_name|first|upper }}{{ member.user.last_name|first|upper }}
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ member.user.get_full_name }}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ member.get_role_display }}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300">
+                                {{ member.tasks.count }} tasks
+                            </span>
+                            <button type="button" class="text-red-600 hover:text-red-800" onclick="removeMember({{ member.id }})">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-gray-500 dark:text-gray-400 italic text-center py-4">No team members yet</p>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Add Team Members
+                </label>
+                <div class="multi-select-container">
+                    <div class="multi-select-input flex items-center justify-between p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white cursor-pointer">
+                        <span class="text-gray-500 dark:text-gray-400">Select team members...</span>
+                        <i class="fas fa-chevron-down text-gray-400"></i>
+                    </div>
+                    <div class="multi-select-dropdown">
+                        {% for user in available_users %}
+                        <div class="multi-select-item" data-user-id="{{ user.id }}">
+                            <div class="flex items-center gap-3">
+                                <div class="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-gray-700 dark:text-gray-300 text-xs font-medium">
+                                    {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+                                </div>
+                                <span class="text-sm text-gray-900 dark:text-white">{{ user.get_full_name }}</span>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="multi-select-item text-gray-500 dark:text-gray-400 text-center py-2">
+                            No users available
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="multi-select-tags mt-2"></div>
+            </div>
+        </div>
+
+        <!-- Categories -->
+        {% if project %}
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Categories</h2>
+            
+            <div class="space-y-3">
+                {% for category in project.categories.all %}
+                <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div class="flex items-center gap-3">
+                        <div class="w-4 h-4 rounded" style="background-color: {{ category.color }}"></div>
+                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ category.name }}</span>
+                        {% if category.description %}
+                        <span class="text-xs text-gray-500 dark:text-gray-400">{{ category.description }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300">
+                            {{ category.tasks.count }} tasks
+                        </span>
+                        <a href="{% url 'main:category_detail' category.id %}" class="text-blue-600 hover:text-blue-800">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-gray-500 dark:text-gray-400 italic text-center py-4">No categories yet</p>
+                {% endfor %}
+            </div>
+            
+            <div class="mt-4">
+                <a href="{% url 'main:category_list' %}" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+                    <i class="fas fa-plus mr-1"></i>Manage Categories
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Form Actions -->
+        <div class="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
+            <div class="flex items-center gap-3">
+                {% if project %}
+                <a href="{% url 'main:project_detail' project.id %}" class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
+                    Cancel
+                </a>
+                {% else %}
+                <a href="{% url 'main:project_list' %}" class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
+                    Cancel
+                </a>
+                {% endif %}
+            </div>
+            <div class="flex items-center gap-3">
+                <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200">
+                    {% if project %}Update Project{% else %}Create Project{% endif %}
+                </button>
+            </div>
+        </div>
+    </form>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    // Sample data
-    const teamMembers = [
-        { id: 1, name: 'John Doe', role: 'Project Manager', avatar: 'JD' },
-        { id: 2, name: 'Jane Smith', role: 'Developer', avatar: 'JS' },
-        { id: 3, name: 'Mike Johnson', role: 'Designer', avatar: 'MJ' },
-        { id: 4, name: 'Sarah Wilson', role: 'QA Engineer', avatar: 'SW' },
-        { id: 5, name: 'Tom Brown', role: 'DevOps', avatar: 'TB' }
-    ];
-
-    // Global variables
-    let selectedTeamMembers = [];
-    let selectedLabels = [];
-    let selectedFiles = [];
-    let currentStep = 1;
-
-    // DOM elements
-    const form = document.getElementById('projectForm');
-    const teamInput = document.getElementById('teamInput');
-    const teamDropdown = document.getElementById('teamDropdown');
-    const teamTags = document.getElementById('teamTags');
-    const labelsContainer = document.getElementById('labelsContainer');
-    const dropzone = document.getElementById('dropzone');
-    const fileInput = document.getElementById('fileInput');
-    const filePreviews = document.getElementById('filePreviews');
-    const saveBtn = document.getElementById('saveBtn');
-    const cancelBtn = document.getElementById('cancelBtn');
-    const deleteBtn = document.getElementById('deleteBtn');
-    const autosaveIndicator = document.getElementById('autosave-indicator');
-    const autosaveSuccess = document.getElementById('autosave-success');
-
-    // Preview elements
-    const previewName = document.getElementById('previewName');
-    const previewDescription = document.getElementById('previewDescription');
-    const previewPriority = document.getElementById('previewPriority');
-    const previewDates = document.getElementById('previewDates');
-    const previewOwner = document.getElementById('previewOwner');
-    const previewStatus = document.getElementById('previewStatus');
-    const previewTeam = document.getElementById('previewTeam');
-    const previewLabels = document.getElementById('previewLabels');
-    const previewAttachments = document.getElementById('previewAttachments');
-
-    // Initialize priority buttons
-    function initPriorityButtons() {
-        const priorityBtns = document.querySelectorAll('.priority-btn');
-        priorityBtns.forEach(btn => {
-            btn.addEventListener('click', function() {
-                priorityBtns.forEach(b => b.classList.remove('active', 'bg-blue-100', 'dark:bg-blue-900/30', 'text-blue-800', 'dark:text-blue-200'));
-                this.classList.add('active', 'bg-blue-100', 'dark:bg-blue-900/30', 'text-blue-800', 'dark:text-blue-200');
-                
-                // Update preview
-                previewPriority.textContent = this.dataset.priority.charAt(0).toUpperCase() + this.dataset.priority.slice(1);
-                previewPriority.className = 'px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200';
-            });
-        });
-    }
-
-    // Initialize team multi-select
-    function initTeamMultiSelect() {
-        teamInput.addEventListener('input', function() {
-            const query = this.value.toLowerCase();
-            if (query.length > 0) {
-                const filtered = teamMembers.filter(member => 
-                    member.name.toLowerCase().includes(query) || 
-                    member.role.toLowerCase().includes(query)
-                );
-                showTeamDropdown(filtered);
-            } else {
-                hideTeamDropdown();
-            }
-        });
-
-        teamInput.addEventListener('focus', function() {
-            if (this.value.length > 0) {
-                const filtered = teamMembers.filter(member => 
-                    member.name.toLowerCase().includes(this.value.toLowerCase())
-                );
-                showTeamDropdown(filtered);
-            }
-        });
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function(e) {
-            if (!teamInput.contains(e.target) && !teamDropdown.contains(e.target)) {
-                hideTeamDropdown();
-            }
-        });
-    }
-
-    // Show team dropdown
-    function showTeamDropdown(members) {
-        teamDropdown.innerHTML = '';
-        members.forEach(member => {
-            const item = document.createElement('div');
-            item.className = 'multi-select-item';
-            item.innerHTML = `
-                <div class="flex items-center">
-                    <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-medium mr-3">
-                        ${member.avatar}
-                    </div>
-                    <div>
-                        <div class="font-medium">${member.name}</div>
-                        <div class="text-sm text-gray-500">${member.role}</div>
-                    </div>
-                </div>
-            `;
-            
-            item.addEventListener('click', () => addTeamMember(member));
-            teamDropdown.appendChild(item);
-        });
-        
-        teamDropdown.classList.add('show');
-    }
-
-    // Hide team dropdown
-    function hideTeamDropdown() {
-        teamDropdown.classList.remove('show');
-    }
-
-    // Add team member
-    function addTeamMember(member) {
-        if (!selectedTeamMembers.find(m => m.id === member.id)) {
-            selectedTeamMembers.push(member);
-            updateTeamTags();
-            updatePreview();
+document.addEventListener('DOMContentLoaded', function() {
+    // Multi-select functionality
+    const multiSelectContainer = document.querySelector('.multi-select-container');
+    const multiSelectInput = multiSelectContainer.querySelector('.multi-select-input');
+    const multiSelectDropdown = multiSelectContainer.querySelector('.multi-select-dropdown');
+    const multiSelectTags = multiSelectContainer.querySelector('.multi-select-tags');
+    const multiSelectItems = multiSelectDropdown.querySelectorAll('.multi-select-item');
+    
+    let selectedUsers = [];
+    
+    // Toggle dropdown
+    multiSelectInput.addEventListener('click', function() {
+        multiSelectDropdown.classList.toggle('show');
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!multiSelectContainer.contains(e.target)) {
+            multiSelectDropdown.classList.remove('show');
         }
-        teamInput.value = '';
-        hideTeamDropdown();
-    }
-
-    // Remove team member
-    function removeTeamMember(memberId) {
-        selectedTeamMembers = selectedTeamMembers.filter(m => m.id !== memberId);
-        updateTeamTags();
-        updatePreview();
-    }
-
-    // Update team tags display
-    function updateTeamTags() {
-        const tags = selectedTeamMembers.map(member => `
-            <div class="multi-select-tag">
-                <span>${member.name}</span>
-                <span class="multi-select-tag-remove" onclick="removeTeamMember(${member.id})">&times;</span>
-            </div>
-        `).join('');
+    });
+    
+    // Handle item selection
+    multiSelectItems.forEach(item => {
+        item.addEventListener('click', function() {
+            const userId = this.dataset.userId;
+            const userName = this.querySelector('span').textContent;
+            
+            if (!selectedUsers.find(user => user.id === userId)) {
+                selectedUsers.push({ id: userId, name: userName });
+                this.classList.add('selected');
+                updateTags();
+            }
+        });
+    });
+    
+    // Update tags display
+    function updateTags() {
+        multiSelectTags.innerHTML = '';
+        selectedUsers.forEach(user => {
+            const tag = document.createElement('div');
+            tag.className = 'multi-select-tag';
+            tag.innerHTML = `
+                ${user.name}
+                <span class="multi-select-tag-remove" data-user-id="${user.id}">
+                    <i class="fas fa-times"></i>
+                </span>
+            `;
+            multiSelectTags.appendChild(tag);
+        });
         
-        teamTags.innerHTML = tags + `<input type="text" placeholder="Add team members..." class="flex-1 min-w-[120px] outline-none bg-transparent text-gray-900 dark:text-gray-100" id="teamInput">`;
-        
-        // Re-attach event listener to new input
-        document.getElementById('teamInput').addEventListener('input', teamInput.oninput);
-        document.getElementById('teamInput').addEventListener('focus', teamInput.onfocus);
-    }
-
-    // Initialize labels
-    function initLabels() {
-        const labelTags = document.querySelectorAll('.label-tag');
-        labelTags.forEach(tag => {
-            tag.addEventListener('click', function() {
-                const label = this.dataset.label;
-                if (selectedLabels.includes(label)) {
-                    selectedLabels = selectedLabels.filter(l => l !== label);
-                    this.classList.remove('bg-blue-100', 'dark:bg-blue-900/30', 'text-blue-800', 'dark:text-blue-200');
-                } else {
-                    selectedLabels.push(label);
-                    this.classList.add('bg-blue-100', 'dark:bg-blue-900/30', 'text-blue-800', 'dark:text-blue-200');
+        // Add remove functionality to tags
+        multiSelectTags.querySelectorAll('.multi-select-tag-remove').forEach(removeBtn => {
+            removeBtn.addEventListener('click', function() {
+                const userId = this.dataset.userId;
+                selectedUsers = selectedUsers.filter(user => user.id !== userId);
+                
+                // Remove selected class from dropdown item
+                const dropdownItem = multiSelectDropdown.querySelector(`[data-user-id="${userId}"]`);
+                if (dropdownItem) {
+                    dropdownItem.classList.remove('selected');
                 }
-                updatePreview();
+                
+                updateTags();
             });
         });
     }
-
-    // Initialize dropzone
-    function initDropzone() {
-        dropzone.addEventListener('click', () => fileInput.click());
-        
-        dropzone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropzone.classList.add('active');
+    
+    // Form submission - add selected users to form data
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        // Add hidden inputs for selected users
+        selectedUsers.forEach(user => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'team_members';
+            input.value = user.id;
+            form.appendChild(input);
         });
-        
-        dropzone.addEventListener('dragleave', () => {
-            dropzone.classList.remove('active');
-        });
-        
-        dropzone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropzone.classList.remove('active');
-            const files = Array.from(e.dataTransfer.files);
-            handleFiles(files);
-        });
-        
-        fileInput.addEventListener('change', (e) => {
-            const files = Array.from(e.target.files);
-            handleFiles(files);
-        });
-    }
+    });
+});
 
-    // Handle files
-    function handleFiles(files) {
-        files.forEach(file => {
-            if (!selectedFiles.find(f => f.name === file.name)) {
-                selectedFiles.push(file);
-            }
-        });
-        updateFilePreviews();
-        updatePreview();
-    }
-
-    // Remove file
-    function removeFile(fileName) {
-        selectedFiles = selectedFiles.filter(f => f.name !== fileName);
-        updateFilePreviews();
-        updatePreview();
-    }
-
-    // Update file previews
-    function updateFilePreviews() {
-        filePreviews.innerHTML = '';
-        selectedFiles.forEach(file => {
-            const preview = document.createElement('div');
-            preview.className = 'file-preview';
-            preview.innerHTML = `
-                <i class="fas fa-file file-preview-icon"></i>
-                <span class="file-preview-name">${file.name}</span>
-                <span class="file-preview-remove" onclick="removeFile('${file.name}')">&times;</span>
-            `;
-            filePreviews.appendChild(preview);
-        });
-    }
-
-    // Initialize form validation
-    function initFormValidation() {
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            if (validateForm()) {
-                saveProject();
-            }
-        });
-    }
-
-    // Validate form
-    function validateForm() {
-        const projectName = document.getElementById('projectName').value;
-        if (!projectName.trim()) {
-            alert('Project name is required');
-            return false;
-        }
-        return true;
-    }
-
-    // Initialize autosave
-    function initAutosave() {
-        let timeout;
-        form.addEventListener('input', function() {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => {
-                updatePreview();
-            }, 500);
-        });
-    }
-
-    // Update preview
-    function updatePreview() {
-        const projectName = document.getElementById('projectName').value || 'Project Name';
-        const projectDescription = document.getElementById('projectDescription').value || 'Project description will appear here';
-        const projectStatus = document.getElementById('projectStatus').value || 'No status selected';
-        const startDate = document.getElementById('startDate').value;
-        const endDate = document.getElementById('endDate').value;
-        
-        previewName.textContent = projectName;
-        previewDescription.textContent = projectDescription;
-        previewStatus.textContent = projectStatus;
-        
-        if (startDate && endDate) {
-            previewDates.textContent = `${startDate} to ${endDate}`;
-        } else if (startDate) {
-            previewDates.textContent = `Starts ${startDate}`;
-        } else {
-            previewDates.textContent = 'No dates set';
-        }
-        
-        // Update team preview
-        if (selectedTeamMembers.length > 0) {
-            previewTeam.innerHTML = selectedTeamMembers.map(member => 
-                `<div class="text-sm">${member.name} (${member.role})</div>`
-            ).join('');
-        } else {
-            previewTeam.textContent = 'No team members selected';
-        }
-        
-        // Update labels preview
-        if (selectedLabels.length > 0) {
-            previewLabels.innerHTML = selectedLabels.map(label => 
-                `<span class="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 rounded-full text-blue-800 dark:text-blue-200">${label}</span>`
-            ).join('');
-        } else {
-            previewLabels.innerHTML = '<span class="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-400">No labels</span>';
-        }
-        
-        // Update attachments preview
-        if (selectedFiles.length > 0) {
-            const filesList = document.createElement('div');
-            filesList.className = 'space-y-1';
-            
-            selectedFiles.slice(0, 3).forEach(file => {
-                const fileItem = document.createElement('div');
-                fileItem.className = 'text-sm';
-                fileItem.textContent = file.name;
-                filesList.appendChild(fileItem);
-            });
-            
-            if (selectedFiles.length > 3) {
-                const moreElement = document.createElement('div');
-                moreElement.className = 'text-sm text-gray-500';
-                moreElement.textContent = `+${selectedFiles.length - 3} more files`;
-                filesList.appendChild(moreElement);
-            }
-            
-            previewAttachments.innerHTML = '';
-            previewAttachments.appendChild(filesList);
-        } else {
-            previewAttachments.textContent = 'No files attached';
-        }
-    }
-
-    // Save project
-    function saveProject() {
-        // Show saving indicator
-        autosaveIndicator.classList.remove('hidden');
-        autosaveSuccess.classList.add('hidden');
-        
-        // Simulate API call
-        setTimeout(function() {
-            // Hide saving indicator and show success
-            autosaveIndicator.classList.add('hidden');
-            autosaveSuccess.classList.remove('hidden');
-            
-            // Update form status
-            document.getElementById('form-status').textContent = 'Saved';
-            
-            // Hide success after 3 seconds
-            setTimeout(function() {
-                autosaveSuccess.classList.add('hidden');
-            }, 3000);
-            
-            // Show delete button (edit mode)
-            deleteBtn.classList.remove('hidden');
-        }, 1000);
-    }
-
-    // Initialize buttons
-    function initButtons() {
-        saveBtn.addEventListener('click', function() {
-            form.dispatchEvent(new Event('submit'));
-        });
-        
-        cancelBtn.addEventListener('click', function() {
-            if (confirm('Are you sure you want to cancel? All unsaved changes will be lost.')) {
-                // Reset form
-                form.reset();
-                selectedTeamMembers = [];
-                selectedLabels = [];
-                selectedFiles = [];
-                
-                // Update UI
-                updateTeamTags();
-                updateLabelsDisplay();
-                updateFilePreviews();
-                
-                // Reset preview
-                resetPreview();
-            }
-        });
-        
-        deleteBtn.addEventListener('click', function() {
-            if (confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
-                alert('Project deleted (simulated)');
-                // In a real app, would redirect to projects list
-            }
-        });
-    }
-
-    // Update labels display
-    function updateLabelsDisplay() {
-        const labelTags = document.querySelectorAll('.label-tag');
-        labelTags.forEach(tag => {
-            const label = tag.dataset.label;
-            if (selectedLabels.includes(label)) {
-                tag.classList.add('bg-blue-100', 'dark:bg-blue-900/30', 'text-blue-800', 'dark:text-blue-200');
+// Remove member function (for existing members)
+function removeMember(memberId) {
+    if (confirm('Are you sure you want to remove this team member?')) {
+        fetch('{% url "main:remove_project_member" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                project_id: {{ project.id }},
+                user_id: memberId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
             } else {
-                tag.classList.remove('bg-blue-100', 'dark:bg-blue-900/30', 'text-blue-800', 'dark:text-blue-200');
+                alert('Error removing team member');
             }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error removing team member');
         });
     }
-
-    // Reset preview
-    function resetPreview() {
-        previewName.textContent = 'Project Name';
-        previewDescription.textContent = 'Project description will appear here';
-        previewPriority.textContent = 'Medium';
-        previewPriority.className = 'px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200';
-        previewDates.textContent = 'No dates set';
-        previewOwner.textContent = 'No owner selected';
-        previewStatus.textContent = 'No status selected';
-        previewTeam.textContent = 'No team members selected';
-        previewLabels.innerHTML = '<span class="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-400">No labels</span>';
-        previewAttachments.textContent = 'No files attached';
-        
-        // Reset form status
-        document.getElementById('form-status').textContent = 'Draft';
-        
-        // Hide delete button
-        deleteBtn.classList.add('hidden');
-    }
-
-    // Initialize everything
-    function init() {
-        initPriorityButtons();
-        initTeamMultiSelect();
-        initLabels();
-        initDropzone();
-        initFormValidation();
-        initAutosave();
-        initButtons();
-    }
-
-    init();
+}
 </script>
 {% endblock %}

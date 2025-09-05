@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Task Analytics Dashboard - AI Taskboard{% endblock %}
+{% block title %}Analytics Dashboard - AI Taskboard{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -46,7 +46,15 @@
 <div class="container mx-auto px-4 py-6">
     <!-- Header -->
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Task Analytics Dashboard</h1>
+        <div>
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Analytics Dashboard</h1>
+            <p class="text-gray-600 dark:text-gray-400 mt-1">Track your team's productivity and project progress</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'main:project_analytics' %}" class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
+                <i class="fas fa-chart-bar mr-2"></i>Project Analytics
+            </a>
+        </div>
     </div>
 
     <!-- Filter toolbar (sticky) -->
@@ -78,181 +86,186 @@
                 <label for="project" class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Project</label>
                 <select id="project" class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm text-gray-900 dark:text-gray-100">
                     <option value="all">All Projects</option>
-                    <option value="website">Website Redesign</option>
-                    <option value="mobile">Mobile App</option>
-                    <option value="marketing">Marketing Campaign</option>
-                    <option value="api">API Development</option>
+                    {% for project in projects %}
+                    <option value="{{ project.id }}">{{ project.name }}</option>
+                    {% endfor %}
                 </select>
             </div>
             <div>
                 <label for="assignee" class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Assignee</label>
                 <select id="assignee" class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm text-gray-900 dark:text-gray-100">
                     <option value="all">All Team Members</option>
-                    <option value="john">John Doe</option>
-                    <option value="sarah">Sarah Smith</option>
-                    <option value="mike">Mike Johnson</option>
-                    <option value="emma">Emma Wilson</option>
+                    <!-- This would be populated with actual users from backend -->
                 </select>
             </div>
         </div>
     </div>
 
-    <!-- Analytics Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <!-- Task Completion Chart -->
+    <!-- Key Metrics -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Task Completion Trend</h3>
-            <div class="chart-container">
-                <canvas id="completionChart"></canvas>
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-md flex items-center justify-center">
+                        <i class="fas fa-tasks text-blue-600 dark:text-blue-400"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Tasks</p>
+                    <p class="text-2xl font-semibold text-gray-900 dark:text-white">{{ total_tasks }}</p>
+                </div>
             </div>
         </div>
-
-        <!-- Priority Distribution -->
+        
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Priority Distribution</h3>
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-md flex items-center justify-center">
+                        <i class="fas fa-check-circle text-green-600 dark:text-green-400"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Completed</p>
+                    <p class="text-2xl font-semibold text-gray-900 dark:text-white">{{ completed_tasks }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-yellow-100 dark:bg-yellow-900/30 rounded-md flex items-center justify-center">
+                        <i class="fas fa-clock text-yellow-600 dark:text-yellow-400"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">In Progress</p>
+                    <p class="text-2xl font-semibold text-gray-900 dark:text-white">{{ in_progress_tasks }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-md flex items-center justify-center">
+                        <i class="fas fa-percentage text-purple-600 dark:text-purple-400"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Completion Rate</p>
+                    <p class="text-2xl font-semibold text-gray-900 dark:text-white">{{ completion_rate }}%</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <!-- Task Status Distribution -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Task Status Distribution</h3>
+            <div class="chart-container">
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Task Priority Distribution -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Task Priority Distribution</h3>
             <div class="chart-container">
                 <canvas id="priorityChart"></canvas>
             </div>
         </div>
     </div>
 
-    <!-- Performance Metrics -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div class="flex items-center">
-                <div class="p-3 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
-                    <i class="fas fa-check-circle text-xl"></i>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Completion Rate</p>
-                    <p class="text-2xl font-semibold text-gray-900 dark:text-white">87%</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div class="flex items-center">
-                <div class="p-3 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
-                    <i class="fas fa-clock text-xl"></i>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Avg. Time</p>
-                    <p class="text-2xl font-semibold text-gray-900 dark:text-white">2.3 days</p>
+    <!-- Project Progress -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-8">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Project Progress</h3>
+        <div class="space-y-4">
+            {% for project in projects %}
+            <div class="flex items-center justify-between">
+                <div class="flex-1">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ project.name }}</span>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">{{ project.progress }}%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: {{ project.progress }}%"></div>
+                    </div>
+                    <div class="flex items-center justify-between mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        <span>{{ project.completed_tasks_count }} completed</span>
+                        <span>{{ project.total_tasks_count }} total</span>
+                    </div>
                 </div>
             </div>
-        </div>
-
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div class="flex items-center">
-                <div class="p-3 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
-                    <i class="fas fa-exclamation-triangle text-xl"></i>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Overdue</p>
-                    <p class="text-2xl font-semibold text-gray-900 dark:text-white">3</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div class="flex items-center">
-                <div class="p-3 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
-                    <i class="fas fa-users text-xl"></i>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Team Members</p>
-                    <p class="text-2xl font-semibold text-gray-900 dark:text-white">8</p>
-                </div>
-            </div>
+            {% empty %}
+            <p class="text-gray-500 dark:text-gray-400 italic text-center py-8">No projects found</p>
+            {% endfor %}
         </div>
     </div>
 
-    <!-- Detailed Analytics Table -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Detailed Performance</h3>
-        </div>
+    <!-- Team Performance -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-8">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Team Performance</h3>
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                 <thead class="bg-gray-50 dark:bg-gray-700">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider sortable">
-                            <div class="flex items-center">
-                                <span>Team Member</span>
-                                <i class="fas fa-sort sort-icon ml-2"></i>
-                            </div>
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider sortable">
-                            <div class="flex items-center">
-                                <span>Tasks Completed</span>
-                                <i class="fas fa-sort sort-icon ml-2"></i>
-                            </div>
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider sortable">
-                            <div class="flex items-center">
-                                <span>Avg. Time</span>
-                                <i class="fas fa-sort sort-icon ml-2"></i>
-                            </div>
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider sortable">
-                            <div class="flex items-center">
-                                <span>Success Rate</span>
-                                <i class="fas fa-sort sort-icon ml-2"></i>
-                            </div>
-                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Member</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tasks Assigned</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Completed</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Completion Rate</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Avg. Time</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    {% for member in team_performance %}
+                    <tr>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
-                                <div class="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                                    <span class="text-sm font-medium">JD</span>
+                                <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-medium">
+                                    {{ member.user.first_name|first|upper }}{{ member.user.last_name|first|upper }}
                                 </div>
-                                <div class="ml-4">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-white">John Doe</div>
-                                    <div class="text-sm text-gray-500 dark:text-gray-400">Frontend Developer</div>
+                                <div class="ml-3">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-white">{{ member.user.get_full_name }}</div>
                                 </div>
                             </div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">24</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">1.8 days</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">92%</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{{ member.total_tasks }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{{ member.completed_tasks }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{{ member.completion_rate }}%</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{{ member.avg_time|default:"N/A" }}</td>
                     </tr>
-                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex items-center">
-                                <div class="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400">
-                                    <span class="text-sm font-medium">SS</span>
-                                </div>
-                                <div class="ml-4">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-white">Sarah Smith</div>
-                                    <div class="text-sm text-gray-500 dark:text-gray-400">Backend Developer</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">31</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">2.1 days</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">89%</td>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400 italic">No team performance data available</td>
                     </tr>
-                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex items-center">
-                                <div class="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400">
-                                    <span class="text-sm font-medium">MJ</span>
-                                </div>
-                                <div class="ml-4">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-white">Mike Johnson</div>
-                                    <div class="text-sm text-gray-500 dark:text-gray-400">Designer</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">18</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">3.2 days</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">78%</td>
-                    </tr>
+                    {% endfor %}
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Activity</h3>
+        <div class="space-y-4">
+            {% for activity in recent_activities %}
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                        <i class="fas fa-activity text-gray-600 dark:text-gray-400 text-sm"></i>
+                    </div>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-gray-900 dark:text-white">{{ activity.description }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ activity.created_at|timesince }} ago</p>
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-gray-500 dark:text-gray-400 italic text-center py-8">No recent activity</p>
+            {% endfor %}
         </div>
     </div>
 </div>
@@ -260,98 +273,88 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
-    // Chart.js configuration
-    Chart.register(ChartDataLabels);
-
-    // Task Completion Chart
-    const completionCtx = document.getElementById('completionChart').getContext('2d');
-    new Chart(completionCtx, {
-        type: 'line',
-        data: {
-            labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-            datasets: [{
-                label: 'Tasks Completed',
-                data: [12, 19, 15, 22],
-                borderColor: 'rgb(59, 130, 246)',
-                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                datalabels: {
-                    color: '#374151',
-                    anchor: 'end',
-                    align: 'top',
-                    formatter: function(value) {
-                        return value;
-                    }
-                }
-            }
-        }
-    });
-
-    // Priority Distribution Chart
-    const priorityCtx = document.getElementById('priorityChart').getContext('2d');
-    new Chart(priorityCtx, {
+document.addEventListener('DOMContentLoaded', function() {
+    // Status Chart
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    new Chart(statusCtx, {
         type: 'doughnut',
         data: {
-            labels: ['High', 'Medium', 'Low'],
+            labels: ['Completed', 'In Progress', 'Review', 'To Do'],
             datasets: [{
-                data: [30, 45, 25],
+                data: [{{ completed_tasks }}, {{ in_progress_tasks }}, {{ review_tasks }}, {{ todo_tasks }}],
                 backgroundColor: [
-                    'rgb(239, 68, 68)',
-                    'rgb(245, 158, 11)',
-                    'rgb(34, 197, 94)'
-                ]
+                    '#10B981',
+                    '#3B82F6',
+                    '#F59E0B',
+                    '#6B7280'
+                ],
+                borderWidth: 0
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                datalabels: {
-                    color: '#ffffff',
-                    formatter: function(value) {
-                        return value + '%';
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true
                     }
                 }
             }
         }
     });
 
-    // Custom date range functionality
-    document.getElementById('date-range').addEventListener('change', function() {
-        const customRange = document.getElementById('custom-range');
-        if (this.value === 'custom') {
-            customRange.classList.remove('hidden');
-        } else {
-            customRange.classList.add('hidden');
+    // Priority Chart
+    const priorityCtx = document.getElementById('priorityChart').getContext('2d');
+    new Chart(priorityCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Urgent', 'High', 'Medium', 'Low'],
+            datasets: [{
+                label: 'Tasks',
+                data: [{{ urgent_tasks }}, {{ high_tasks }}, {{ medium_tasks }}, {{ low_tasks }}],
+                backgroundColor: [
+                    '#EF4444',
+                    '#F97316',
+                    '#EAB308',
+                    '#22C55E'
+                ],
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
         }
     });
 
-    // Table sorting functionality
-    document.querySelectorAll('.sortable').forEach(header => {
-        header.addEventListener('click', function() {
-            const icon = this.querySelector('.sort-icon');
-            const isActive = this.classList.contains('active-sort');
-            
-            // Remove active class from all headers
-            document.querySelectorAll('.sortable').forEach(h => h.classList.remove('active-sort'));
-            
-            if (!isActive) {
-                this.classList.add('active-sort');
-                icon.className = 'fas fa-sort-up sort-icon ml-2';
-            } else {
-                icon.className = 'fas fa-sort-down sort-icon ml-2';
-            }
-        });
+    // Filter functionality
+    const dateRangeSelect = document.getElementById('date-range');
+    const customRangeDiv = document.getElementById('custom-range');
+    
+    dateRangeSelect.addEventListener('change', function() {
+        if (this.value === 'custom') {
+            customRangeDiv.classList.remove('hidden');
+        } else {
+            customRangeDiv.classList.add('hidden');
+        }
     });
+});
 </script>
 {% endblock %}

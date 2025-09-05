@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from django.contrib.auth.models import User
 from apps.webapp.models import BotUser
 
 
@@ -218,3 +219,123 @@ class DailyTaskCompletion(models.Model):
     
     def __str__(self):
         return f"{self.daily_task.title} - {self.user.get_full_name()} ({self.date})"
+
+
+# =============================================================================
+# ADDITIONAL MODELS FOR KANBAN FUNCTIONALITY
+# =============================================================================
+
+class ProjectMember(models.Model):
+    """Project team member with role"""
+    ROLE_CHOICES = [
+        ('owner', 'Owner'),
+        ('admin', 'Admin'),
+        ('editor', 'Editor'),
+        ('viewer', 'Viewer'),
+    ]
+    
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='project_members')
+    user = models.ForeignKey(BotUser, on_delete=models.CASCADE, related_name='project_memberships')
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='viewer')
+    joined_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['project', 'user']
+        verbose_name = 'Project Member'
+        verbose_name_plural = 'Project Members'
+    
+    def __str__(self):
+        return f"{self.user.get_full_name()} - {self.project.name} ({self.role})"
+
+
+class TaskComment(models.Model):
+    """Comments on tasks"""
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='comments')
+    author = models.ForeignKey(BotUser, on_delete=models.CASCADE, related_name='task_comments')
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['created_at']
+        verbose_name = 'Task Comment'
+        verbose_name_plural = 'Task Comments'
+    
+    def __str__(self):
+        return f"Comment by {self.author.get_full_name()} on {self.task.title}"
+
+
+class TaskAttachment(models.Model):
+    """File attachments for tasks"""
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='attachments')
+    file = models.FileField(upload_to='task_attachments/')
+    filename = models.CharField(max_length=255)
+    file_size = models.PositiveIntegerField()
+    uploaded_by = models.ForeignKey(BotUser, on_delete=models.CASCADE, related_name='task_attachments')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-uploaded_at']
+        verbose_name = 'Task Attachment'
+        verbose_name_plural = 'Task Attachments'
+    
+    def __str__(self):
+        return f"{self.filename} - {self.task.title}"
+
+
+class TaskDependency(models.Model):
+    """Task dependencies - which tasks must be completed before this one"""
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='dependencies')
+    depends_on = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='dependent_tasks')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['task', 'depends_on']
+        verbose_name = 'Task Dependency'
+        verbose_name_plural = 'Task Dependencies'
+    
+    def __str__(self):
+        return f"{self.task.title} depends on {self.depends_on.title}"
+
+
+class TaskActivity(models.Model):
+    """Activity log for tasks"""
+    ACTION_CHOICES = [
+        ('created', 'Created'),
+        ('updated', 'Updated'),
+        ('assigned', 'Assigned'),
+        ('status_changed', 'Status Changed'),
+        ('commented', 'Commented'),
+        ('attachment_added', 'Attachment Added'),
+        ('completed', 'Completed'),
+    ]
+    
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='activities')
+    user = models.ForeignKey(BotUser, on_delete=models.CASCADE, related_name='task_activities')
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES)
+    description = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Task Activity'
+        verbose_name_plural = 'Task Activities'
+    
+    def __str__(self):
+        return f"{self.user.get_full_name()} {self.action} {self.task.title}"
+
+
+class ProjectLabel(models.Model):
+    """Labels/tags for projects"""
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='labels')
+    name = models.CharField(max_length=50)
+    color = models.CharField(max_length=7, default='#3498db', help_text='Hex color code')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['project', 'name']
+        verbose_name = 'Project Label'
+        verbose_name_plural = 'Project Labels'
+    
+    def __str__(self):
+        return f"{self.name} ({self.project.name})"

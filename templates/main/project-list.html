@@ -57,7 +57,7 @@
     <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
         <div>
             <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Projects</h1>
-            <p class="text-gray-500 dark:text-gray-400">Manage your team's work</p>
+            <p class="text-gray-500 dark:text-gray-400">Manage your team's work - {{ total_projects }} projects</p>
         </div>
         <div class="flex items-center gap-3">
             <a href="{% url 'main:project_crud' %}" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors duration-200">
@@ -78,7 +78,7 @@
                     <option value="">All Status</option>
                     <option value="active">Active</option>
                     <option value="completed">Completed</option>
-                    <option value="on-hold">On Hold</option>
+                    <option value="on_hold">On Hold</option>
                 </select>
                 <select class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                     <option value="">All Priority</option>
@@ -92,300 +92,117 @@
 
     <!-- Projects Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <!-- Project Card 1 -->
+        {% for project in projects %}
         <div class="project-card bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700">
             <div class="flex items-start justify-between mb-4">
                 <div class="flex-1">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Website Redesign</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Complete overhaul of company website with modern design and improved UX</p>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                        <a href="{% url 'main:project_detail' project.id %}" class="hover:text-primary-600 dark:hover:text-primary-400">{{ project.name }}</a>
+                    </h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{{ project.description|truncatechars:100 }}</p>
                 </div>
-                <div class="ml-4">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
-                        Active
+                <div class="flex items-center gap-2">
+                    <span class="px-2 py-1 text-xs rounded-full {% if project.status == 'active' %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400{% elif project.status == 'completed' %}bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400{% elif project.status == 'on_hold' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400{% else %}bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400{% endif %}">
+                        {{ project.get_status_display }}
                     </span>
                 </div>
             </div>
             
+            <!-- Progress Bar -->
             <div class="mb-4">
-                <div class="flex items-center justify-between text-sm mb-2">
-                    <span class="text-gray-600 dark:text-gray-400">Progress</span>
-                    <span class="font-medium text-gray-900 dark:text-white">75%</span>
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Progress</span>
+                    <span class="text-sm text-gray-500 dark:text-gray-400">{{ project.get_progress_percentage }}%</span>
                 </div>
                 <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div class="progress-bar bg-primary-600 rounded-full" style="width: 75%"></div>
+                    <div class="bg-primary-600 h-2 rounded-full transition-all duration-300" style="width: {{ project.get_progress_percentage }}%"></div>
                 </div>
             </div>
             
+            <!-- Project Stats -->
             <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center">
-                    <span class="text-sm text-gray-600 dark:text-gray-400 mr-2">Due:</span>
-                    <span class="text-sm font-medium text-gray-900 dark:text-white">Dec 15, 2024</span>
-                </div>
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">
-                    High
-                </span>
-            </div>
-            
-            <div class="flex items-center justify-between">
-                <div class="avatar-group">
-                    <div class="avatar">JD</div>
-                    <div class="avatar">SS</div>
-                    <div class="avatar">MJ</div>
-                </div>
-                <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                    <i class="fas fa-tasks mr-1"></i>
-                    <span>12/16 tasks</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Project Card 2 -->
-        <div class="project-card bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700">
-            <div class="flex items-start justify-between mb-4">
-                <div class="flex-1">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Mobile App Development</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">iOS and Android app for customer engagement and service delivery</p>
-                </div>
-                <div class="ml-4">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
-                        Planning
+                <div class="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                    <span class="flex items-center gap-1">
+                        <i class="fas fa-tasks"></i>
+                        <span>{{ project.tasks.count }} tasks</span>
+                    </span>
+                    <span class="flex items-center gap-1">
+                        <i class="fas fa-users"></i>
+                        <span>{{ project.members.count }} members</span>
                     </span>
                 </div>
-            </div>
-            
-            <div class="mb-4">
-                <div class="flex items-center justify-between text-sm mb-2">
-                    <span class="text-gray-600 dark:text-gray-400">Progress</span>
-                    <span class="font-medium text-gray-900 dark:text-white">25%</span>
-                </div>
-                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div class="progress-bar bg-blue-600 rounded-full" style="width: 25%"></div>
+                <div class="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
+                    <i class="fas fa-calendar"></i>
+                    <span>{{ project.end_date|date:"M j" }}</span>
                 </div>
             </div>
             
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center">
-                    <span class="text-sm text-gray-600 dark:text-gray-400 mr-2">Due:</span>
-                    <span class="text-sm font-medium text-gray-900 dark:text-white">Mar 30, 2025</span>
-                </div>
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200">
-                    Medium
-                </span>
-            </div>
-            
+            <!-- Team Avatars -->
             <div class="flex items-center justify-between">
                 <div class="avatar-group">
-                    <div class="avatar">SS</div>
-                    <div class="avatar">EW</div>
+                    {% for member in project.members.all|slice:":4" %}
+                    <div class="avatar" title="{{ member.get_full_name }}">
+                        {{ member.first_name|first|upper }}{{ member.last_name|first|upper }}
+                    </div>
+                    {% endfor %}
+                    {% if project.members.count > 4 %}
+                    <div class="avatar bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-400">
+                        +{{ project.members.count|add:"-4" }}
+                    </div>
+                    {% endif %}
                 </div>
-                <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                    <i class="fas fa-tasks mr-1"></i>
-                    <span>8/32 tasks</span>
+                <div class="flex items-center gap-2">
+                    <a href="{% url 'main:project_detail' project.id %}" class="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 text-sm font-medium">
+                        View Details
+                    </a>
                 </div>
             </div>
         </div>
-
-        <!-- Project Card 3 -->
-        <div class="project-card bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700">
-            <div class="flex items-start justify-between mb-4">
-                <div class="flex-1">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Marketing Campaign</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Q1 marketing campaign including social media, email, and PPC</p>
+        {% empty %}
+        <!-- Empty State -->
+        <div class="col-span-full">
+            <div class="empty-state text-center py-12">
+                <div class="mx-auto w-24 h-24 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+                    <i class="fas fa-folder-open text-3xl text-gray-400 dark:text-gray-600"></i>
                 </div>
-                <div class="ml-4">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
-                        Active
-                    </span>
-                </div>
-            </div>
-            
-            <div class="mb-4">
-                <div class="flex items-center justify-between text-sm mb-2">
-                    <span class="text-gray-600 dark:text-gray-400">Progress</span>
-                    <span class="font-medium text-gray-900 dark:text-white">60%</span>
-                </div>
-                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div class="progress-bar bg-green-600 rounded-full" style="width: 60%"></div>
-                </div>
-            </div>
-            
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center">
-                    <span class="text-sm text-gray-600 dark:text-gray-400 mr-2">Due:</span>
-                    <span class="text-sm font-medium text-gray-900 dark:text-white">Jan 31, 2025</span>
-                </div>
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200">
-                    Medium
-                </span>
-            </div>
-            
-            <div class="flex items-center justify-between">
-                <div class="avatar-group">
-                    <div class="avatar">EW</div>
-                    <div class="avatar">MJ</div>
-                </div>
-                <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                    <i class="fas fa-tasks mr-1"></i>
-                    <span>18/30 tasks</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Project Card 4 -->
-        <div class="project-card bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700">
-            <div class="flex items-start justify-between mb-4">
-                <div class="flex-1">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">API Development</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">RESTful API for third-party integrations and mobile app backend</p>
-                </div>
-                <div class="ml-4">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
-                        On Hold
-                    </span>
-                </div>
-            </div>
-            
-            <div class="mb-4">
-                <div class="flex items-center justify-between text-sm mb-2">
-                    <span class="text-gray-600 dark:text-gray-400">Progress</span>
-                    <span class="font-medium text-gray-900 dark:text-white">40%</span>
-                </div>
-                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div class="progress-bar bg-gray-600 rounded-full" style="width: 40%"></div>
-                </div>
-            </div>
-            
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center">
-                    <span class="text-sm text-gray-600 dark:text-gray-400 mr-2">Due:</span>
-                    <span class="text-sm font-medium text-gray-900 dark:text-white">Apr 15, 2025</span>
-                </div>
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
-                    Low
-                </span>
-            </div>
-            
-            <div class="flex items-center justify-between">
-                <div class="avatar-group">
-                    <div class="avatar">JD</div>
-                    <div class="avatar">SS</div>
-                </div>
-                <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                    <i class="fas fa-tasks mr-1"></i>
-                    <span>6/15 tasks</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Project Card 5 -->
-        <div class="project-card bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700">
-            <div class="flex items-start justify-between mb-4">
-                <div class="flex-1">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Data Migration</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Legacy system data migration to new cloud-based platform</p>
-                </div>
-                <div class="ml-4">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">
-                        Completed
-                    </span>
-                </div>
-            </div>
-            
-            <div class="mb-4">
-                <div class="flex items-center justify-between text-sm mb-2">
-                    <span class="text-gray-600 dark:text-gray-400">Progress</span>
-                    <span class="font-medium text-gray-900 dark:text-white">100%</span>
-                </div>
-                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div class="progress-bar bg-purple-600 rounded-full" style="width: 100%"></div>
-                </div>
-            </div>
-            
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center">
-                    <span class="text-sm text-gray-600 dark:text-gray-400 mr-2">Due:</span>
-                    <span class="text-sm font-medium text-gray-900 dark:text-white">Nov 30, 2024</span>
-                </div>
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
-                    Low
-                </span>
-            </div>
-            
-            <div class="flex items-center justify-between">
-                <div class="avatar-group">
-                    <div class="avatar">JD</div>
-                    <div class="avatar">SS</div>
-                    <div class="avatar">MJ</div>
-                    <div class="avatar">EW</div>
-                </div>
-                <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                    <i class="fas fa-tasks mr-1"></i>
-                    <span>25/25 tasks</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Project Card 6 -->
-        <div class="project-card bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700">
-            <div class="flex items-start justify-between mb-4">
-                <div class="flex-1">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Security Audit</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Comprehensive security audit and vulnerability assessment</p>
-                </div>
-                <div class="ml-4">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
-                        Planning
-                    </span>
-                </div>
-            </div>
-            
-            <div class="mb-4">
-                <div class="flex items-center justify-between text-sm mb-2">
-                    <span class="text-gray-600 dark:text-gray-400">Progress</span>
-                    <span class="font-medium text-gray-900 dark:text-white">15%</span>
-                </div>
-                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div class="progress-bar bg-blue-600 rounded-full" style="width: 15%"></div>
-                </div>
-            </div>
-            
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center">
-                    <span class="text-sm text-gray-600 dark:text-gray-400 mr-2">Due:</span>
-                    <span class="text-sm font-medium text-gray-900 dark:text-white">Feb 28, 2025</span>
-                </div>
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">
-                    High
-                </span>
-            </div>
-            
-            <div class="flex items-center justify-between">
-                <div class="avatar-group">
-                    <div class="avatar">SS</div>
-                    <div class="avatar">JD</div>
-                </div>
-                <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                    <i class="fas fa-tasks mr-1"></i>
-                    <span>3/20 tasks</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Empty State (Hidden by default) -->
-    <div class="empty-state hidden text-center py-12">
-        <div class="max-w-md mx-auto">
-            <div class="mx-auto h-12 w-12 text-gray-400">
-                <i class="fas fa-folder-open text-4xl"></i>
-            </div>
-            <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No projects found</h3>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Get started by creating a new project.</p>
-            <div class="mt-6">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No projects yet</h3>
+                <p class="text-gray-500 dark:text-gray-400 mb-6">Get started by creating your first project.</p>
                 <a href="{% url 'main:project_crud' %}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200">
-                    <i class="fas fa-plus -ml-1 mr-2"></i> New Project
+                    <i class="fas fa-plus -ml-1 mr-2"></i>
+                    Create Project
                 </a>
             </div>
         </div>
+        {% endfor %}
     </div>
+    
+    <!-- Pagination -->
+    {% if projects.has_other_pages %}
+    <div class="mt-8 flex items-center justify-center">
+        <nav class="flex items-center space-x-2">
+            {% if projects.has_previous %}
+                <a href="?page={{ projects.previous_page_number }}" class="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300">
+                    Previous
+                </a>
+            {% endif %}
+            
+            {% for num in projects.paginator.page_range %}
+                {% if projects.number == num %}
+                    <span class="px-3 py-2 text-sm font-medium text-white bg-primary-600 border border-primary-600 rounded-md">{{ num }}</span>
+                {% elif num > projects.number|add:'-3' and num < projects.number|add:'3' %}
+                    <a href="?page={{ num }}" class="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300">
+                        {{ num }}
+                    </a>
+                {% endif %}
+            {% endfor %}
+            
+            {% if projects.has_next %}
+                <a href="?page={{ projects.next_page_number }}" class="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300">
+                    Next
+                </a>
+            {% endif %}
+        </nav>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

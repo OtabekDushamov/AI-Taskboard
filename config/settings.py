@@ -42,6 +42,7 @@ INSTALLED_APPS = [
 ]
 
 LOCAL_APPS = [
+    'apps.authentication',
     'apps.main',
     'apps.webapp',
 ]
@@ -133,3 +134,8 @@ STATICFILES_DIRS = [
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Authentication settings
+LOGIN_URL = '/auth/login/'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/auth/login/'

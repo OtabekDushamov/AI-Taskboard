@@ -10,15 +10,6 @@
     .chip {
         @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium;
     }
-    .drawer {
-        transition: transform 0.3s ease-in-out;
-    }
-    .drawer-open {
-        transform: translateX(0);
-    }
-    .drawer-closed {
-        transform: translateX(100%);
-    }
     .priority-high {
         @apply bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200;
     }
@@ -28,17 +19,20 @@
     .priority-low {
         @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200;
     }
+    .priority-urgent {
+        @apply bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200;
+    }
     .status-todo {
         @apply bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200;
     }
-    .status-in-progress {
+    .status-in_progress {
         @apply bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200;
     }
-    .status-done {
-        @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200;
+    .status-review {
+        @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200;
     }
-    .status-blocked {
-        @apply bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200;
+    .status-completed {
+        @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200;
     }
     .date-overdue {
         @apply bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200;
@@ -75,7 +69,10 @@
 <div class="min-h-screen">
     <!-- Header -->
     <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Global Tasks</h1>
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Global Tasks</h1>
+            <p class="text-gray-600 dark:text-gray-400">{{ total_tasks }} tasks total</p>
+        </div>
         <div class="flex items-center space-x-4">
             <a href="{% url 'main:task_create' %}" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors duration-200">
                 <i class="fas fa-plus mr-2"></i>New Task
@@ -107,9 +104,9 @@
                     <select id="statusFilter" class="block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                         <option value="">All Statuses</option>
                         <option value="todo">To Do</option>
-                        <option value="in-progress">In Progress</option>
-                        <option value="done">Done</option>
-                        <option value="blocked">Blocked</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="review">Review</option>
+                        <option value="completed">Completed</option>
                     </select>
                 </div>
 
@@ -118,6 +115,7 @@
                     <label for="priorityFilter" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Priority</label>
                     <select id="priorityFilter" class="block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                         <option value="">All Priorities</option>
+                        <option value="urgent">Urgent</option>
                         <option value="high">High</option>
                         <option value="medium">Medium</option>
                         <option value="low">Low</option>
@@ -132,10 +130,9 @@
                     <label for="projectFilter" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Project</label>
                     <select id="projectFilter" class="block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                         <option value="">All Projects</option>
-                        <option value="website">Website Redesign</option>
-                        <option value="mobile">Mobile App</option>
-                        <option value="marketing">Marketing Campaign</option>
-                        <option value="api">API Development</option>
+                        {% for project in projects %}
+                        <option value="{{ project.id }}">{{ project.name }}</option>
+                        {% endfor %}
                     </select>
                 </div>
 
@@ -144,10 +141,7 @@
                     <label for="assigneeFilter" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Assignee</label>
                     <select id="assigneeFilter" class="block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                         <option value="">All Assignees</option>
-                        <option value="john">John Doe</option>
-                        <option value="sarah">Sarah Smith</option>
-                        <option value="mike">Mike Johnson</option>
-                        <option value="emma">Emma Wilson</option>
+                        <!-- This would be populated with actual users from backend -->
                     </select>
                 </div>
 
@@ -235,7 +229,7 @@
                         </tr>
                     </thead>
                     <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                        <!-- Task Row 1 -->
+                        {% for task in tasks %}
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
                             <td class="checkbox-cell">
                                 <input type="checkbox" class="task-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700">
@@ -243,36 +237,54 @@
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="flex items-center">
                                     <div class="flex-shrink-0 h-10 w-10">
-                                        <div class="h-10 w-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
-                                            <i class="fas fa-code text-indigo-600 dark:text-indigo-400"></i>
+                                        <div class="h-10 w-10 rounded-full {% if task.priority == 'urgent' %}bg-red-100 dark:bg-red-900/30{% elif task.priority == 'high' %}bg-orange-100 dark:bg-orange-900/30{% elif task.priority == 'medium' %}bg-yellow-100 dark:bg-yellow-900/30{% else %}bg-green-100 dark:bg-green-900/30{% endif %} flex items-center justify-center">
+                                            <i class="fas fa-tasks {% if task.priority == 'urgent' %}text-red-600 dark:text-red-400{% elif task.priority == 'high' %}text-orange-600 dark:text-orange-400{% elif task.priority == 'medium' %}text-yellow-600 dark:text-yellow-400{% else %}text-green-600 dark:text-green-400{% endif %}"></i>
                                         </div>
                                     </div>
                                     <div class="ml-4">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-white">Implement user authentication</div>
-                                        <div class="text-sm text-gray-500 dark:text-gray-400">Create login and registration system</div>
+                                        <div class="text-sm font-medium text-gray-900 dark:text-white">
+                                            <a href="{% url 'main:task_detail' task.id %}" class="hover:text-indigo-600 dark:hover:text-indigo-400">{{ task.title }}</a>
+                                        </div>
+                                        <div class="text-sm text-gray-500 dark:text-gray-400">{{ task.description|truncatechars:50 }}</div>
                                     </div>
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="chip status-in-progress">In Progress</span>
+                                <span class="chip status-{{ task.status|default:'todo' }}">{{ task.get_status_display }}</span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="chip priority-high">High</span>
+                                <span class="chip priority-{{ task.priority|default:'medium' }}">{{ task.get_priority_display }}</span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="flex items-center">
+                                    {% for assignee in task.assignees.all|slice:":1" %}
                                     <div class="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
-                                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">JD</span>
+                                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ assignee.first_name|first|upper }}{{ assignee.last_name|first|upper }}</span>
                                     </div>
-                                    <span class="ml-2 text-sm text-gray-900 dark:text-white">John Doe</span>
+                                    <span class="ml-2 text-sm text-gray-900 dark:text-white">{{ assignee.get_full_name }}</span>
+                                    {% empty %}
+                                    <span class="text-sm text-gray-500 dark:text-gray-400">Unassigned</span>
+                                    {% endfor %}
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="chip date-overdue">Overdue</span>
-                                <div class="text-sm text-gray-500 dark:text-gray-400">Dec 10, 2024</div>
+                                {% if task.deadline %}
+                                    {% if task.deadline.date < today %}
+                                        <span class="chip date-overdue">Overdue</span>
+                                    {% elif task.deadline.date == today %}
+                                        <span class="chip date-due-today">Due Today</span>
+                                    {% elif task.deadline.date <= today|add:7 %}
+                                        <span class="chip date-due-soon">Due Soon</span>
+                                    {% else %}
+                                        <span class="chip date-due-later">Due Later</span>
+                                    {% endif %}
+                                    <div class="text-sm text-gray-500 dark:text-gray-400">{{ task.deadline|date:"M j, Y" }}</div>
+                                {% else %}
+                                    <span class="text-sm text-gray-500 dark:text-gray-400">No deadline</span>
+                                {% endif %}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="text-sm text-gray-900 dark:text-white">Website Redesign</span>
+                                <span class="text-sm text-gray-900 dark:text-white">{{ task.category.project.name }}</span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <div class="dropdown relative">
@@ -280,6 +292,7 @@
                                         <i class="fas fa-ellipsis-h"></i>
                                     </button>
                                     <div class="dropdown-content">
+                                        <a href="{% url 'main:task_detail' task.id %}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">View</a>
                                         <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Edit</a>
                                         <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Duplicate</a>
                                         <a href="#" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700">Delete</a>
@@ -287,112 +300,23 @@
                                 </div>
                             </td>
                         </tr>
-
-                        <!-- Task Row 2 -->
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
-                            <td class="checkbox-cell">
-                                <input type="checkbox" class="task-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700">
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center">
-                                    <div class="flex-shrink-0 h-10 w-10">
-                                        <div class="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                                            <i class="fas fa-palette text-green-600 dark:text-green-400"></i>
-                                        </div>
-                                    </div>
-                                    <div class="ml-4">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-white">Design mobile app icons</div>
-                                        <div class="text-sm text-gray-500 dark:text-gray-400">Create app icon set for iOS and Android</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="chip status-done">Done</span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="chip priority-medium">Medium</span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center">
-                                    <div class="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
-                                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">MJ</span>
-                                    </div>
-                                    <span class="ml-2 text-sm text-gray-900 dark:text-white">Mike Johnson</span>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="chip date-due-later">Due Later</span>
-                                <div class="text-sm text-gray-500 dark:text-gray-400">Dec 20, 2024</div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="text-sm text-gray-900 dark:text-white">Mobile App</span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <div class="dropdown relative">
-                                    <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                                        <i class="fas fa-ellipsis-h"></i>
-                                    </button>
-                                    <div class="dropdown-content">
-                                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Edit</a>
-                                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Duplicate</a>
-                                        <a href="#" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700">Delete</a>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="px-6 py-12 text-center">
+                                <div class="text-gray-500 dark:text-gray-400">
+                                    <i class="fas fa-tasks text-4xl mb-4"></i>
+                                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No tasks found</h3>
+                                    <p class="text-sm">Get started by creating your first task.</p>
+                                    <div class="mt-4">
+                                        <a href="{% url 'main:task_create' %}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                            <i class="fas fa-plus -ml-1 mr-2"></i>
+                                            New Task
+                                        </a>
                                     </div>
                                 </div>
                             </td>
                         </tr>
-
-                        <!-- Task Row 3 -->
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
-                            <td class="checkbox-cell">
-                                <input type="checkbox" class="task-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700">
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center">
-                                    <div class="flex-shrink-0 h-10 w-10">
-                                        <div class="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                                            <i class="fas fa-bullhorn text-blue-600 dark:text-blue-400"></i>
-                                        </div>
-                                    </div>
-                                    <div class="ml-4">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-white">Write blog post</div>
-                                        <div class="text-sm text-gray-500 dark:text-gray-400">Create content about productivity tips</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="chip status-todo">To Do</span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="chip priority-low">Low</span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center">
-                                    <div class="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
-                                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">EW</span>
-                                    </div>
-                                    <span class="ml-2 text-sm text-gray-900 dark:text-white">Emma Wilson</span>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="chip date-due-soon">Due Soon</span>
-                                <div class="text-sm text-gray-500 dark:text-gray-400">Dec 15, 2024</div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="text-sm text-gray-900 dark:text-white">Marketing</span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <div class="dropdown relative">
-                                    <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                                        <i class="fas fa-ellipsis-h"></i>
-                                    </button>
-                                    <div class="dropdown-content">
-                                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Edit</a>
-                                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Duplicate</a>
-                                        <a href="#" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700">Delete</a>
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
@@ -400,29 +324,45 @@
     </div>
 
     <!-- Pagination -->
+    {% if tasks.has_other_pages %}
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div class="flex items-center justify-between">
             <div class="text-sm text-gray-700 dark:text-gray-300">
-                Showing <span class="font-medium">1</span> to <span class="font-medium">3</span> of <span class="font-medium">24</span> tasks
+                Showing <span class="font-medium">{{ tasks.start_index }}</span> to <span class="font-medium">{{ tasks.end_index }}</span> of <span class="font-medium">{{ tasks.paginator.count }}</span> tasks
             </div>
             <div class="flex space-x-2">
-                <button class="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                    Previous
-                </button>
-                <button class="px-3 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700">
-                    1
-                </button>
-                <button class="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
-                    2
-                </button>
-                <button class="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
-                    3
-                </button>
-                <button class="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
-                    Next
-                </button>
+                {% if tasks.has_previous %}
+                    <a href="?page={{ tasks.previous_page_number }}" class="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
+                        Previous
+                    </a>
+                {% else %}
+                    <button class="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        Previous
+                    </button>
+                {% endif %}
+                
+                {% for num in tasks.paginator.page_range %}
+                    {% if tasks.number == num %}
+                        <span class="px-3 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md">{{ num }}</span>
+                    {% elif num > tasks.number|add:'-3' and num < tasks.number|add:'3' %}
+                        <a href="?page={{ num }}" class="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
+                            {{ num }}
+                        </a>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if tasks.has_next %}
+                    <a href="?page={{ tasks.next_page_number }}" class="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
+                        Next
+                    </a>
+                {% else %}
+                    <button class="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        Next
+                    </button>
+                {% endif %}
             </div>
         </div>
     </div>
+    {% endif %}
 </div>
 {% endblock %}

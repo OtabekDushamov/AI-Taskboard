@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Team Members Management - AI Taskboard{% endblock %}
+{% block title %}Team Members - {{ project.name }} - AI Taskboard{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -19,24 +19,6 @@
         padding: 0.25rem 0.5rem;
         border-radius: 9999px;
     }
-    
-    .dropdown-enter {
-        opacity: 0;
-        transform: scale(0.95);
-    }
-    .dropdown-enter-active {
-        opacity: 1;
-        transform: scale(1);
-        transition: opacity 200ms, transform 200ms;
-    }
-    .dropdown-exit {
-        opacity: 1;
-    }
-    .dropdown-exit-active {
-        opacity: 0;
-        transform: scale(0.95);
-        transition: opacity 200ms, transform 200ms;
-    }
 </style>
 {% endblock %}
 
@@ -45,518 +27,250 @@
 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
     <div>
         <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Team Members</h1>
-        <p class="text-gray-600 dark:text-gray-400">Manage who has access to this workspace</p>
+        <p class="text-gray-600 dark:text-gray-400">Manage team members for {{ project.name }}</p>
     </div>
-    <button id="inviteButton" class="mt-4 sm:mt-0 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center">
-        <i class="fas fa-user-plus mr-2"></i> Invite Member
-    </button>
+    <div class="flex items-center gap-3 mt-4 sm:mt-0">
+        <a href="{% url 'main:project_detail' project.id %}" class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Project
+        </a>
+        <button id="inviteButton" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center">
+            <i class="fas fa-user-plus mr-2"></i> Add Member
+        </button>
+    </div>
 </div>
 
-<!-- Invite Modal (hidden by default) -->
+<!-- Team Stats -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+        <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ team_members.count }}</div>
+        <div class="text-sm text-gray-500 dark:text-gray-400">Total Members</div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+        <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ active_members.count }}</div>
+        <div class="text-sm text-gray-500 dark:text-gray-400">Active Members</div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+        <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ total_tasks }}</div>
+        <div class="text-sm text-gray-500 dark:text-gray-400">Total Tasks</div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+        <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ completed_tasks }}</div>
+        <div class="text-sm text-gray-500 dark:text-gray-400">Completed Tasks</div>
+    </div>
+</div>
+
+<!-- Add Member Modal -->
 <div id="inviteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
     <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md fade-in">
         <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Invite Team Member</h3>
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Add Team Member</h3>
             <button id="closeInviteModal" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <div class="mb-4">
-            <label class="block text-gray-700 dark:text-gray-300 text-sm font-medium mb-2" for="email">Email Address</label>
-            <input type="email" id="email" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" placeholder="member@example.com">
-        </div>
-        <div class="mb-6">
-            <label class="block text-gray-700 dark:text-gray-300 text-sm font-medium mb-2">Role</label>
-            <div class="grid grid-cols-3 gap-2">
-                <button class="role-selector border border-gray-300 dark:border-gray-600 rounded-md p-2 hover:bg-gray-50 dark:hover:bg-gray-700" data-role="admin">
-                    <div class="text-xs font-semibold text-blue-600 dark:text-blue-400">Admin</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Full access</div>
-                </button>
-                <button class="role-selector border border-gray-300 dark:border-gray-600 rounded-md p-2 hover:bg-gray-50 dark:hover:bg-gray-700" data-role="editor">
-                    <div class="text-xs font-semibold text-purple-600 dark:text-purple-400">Editor</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Edit content</div>
-                </button>
-                <button class="role-selector border border-gray-300 dark:border-gray-600 rounded-md p-2 hover:bg-gray-50 dark:hover:bg-gray-700" data-role="viewer">
-                    <div class="text-xs font-semibold text-green-600 dark:text-green-400">Viewer</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">View only</div>
-                </button>
+        
+        <form id="addMemberForm">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label class="block text-gray-700 dark:text-gray-300 text-sm font-medium mb-2" for="userSelect">Select User</label>
+                <select id="userSelect" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                    <option value="">Choose a user...</option>
+                    {% for user in available_users %}
+                    <option value="{{ user.id }}">{{ user.get_full_name }} ({{ user.email }})</option>
+                    {% empty %}
+                    <option value="" disabled>No users available</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="mb-6">
+                <label class="block text-gray-700 dark:text-gray-300 text-sm font-medium mb-2">Role</label>
+                <div class="grid grid-cols-3 gap-2">
+                    <button type="button" class="role-selector border border-gray-300 dark:border-gray-600 rounded-md p-2 hover:bg-gray-50 dark:hover:bg-gray-700" data-role="admin">
+                        <div class="text-xs font-semibold text-blue-600 dark:text-blue-400">Admin</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Full access</div>
+                    </button>
+                    <button type="button" class="role-selector border border-gray-300 dark:border-gray-600 rounded-md p-2 hover:bg-gray-50 dark:hover:bg-gray-700" data-role="member">
+                        <div class="text-xs font-semibold text-purple-600 dark:text-purple-400">Member</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Edit content</div>
+                    </button>
+                    <button type="button" class="role-selector border border-gray-300 dark:border-gray-600 rounded-md p-2 hover:bg-gray-50 dark:hover:bg-gray-700" data-role="viewer">
+                        <div class="text-xs font-semibold text-green-600 dark:text-green-400">Viewer</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">View only</div>
+                    </button>
+                </div>
+                <input type="hidden" id="selectedRole" name="role" value="member">
+            </div>
+            
+            <div class="flex justify-end">
+                <button type="button" id="cancelInvite" class="mr-2 px-4 py-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">Cancel</button>
+                <button type="submit" id="sendInvite" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Add Member</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Team Members List -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Team Members</h2>
+    </div>
+    
+    <div class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for member in team_members %}
+        <div class="p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
+                        {{ member.user.first_name|first|upper }}{{ member.user.last_name|first|upper }}
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-white">{{ member.user.get_full_name }}</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ member.user.email }}</p>
+                        <div class="flex items-center mt-1">
+                            <span class="role-pill {% if member.role == 'admin' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200{% elif member.role == 'member' %}bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200{% else %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200{% endif %}">
+                                {{ member.get_role_display }}
+                            </span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                                Joined {{ member.joined_at|date:"M j, Y" }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <div class="text-right">
+                        <div class="text-sm font-medium text-gray-900 dark:text-white">{{ member.tasks.count }} tasks</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">
+                            {% if member.tasks.count > 0 %}
+                                {{ member.completed_tasks_count }} completed
+                            {% else %}
+                                No tasks assigned
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="relative">
+                        <button class="member-actions-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-600">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
+                        
+                        <div class="member-actions-dropdown absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10 border border-gray-200 dark:border-gray-700 hidden">
+                            <div class="py-1">
+                                <button class="change-role-btn block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700" data-member-id="{{ member.id }}">
+                                    <i class="fas fa-user-edit mr-2"></i>Change Role
+                                </button>
+                                <button class="view-tasks-btn block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700" data-member-id="{{ member.id }}">
+                                    <i class="fas fa-tasks mr-2"></i>View Tasks
+                                </button>
+                                {% if member.role != 'admin' or team_members.count > 1 %}
+                                <hr class="my-1 border-gray-200 dark:border-gray-700">
+                                <button class="remove-member-btn block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700" data-member-id="{{ member.id }}" data-member-name="{{ member.user.get_full_name }}">
+                                    <i class="fas fa-user-times mr-2"></i>Remove Member
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="flex justify-end">
-            <button id="cancelInvite" class="mr-2 px-4 py-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">Cancel</button>
-            <button id="sendInvite" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Send Invite</button>
-        </div>
-    </div>
-</div>
-
-<!-- Confirmation Modal (hidden by default) -->
-<div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md fade-in">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-semibold text-gray-800 dark:text-white" id="confirmTitle">Confirm Action</h3>
-            <button id="closeConfirmModal" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                <i class="fas fa-times"></i>
+        {% empty %}
+        <div class="p-12 text-center">
+            <i class="fas fa-users text-4xl text-gray-300 dark:text-gray-600 mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No team members yet</h3>
+            <p class="text-gray-500 dark:text-gray-400 mb-4">Get started by adding your first team member.</p>
+            <button id="inviteButtonEmpty" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                <i class="fas fa-user-plus mr-2"></i>Add First Member
             </button>
         </div>
-        <p class="text-gray-700 dark:text-gray-300 mb-6" id="confirmMessage">Are you sure you want to perform this action?</p>
-        <div class="flex justify-end">
-            <button id="cancelConfirm" class="mr-2 px-4 py-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">Cancel</button>
-            <button id="confirmAction" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Confirm</button>
-        </div>
+        {% endfor %}
     </div>
-</div>
-
-<!-- Transfer Ownership Modal (hidden by default) -->
-<div id="transferModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md fade-in">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Transfer Ownership</h3>
-            <button id="closeTransferModal" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <p class="text-gray-700 dark:text-gray-300 mb-4">Select a new owner for this workspace:</p>
-        <div class="mb-4 max-h-60 overflow-y-auto">
-            <ul id="transferCandidates">
-                <!-- Will be populated with JS -->
-            </ul>
-        </div>
-        <div class="flex justify-end">
-            <button id="cancelTransfer" class="mr-2 px-4 py-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">Cancel</button>
-            <button id="confirmTransfer" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700" disabled>Transfer Ownership</button>
-        </div>
-    </div>
-</div>
-
-<!-- Members Table -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-    <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead class="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Member</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Role</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Permissions</th>
-                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
-                </tr>
-            </thead>
-            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700" id="membersList">
-                <!-- Members will be populated here by JavaScript -->
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<!-- Empty state (hidden when members exist) -->
-<div id="emptyState" class="text-center py-12 hidden">
-    <div class="mx-auto w-24 h-24 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
-        <i class="fas fa-users text-gray-400 dark:text-gray-500 text-3xl"></i>
-    </div>
-    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-1">No team members yet</h3>
-    <p class="text-gray-500 dark:text-gray-400 mb-6">Invite your first team member to get started</p>
-    <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center mx-auto">
-        <i class="fas fa-user-plus mr-2"></i> Invite Member
-    </button>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    // Sample data - in a real app, this would come from an API
-    let members = [
-        {
-            id: 1,
-            name: "You",
-            email: "owner@example.com",
-            avatar: "https://randomuser.me/api/portraits/men/32.jpg",
-            role: "owner",
-            status: "active",
-            joined: "2023-01-15"
-        },
-        {
-            id: 2,
-            name: "John Doe",
-            email: "john@example.com",
-            avatar: "https://randomuser.me/api/portraits/men/33.jpg",
-            role: "admin",
-            status: "active",
-            joined: "2023-02-20"
-        },
-        {
-            id: 3,
-            name: "Jane Smith",
-            email: "jane@example.com",
-            avatar: "https://randomuser.me/api/portraits/women/34.jpg",
-            role: "editor",
-            status: "active",
-            joined: "2023-03-10"
-        },
-        {
-            id: 4,
-            name: "Mike Johnson",
-            email: "mike@example.com",
-            avatar: "https://randomuser.me/api/portraits/men/35.jpg",
-            role: "viewer",
-            status: "pending",
-            joined: "2023-04-05"
-        }
-    ];
-
-    let selectedRole = 'admin';
-    let currentAction = null;
-    let currentMemberId = null;
-
-    // DOM elements
-    const inviteButton = document.getElementById('inviteButton');
+document.addEventListener('DOMContentLoaded', function() {
+    // Modal elements
     const inviteModal = document.getElementById('inviteModal');
+    const inviteButton = document.getElementById('inviteButton');
+    const inviteButtonEmpty = document.getElementById('inviteButtonEmpty');
     const closeInviteModal = document.getElementById('closeInviteModal');
-    const cancelInvite = document.getElementById('cancelInvite');
-    const sendInvite = document.getElementById('sendInvite');
-    const confirmModal = document.getElementById('confirmModal');
-    const closeConfirmModal = document.getElementById('closeConfirmModal');
-    const cancelConfirm = document.getElementById('cancelConfirm');
-    const confirmAction = document.getElementById('confirmAction');
-    const transferModal = document.getElementById('transferModal');
-    const closeTransferModal = document.getElementById('closeTransferModal');
-    const cancelTransfer = document.getElementById('cancelTransfer');
-    const confirmTransfer = document.getElementById('confirmTransfer');
-    const membersList = document.getElementById('membersList');
-    const emptyState = document.getElementById('emptyState');
-
-    // Initialize the app
-    document.addEventListener('DOMContentLoaded', function() {
-        setupEventListeners();
-        renderMembers();
-        updateEmptyState();
-    });
-
-    // Setup event listeners
-    function setupEventListeners() {
-        // Invite modal
-        inviteButton.addEventListener('click', openInviteModal);
-        closeInviteModal.addEventListener('click', closeInviteModalFunc);
-        cancelInvite.addEventListener('click', closeInviteModalFunc);
-        sendInvite.addEventListener('click', sendInviteFunc);
-
-        // Confirmation modal
-        closeConfirmModal.addEventListener('click', closeConfirmModalFunc);
-        cancelConfirm.addEventListener('click', closeConfirmModalFunc);
-        confirmAction.addEventListener('click', executeAction);
-
-        // Transfer modal
-        closeTransferModal.addEventListener('click', closeTransferModalFunc);
-        cancelTransfer.addEventListener('click', closeTransferModalFunc);
-        confirmTransfer.addEventListener('click', executeTransfer);
-
-        // Role selection
-        document.querySelectorAll('.role-selector').forEach(button => {
-            button.addEventListener('click', function() {
-                selectedRole = this.dataset.role;
-                updateRoleSelection();
-            });
-        });
-
-        // Close modals when clicking outside
-        window.addEventListener('click', function(e) {
-            if (e.target === inviteModal) closeInviteModalFunc();
-            if (e.target === confirmModal) closeConfirmModalFunc();
-            if (e.target === transferModal) closeTransferModalFunc();
-        });
-    }
-
-    // Open invite modal
-    function openInviteModal() {
+    const addMemberForm = document.getElementById('addMemberForm');
+    
+    // Role selectors
+    const roleSelectors = document.querySelectorAll('.role-selector');
+    
+    // Show invite modal
+    function showInviteModal() {
         inviteModal.classList.remove('hidden');
-        document.getElementById('email').value = '';
-        selectedRole = 'admin';
-        updateRoleSelection();
     }
-
-    // Close invite modal
-    function closeInviteModalFunc() {
+    
+    // Hide invite modal
+    function hideInviteModal() {
         inviteModal.classList.add('hidden');
+        addMemberForm.reset();
+        document.getElementById('selectedRole').value = 'member';
+        roleSelectors.forEach(btn => btn.classList.remove('ring-2', 'ring-blue-500'));
     }
-
-    // Update role selection UI
-    function updateRoleSelection() {
-        document.querySelectorAll('.role-selector').forEach(button => {
-            button.classList.remove('ring-2', 'ring-blue-500');
-            if (button.dataset.role === selectedRole) {
-                button.classList.add('ring-2', 'ring-blue-500');
-            }
+    
+    // Event listeners
+    inviteButton.addEventListener('click', showInviteModal);
+    inviteButtonEmpty.addEventListener('click', showInviteModal);
+    closeInviteModal.addEventListener('click', hideInviteModal);
+    
+    // Role selection for invite modal
+    roleSelectors.forEach(btn => {
+        btn.addEventListener('click', function() {
+            roleSelectors.forEach(b => b.classList.remove('ring-2', 'ring-blue-500'));
+            this.classList.add('ring-2', 'ring-blue-500');
+            document.getElementById('selectedRole').value = this.dataset.role;
         });
-    }
-
-    // Send invite
-    function sendInviteFunc() {
-        const email = document.getElementById('email').value.trim();
-        if (!email) {
-            alert('Please enter an email address');
+    });
+    
+    // Add member form submission
+    addMemberForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const userId = document.getElementById('userSelect').value;
+        const role = document.getElementById('selectedRole').value;
+        
+        if (!userId) {
+            alert('Please select a user');
             return;
         }
-
-        // In a real app, this would send an API request
-        console.log(`Inviting ${email} with role: ${selectedRole}`);
         
-        // Add to members list (pending status)
-        const newMember = {
-            id: Date.now(),
-            name: email.split('@')[0],
-            email: email,
-            avatar: `https://randomuser.me/api/portraits/men/${Math.floor(Math.random() * 99)}.jpg`,
-            role: selectedRole,
-            status: 'pending',
-            joined: new Date().toISOString().split('T')[0]
-        };
-        
-        members.push(newMember);
-        renderMembers();
-        updateEmptyState();
-        closeInviteModalFunc();
-        
-        // Show success message
-        showNotification(`Invite sent to ${email}`, 'success');
-    }
-
-    // Render members list
-    function renderMembers() {
-        membersList.innerHTML = '';
-        
-        members.forEach(member => {
-            const row = document.createElement('tr');
-            row.className = 'hover:bg-gray-50 dark:hover:bg-gray-700';
-            
-            const roleClass = getRoleClass(member.role);
-            const statusClass = getStatusClass(member.status);
-            
-            row.innerHTML = `
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0 h-10 w-10">
-                            <img class="h-10 w-10 rounded-full" src="${member.avatar}" alt="${member.name}">
-                        </div>
-                        <div class="ml-4">
-                            <div class="text-sm font-medium text-gray-900 dark:text-white">${member.name}</div>
-                            <div class="text-sm text-gray-500 dark:text-gray-400">${member.email}</div>
-                        </div>
-                    </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="role-pill ${roleClass}">${member.role}</span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900 dark:text-white">${getPermissions(member.role)}</div>
-                    <div class="text-sm text-gray-500 dark:text-gray-400">Joined ${formatDate(member.joined)}</div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    ${getActionButtons(member)}
-                </td>
-            `;
-            
-            membersList.appendChild(row);
-        });
-    }
-
-    // Get role styling class
-    function getRoleClass(role) {
-        const classes = {
-            owner: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
-            admin: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-            editor: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-            viewer: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-        };
-        return classes[role] || classes.viewer;
-    }
-
-    // Get status styling class
-    function getStatusClass(status) {
-        return status === 'active' ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400';
-    }
-
-    // Get permissions text
-    function getPermissions(role) {
-        const permissions = {
-            owner: 'Full access to everything',
-            admin: 'Manage team and content',
-            editor: 'Create and edit content',
-            viewer: 'View content only'
-        };
-        return permissions[role] || permissions.viewer;
-    }
-
-    // Get action buttons for member
-    function getActionButtons(member) {
-        if (member.role === 'owner') {
-            return `
-                <button onclick="showTransferModal()" class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
-                    Transfer Ownership
-                </button>
-            `;
-        }
-        
-        return `
-            <div class="relative inline-block text-left">
-                <button onclick="showMemberActions(${member.id})" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-400">
-                    <i class="fas fa-ellipsis-v"></i>
-                </button>
-                <div id="actions-${member.id}" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10 border border-gray-200 dark:border-gray-700">
-                    <div class="py-1">
-                        <button onclick="changeRole(${member.id})" class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            Change Role
-                        </button>
-                        <button onclick="removeMember(${member.id})" class="block w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            Remove Member
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    // Show member actions dropdown
-    function showMemberActions(memberId) {
-        // Hide all other dropdowns
-        document.querySelectorAll('[id^="actions-"]').forEach(dropdown => {
-            dropdown.classList.add('hidden');
-        });
-        
-        // Toggle current dropdown
-        const dropdown = document.getElementById(`actions-${memberId}`);
-        dropdown.classList.toggle('hidden');
-    }
-
-    // Change member role
-    function changeRole(memberId) {
-        currentAction = 'changeRole';
-        currentMemberId = memberId;
-        showConfirmModal('Change Role', 'Are you sure you want to change this member\'s role?');
-    }
-
-    // Remove member
-    function removeMember(memberId) {
-        currentAction = 'removeMember';
-        currentMemberId = memberId;
-        const member = members.find(m => m.id === memberId);
-        showConfirmModal('Remove Member', `Are you sure you want to remove ${member.name} from the team?`);
-    }
-
-    // Show confirmation modal
-    function showConfirmModal(title, message) {
-        document.getElementById('confirmTitle').textContent = title;
-        document.getElementById('confirmMessage').textContent = message;
-        confirmModal.classList.remove('hidden');
-    }
-
-    // Close confirmation modal
-    function closeConfirmModalFunc() {
-        confirmModal.classList.add('hidden');
-    }
-
-    // Execute confirmed action
-    function executeAction() {
-        if (currentAction === 'changeRole') {
-            // In a real app, this would open a role selection modal
-            console.log('Change role for member:', currentMemberId);
-        } else if (currentAction === 'removeMember') {
-            members = members.filter(m => m.id !== currentMemberId);
-            renderMembers();
-            updateEmptyState();
-            showNotification('Member removed successfully', 'success');
-        }
-        
-        closeConfirmModalFunc();
-    }
-
-    // Show transfer ownership modal
-    function showTransferModal() {
-        transferModal.classList.remove('hidden');
-        populateTransferCandidates();
-    }
-
-    // Close transfer modal
-    function closeTransferModalFunc() {
-        transferModal.classList.add('hidden');
-    }
-
-    // Populate transfer candidates
-    function populateTransferCandidates() {
-        const candidates = members.filter(m => m.role !== 'owner');
-        const list = document.getElementById('transferCandidates');
-        
-        list.innerHTML = '';
-        candidates.forEach(member => {
-            const li = document.createElement('li');
-            li.className = 'p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer';
-            li.innerHTML = `
-                <div class="flex items-center">
-                    <img class="h-8 w-8 rounded-full mr-3" src="${member.avatar}" alt="${member.name}">
-                    <div>
-                        <div class="text-sm font-medium text-gray-900 dark:text-white">${member.name}</div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400">${member.email}</div>
-                    </div>
-                </div>
-            `;
-            li.addEventListener('click', () => selectTransferCandidate(member.id));
-            list.appendChild(li);
-        });
-    }
-
-    // Select transfer candidate
-    function selectTransferCandidate(memberId) {
-        document.querySelectorAll('#transferCandidates li').forEach(li => {
-            li.classList.remove('bg-blue-100', 'dark:bg-blue-900/30');
-        });
-        event.target.closest('li').classList.add('bg-blue-100', 'dark:bg-blue-900/30');
-        confirmTransfer.disabled = false;
-        currentMemberId = memberId;
-    }
-
-    // Execute ownership transfer
-    function executeTransfer() {
-        if (currentMemberId) {
-            // Update roles
-            const newOwner = members.find(m => m.id === currentMemberId);
-            const oldOwner = members.find(m => m.role === 'owner');
-            
-            if (newOwner && oldOwner) {
-                newOwner.role = 'owner';
-                oldOwner.role = 'admin';
-                
-                renderMembers();
-                closeTransferModalFunc();
-                showNotification('Ownership transferred successfully', 'success');
-            }
-        }
-    }
-
-    // Update empty state visibility
-    function updateEmptyState() {
-        if (members.length === 0) {
-            emptyState.classList.remove('hidden');
-        } else {
-            emptyState.classList.add('hidden');
-        }
-    }
-
-    // Format date
-    function formatDate(dateString) {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    }
-
-    // Show notification
-    function showNotification(message, type = 'info') {
-        // Simple notification - in a real app, you might use a toast library
-        console.log(`${type.toUpperCase()}: ${message}`);
-    }
-
-    // Close dropdowns when clicking outside
-    document.addEventListener('click', function(e) {
-        if (!e.target.closest('[id^="actions-"]')) {
-            document.querySelectorAll('[id^="actions-"]').forEach(dropdown => {
-                dropdown.classList.add('hidden');
-            });
-        }
+        addMember(userId, role);
     });
+    
+    // AJAX function to add member
+    function addMember(userId, role) {
+        fetch('{% url "main:add_project_member" project.id %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                user_id: userId,
+                role: role
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                hideInviteModal();
+                location.reload();
+            } else {
+                alert(data.message || 'Error adding member');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error adding member');
+        });
+    }
+});
 </script>
 {% endblock %}

@@ -2,7 +2,11 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
-from .models import Project, Category, Task, DailyTask, DailyTaskCompletion
+from .models import (
+    Project, Category, Task, DailyTask, DailyTaskCompletion,
+    ProjectMember, TaskComment, TaskAttachment, TaskDependency, 
+    TaskActivity, ProjectLabel
+)
 
 
 class CategoryInline(admin.TabularInline):
@@ -222,6 +226,81 @@ class DailyTaskCompletionAdmin(admin.ModelAdmin):
             return obj.notes[:50] + "..." if len(obj.notes) > 50 else obj.notes
         return "No notes"
     notes_preview.short_description = 'Notes'
+
+
+# Additional admin classes for new models
+@admin.register(ProjectMember)
+class ProjectMemberAdmin(admin.ModelAdmin):
+    list_display = ('user', 'project', 'role', 'joined_at')
+    list_filter = ('role', 'joined_at', 'project__status')
+    search_fields = ('user__first_name', 'user__last_name', 'project__name')
+    readonly_fields = ('joined_at',)
+
+
+@admin.register(TaskComment)
+class TaskCommentAdmin(admin.ModelAdmin):
+    list_display = ('task', 'author', 'content_preview', 'created_at')
+    list_filter = ('created_at', 'task__status')
+    search_fields = ('content', 'author__first_name', 'author__last_name', 'task__title')
+    readonly_fields = ('created_at', 'updated_at')
+    
+    def content_preview(self, obj):
+        return obj.content[:50] + "..." if len(obj.content) > 50 else obj.content
+    content_preview.short_description = 'Content'
+
+
+@admin.register(TaskAttachment)
+class TaskAttachmentAdmin(admin.ModelAdmin):
+    list_display = ('filename', 'task', 'uploaded_by', 'file_size_display', 'uploaded_at')
+    list_filter = ('uploaded_at', 'task__status')
+    search_fields = ('filename', 'task__title', 'uploaded_by__first_name', 'uploaded_by__last_name')
+    readonly_fields = ('uploaded_at', 'file_size')
+    
+    def file_size_display(self, obj):
+        if obj.file_size:
+            if obj.file_size < 1024:
+                return f"{obj.file_size} B"
+            elif obj.file_size < 1024 * 1024:
+                return f"{obj.file_size / 1024:.1f} KB"
+            else:
+                return f"{obj.file_size / (1024 * 1024):.1f} MB"
+        return "Unknown"
+    file_size_display.short_description = 'Size'
+
+
+@admin.register(TaskDependency)
+class TaskDependencyAdmin(admin.ModelAdmin):
+    list_display = ('task', 'depends_on', 'created_at')
+    list_filter = ('created_at', 'task__status', 'depends_on__status')
+    search_fields = ('task__title', 'depends_on__title')
+    readonly_fields = ('created_at',)
+
+
+@admin.register(TaskActivity)
+class TaskActivityAdmin(admin.ModelAdmin):
+    list_display = ('task', 'user', 'action', 'description_preview', 'created_at')
+    list_filter = ('action', 'created_at', 'task__status')
+    search_fields = ('description', 'user__first_name', 'user__last_name', 'task__title')
+    readonly_fields = ('created_at',)
+    
+    def description_preview(self, obj):
+        return obj.description[:50] + "..." if len(obj.description) > 50 else obj.description
+    description_preview.short_description = 'Description'
+
+
+@admin.register(ProjectLabel)
+class ProjectLabelAdmin(admin.ModelAdmin):
+    list_display = ('name', 'project', 'color_display', 'created_at')
+    list_filter = ('created_at', 'project__status')
+    search_fields = ('name', 'project__name')
+    readonly_fields = ('created_at',)
+    
+    def color_display(self, obj):
+        return format_html(
+            '<div style="width: 20px; height: 20px; background-color: {}; border-radius: 50%; display: inline-block;"></div> {}',
+            obj.color, obj.color
+        )
+    color_display.short_description = 'Color'
 
 
 # Customize admin site header and title

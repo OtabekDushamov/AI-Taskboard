@@ -13,7 +13,7 @@
             </div>
             <div class="ml-4">
                 <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Active Projects</p>
-                <p class="text-2xl font-semibold text-gray-900 dark:text-white">12</p>
+                <p class="text-2xl font-semibold text-gray-900 dark:text-white">{{ total_projects }}</p>
             </div>
         </div>
         <div class="mt-4">
@@ -32,7 +32,7 @@
             </div>
             <div class="ml-4">
                 <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Open Tasks</p>
-                <p class="text-2xl font-semibold text-gray-900 dark:text-white">24</p>
+                <p class="text-2xl font-semibold text-gray-900 dark:text-white">{{ open_tasks }}</p>
             </div>
         </div>
         <div class="mt-4">
@@ -51,7 +51,7 @@
             </div>
             <div class="ml-4">
                 <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Completed (Week)</p>
-                <p class="text-2xl font-semibold text-gray-900 dark:text-white">18</p>
+                <p class="text-2xl font-semibold text-gray-900 dark:text-white">{{ completed_tasks_week }}</p>
             </div>
         </div>
         <div class="mt-4">
@@ -95,142 +95,48 @@
                 </a>
             </div>
             <div class="divide-y divide-gray-200 dark:divide-gray-700">
-                <!-- Task Item 1 -->
+                {% for task in today_tasks %}
                 <div class="task-item px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150 flex items-start">
                     <div class="flex items-center h-5 mt-1">
-                        <input id="task-1" name="task-1" type="checkbox" class="focus:ring-primary-500 h-4 w-4 text-primary-600 border-gray-300 dark:border-gray-600 rounded">
+                        <input id="task-{{ task.id }}" name="task-{{ task.id }}" type="checkbox" class="focus:ring-primary-500 h-4 w-4 text-primary-600 border-gray-300 dark:border-gray-600 rounded" {% if task.status == 'completed' %}checked{% endif %}>
                     </div>
                     <div class="ml-3 flex-1">
                         <div class="flex items-center justify-between">
-                            <label for="task-1" class="block text-sm font-medium text-gray-900 dark:text-white cursor-pointer">
-                                Redesign homepage layout
+                            <label for="task-{{ task.id }}" class="block text-sm font-medium text-gray-900 dark:text-white cursor-pointer">
+                                <a href="{% url 'main:task_detail' task.id %}" class="hover:text-primary-600 dark:hover:text-primary-400">{{ task.title }}</a>
                             </label>
                             <div class="task-actions flex space-x-2">
-                                <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                                <a href="{% url 'main:task_detail' task.id %}" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
                                     <i class="fas fa-pencil-alt text-xs"></i>
-                                </button>
-                                <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                                    <i class="fas fa-trash-alt text-xs"></i>
-                                </button>
+                                </a>
                             </div>
                         </div>
                         <div class="mt-1 flex flex-wrap items-center gap-2">
-                            <span class="px-2 py-1 text-xs rounded-full priority-urgent">
-                                <i class="fas fa-exclamation-circle mr-1"></i> Urgent
+                            <span class="px-2 py-1 text-xs rounded-full priority-{{ task.priority }}">
+                                {% if task.priority == 'urgent' %}
+                                    <i class="fas fa-exclamation-circle mr-1"></i> Urgent
+                                {% elif task.priority == 'high' %}
+                                    <i class="fas fa-arrow-up mr-1"></i> High
+                                {% elif task.priority == 'medium' %}
+                                    <i class="fas fa-equals mr-1"></i> Medium
+                                {% else %}
+                                    <i class="fas fa-arrow-down mr-1"></i> Low
+                                {% endif %}
                             </span>
                             <span class="px-2 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
-                                <i class="far fa-calendar mr-1"></i> Today
+                                <i class="far fa-calendar mr-1"></i> {{ task.deadline|date:"M j" }}
                             </span>
-                            <a href="{% url 'main:project_detail' 1 %}" class="px-2 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200">
-                                <i class="fas fa-project-diagram mr-1"></i> Website Redesign
+                            <a href="{% url 'main:project_detail' task.category.project.id %}" class="px-2 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200">
+                                <i class="fas fa-project-diagram mr-1"></i> {{ task.category.project.name }}
                             </a>
                         </div>
                     </div>
                 </div>
-                
-                <!-- Task Item 2 -->
-                <div class="task-item px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150 flex items-start">
-                    <div class="flex items-center h-5 mt-1">
-                        <input id="task-2" name="task-2" type="checkbox" class="focus:ring-primary-500 h-4 w-4 text-primary-600 border-gray-300 dark:border-gray-600 rounded">
-                    </div>
-                    <div class="ml-3 flex-1">
-                        <div class="flex items-center justify-between">
-                            <label for="task-2" class="block text-sm font-medium text-gray-900 dark:text-white cursor-pointer">
-                                Client meeting preparation
-                            </label>
-                            <div class="task-actions flex space-x-2">
-                                <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                                    <i class="fas fa-pencil-alt text-xs"></i>
-                                </button>
-                                <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                                    <i class="fas fa-trash-alt text-xs"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="mt-1 flex flex-wrap items-center gap-2">
-                            <span class="px-2 py-1 text-xs rounded-full priority-high">
-                                <i class="fas fa-arrow-up mr-1"></i> High
-                            </span>
-                            <span class="px-2 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
-                                <i class="far fa-calendar mr-1"></i> Tomorrow
-                            </span>
-                            <a href="{% url 'main:project_detail' 2 %}" class="px-2 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200">
-                                <i class="fas fa-project-diagram mr-1"></i> Client XYZ
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Task Item 3 -->
-                <div class="task-item px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150 flex items-start">
-                    <div class="flex items-center h-5 mt-1">
-                        <input id="task-3" name="task-3" type="checkbox" class="focus:ring-primary-500 h-4 w-4 text-primary-600 border-gray-300 dark:border-gray-600 rounded">
-                    </div>
-                    <div class="ml-3 flex-1">
-                        <div class="flex items-center justify-between">
-                            <label for="task-3" class="block text-sm font-medium text-gray-900 dark:text-white cursor-pointer">
-                                Write blog post about productivity
-                            </label>
-                            <div class="task-actions flex space-x-2">
-                                <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                                    <i class="fas fa-pencil-alt text-xs"></i>
-                                </button>
-                                <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                                    <i class="fas fa-trash-alt text-xs"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="mt-1 flex flex-wrap items-center gap-2">
-                            <span class="px-2 py-1 text-xs rounded-full priority-medium">
-                                <i class="fas fa-equals mr-1"></i> Medium
-                            </span>
-                            <span class="px-2 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
-                                <i class="far fa-calendar mr-1"></i> Fri, Jun 2
-                            </span>
-                            <a href="{% url 'main:project_detail' 3 %}" class="px-2 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200">
-                                <i class="fas fa-project-diagram mr-1"></i> Marketing
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Task Item 4 -->
-                <div class="task-item px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150 flex items-start">
-                    <div class="flex items-center h-5 mt-1">
-                        <input id="task-4" name="task-4" type="checkbox" class="focus:ring-primary-500 h-4 w-4 text-primary-600 border-gray-300 dark:border-gray-600 rounded">
-                    </div>
-                    <div class="ml-3 flex-1">
-                        <div class="flex items-center justify-between">
-                            <label for="task-4" class="block text-sm font-medium text-gray-900 dark:text-white cursor-pointer">
-                                Review team member submissions
-                            </label>
-                            <div class="task-actions flex space-x-2">
-                                <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                                    <i class="fas fa-pencil-alt text-xs"></i>
-                                </button>
-                                <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                                    <i class="fas fa-trash-alt text-xs"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="mt-1 flex flex-wrap items-center gap-2">
-                            <span class="px-2 py-1 text-xs rounded-full priority-low">
-                                <i class="fas fa-arrow-down mr-1"></i> Low
-                            </span>
-                            <span class="px-2 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
-                                <i class="far fa-calendar mr-1"></i> Next week
-                            </span>
-                            <a href="{% url 'main:project_detail' 4 %}" class="px-2 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200">
-                                <i class="fas fa-project-diagram mr-1"></i> Team Management
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                
+                {% empty %}
                 <!-- Empty State -->
                 <div class="px-6 py-12 text-center">
                     <i class="fas fa-tasks text-4xl text-gray-300 dark:text-gray-600 mb-3"></i>
-                    <h3 class="text-sm font-medium text-gray-900 dark:text-white">No more tasks for today</h3>
+                    <h3 class="text-sm font-medium text-gray-900 dark:text-white">No tasks for today</h3>
                     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Get started by creating a new task.</p>
                     <div class="mt-6">
                         <a href="{% url 'main:task_create' %}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200">
@@ -238,6 +144,7 @@
                         </a>
                     </div>
                 </div>
+                {% endfor %}
             </div>
         </div>
         
@@ -247,65 +154,35 @@
                 <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Recent Activity</h2>
             </div>
             <div class="divide-y divide-gray-200 dark:divide-gray-700">
-                <!-- Activity Item 1 -->
+                {% for activity in recent_activities %}
                 <div class="px-6 py-4">
                     <div class="flex items-start">
                         <div class="flex-shrink-0">
-                            <div class="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400">
-                                <i class="fas fa-check"></i>
+                            <div class="h-10 w-10 rounded-full {% if activity.action == 'completed' %}bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400{% elif activity.action == 'commented' %}bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400{% elif activity.action == 'created' %}bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400{% else %}bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400{% endif %} flex items-center justify-center">
+                                {% if activity.action == 'completed' %}
+                                    <i class="fas fa-check"></i>
+                                {% elif activity.action == 'commented' %}
+                                    <i class="fas fa-comment"></i>
+                                {% elif activity.action == 'created' %}
+                                    <i class="fas fa-plus"></i>
+                                {% else %}
+                                    <i class="fas fa-exclamation"></i>
+                                {% endif %}
                             </div>
                         </div>
                         <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-900 dark:text-white">You completed "Design new logo"</p>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">2 hours ago</p>
+                            <p class="text-sm font-medium text-gray-900 dark:text-white">{{ activity.description }}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ activity.created_at|timesince }} ago</p>
                         </div>
                     </div>
                 </div>
-                
-                <!-- Activity Item 2 -->
-                <div class="px-6 py-4">
-                    <div class="flex items-start">
-                        <div class="flex-shrink-0">
-                            <div class="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                                <i class="fas fa-comment"></i>
-                            </div>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-900 dark:text-white">Sarah commented on "Client proposal"</p>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">4 hours ago</p>
-                        </div>
-                    </div>
+                {% empty %}
+                <div class="px-6 py-12 text-center">
+                    <i class="fas fa-history text-4xl text-gray-300 dark:text-gray-600 mb-3"></i>
+                    <h3 class="text-sm font-medium text-gray-900 dark:text-white">No recent activity</h3>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Start working on tasks to see activity here.</p>
                 </div>
-                
-                <!-- Activity Item 3 -->
-                <div class="px-6 py-4">
-                    <div class="flex items-start">
-                        <div class="flex-shrink-0">
-                            <div class="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400">
-                                <i class="fas fa-plus"></i>
-                            </div>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-900 dark:text-white">You created a new project "Website Redesign"</p>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Yesterday</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Activity Item 4 -->
-                <div class="px-6 py-4">
-                    <div class="flex items-start">
-                        <div class="flex-shrink-0">
-                            <div class="h-10 w-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400">
-                                <i class="fas fa-exclamation"></i>
-                            </div>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-900 dark:text-white">"Client meeting" deadline was updated to tomorrow</p>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">2 days ago</p>
-                        </div>
-                    </div>
-                </div>
+                {% endfor %}
                 
                 <!-- View All Button -->
                 <div class="px-6 py-4 text-center">
@@ -326,49 +203,24 @@
             </div>
             <div class="px-6 py-4">
                 <div class="space-y-4">
-                    <!-- Deadline Item 1 -->
+                    {% for task in upcoming_deadlines %}
                     <div class="flex items-start">
                         <div class="flex-shrink-0 pt-1">
-                            <div class="h-2 w-2 rounded-full bg-red-500"></div>
+                            <div class="h-2 w-2 rounded-full {% if task.deadline.date == today %}bg-red-500{% elif task.deadline.date <= today|add:1 %}bg-amber-500{% else %}bg-primary-500{% endif %}"></div>
                         </div>
                         <div class="ml-3">
-                            <p class="text-sm font-medium text-gray-900 dark:text-white">Client proposal submission</p>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Tomorrow, 10:00 AM</p>
+                            <p class="text-sm font-medium text-gray-900 dark:text-white">
+                                <a href="{% url 'main:task_detail' task.id %}" class="hover:text-primary-600 dark:hover:text-primary-400">{{ task.title }}</a>
+                            </p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ task.deadline|date:"M j, g:i A" }}</p>
                         </div>
                     </div>
-                    
-                    <!-- Deadline Item 2 -->
-                    <div class="flex items-start">
-                        <div class="flex-shrink-0 pt-1">
-                            <div class="h-2 w-2 rounded-full bg-amber-500"></div>
-                        </div>
-                        <div class="ml-3">
-                            <p class="text-sm font-medium text-gray-900 dark:text-white">Team weekly sync</p>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Fri, Jun 2, 2:00 PM</p>
-                        </div>
+                    {% empty %}
+                    <div class="text-center py-8">
+                        <i class="fas fa-calendar text-3xl text-gray-300 dark:text-gray-600 mb-2"></i>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">No upcoming deadlines</p>
                     </div>
-                    
-                    <!-- Deadline Item 3 -->
-                    <div class="flex items-start">
-                        <div class="flex-shrink-0 pt-1">
-                            <div class="h-2 w-2 rounded-full bg-primary-500"></div>
-                        </div>
-                        <div class="ml-3">
-                            <p class="text-sm font-medium text-gray-900 dark:text-white">Product launch</p>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Mon, Jun 5, 9:00 AM</p>
-                        </div>
-                    </div>
-                    
-                    <!-- Deadline Item 4 -->
-                    <div class="flex items-start">
-                        <div class="flex-shrink-0 pt-1">
-                            <div class="h-2 w-2 rounded-full bg-gray-400"></div>
-                        </div>
-                        <div class="ml-3">
-                            <p class="text-sm font-medium text-gray-900 dark:text-white">Quarterly planning</p>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Wed, Jun 14, All day</p>
-                        </div>
-                    </div>
+                    {% endfor %}
                     
                     <!-- View All Button -->
                     <div class="pt-2">
@@ -388,11 +240,11 @@
             <div class="px-6 py-4 flex flex-col items-center">
                 <div class="donut-chart">
                     <div class="donut-inner">
-                        75%
+                        {{ completion_rate }}%
                     </div>
                 </div>
                 <div class="mt-4 text-center">
-                    <p class="text-sm text-gray-500 dark:text-gray-400">You've completed 75% of this week's tasks</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">You've completed {{ completion_rate }}% of this week's tasks</p>
                     <p class="mt-1 text-sm font-medium text-primary-600 dark:text-primary-400">Keep up the good work!</p>
                 </div>
             </div>

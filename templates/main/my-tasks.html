@@ -203,38 +203,110 @@
             <div class="flex items-center gap-2">
                 <i class="fas fa-list-ul"></i>
                 <span>To Do</span>
-                <span class="wip-counter">3</span>
+                <span class="wip-counter">{{ todo_tasks.count }}</span>
             </div>
             <button class="lane-toggle md:hidden">
                 <i class="fas fa-chevron-down"></i>
             </button>
         </div>
         <div class="cards p-4">
-            <!-- Task cards will be dynamically generated here -->
+            {% for task in todo_tasks %}
+            <div class="task-card bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-3 cursor-move hover:shadow-md transition-shadow" data-task-id="{{ task.id }}">
+                <div class="flex justify-between items-start mb-2">
+                    <h3 class="font-medium text-gray-900 dark:text-white text-sm">{{ task.title }}</h3>
+                    <div class="flex items-center gap-1">
+                        <span class="priority-{{ task.priority }} text-xs">
+                            {% if task.priority == 'urgent' %}
+                                <i class="fas fa-exclamation-circle"></i>
+                            {% elif task.priority == 'high' %}
+                                <i class="fas fa-arrow-up"></i>
+                            {% elif task.priority == 'medium' %}
+                                <i class="fas fa-equals"></i>
+                            {% else %}
+                                <i class="fas fa-arrow-down"></i>
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-600 dark:text-gray-400 mb-3">{{ task.description|truncatechars:80 }}</p>
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <span class="project-chip bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                            {{ task.category.project.name }}
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                        <i class="fas fa-calendar"></i>
+                        <span>{{ task.deadline|date:"M j" }}</span>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                <i class="fas fa-inbox text-2xl mb-2"></i>
+                <p class="text-sm">No tasks</p>
+            </div>
+            {% endfor %}
         </div>
-        <button class="add-card-btn w-full p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+        <a href="{% url 'main:task_create' %}" class="add-card-btn w-full p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors block text-center">
             <i class="fas fa-plus mr-2"></i>Add Task
-        </button>
+        </a>
     </div>
 
     <!-- In Progress Lane -->
-    <div class="lane progress" data-status="progress">
+    <div class="lane progress" data-status="in_progress">
         <div class="lane-header flex justify-between items-center">
             <div class="flex items-center gap-2">
                 <i class="fas fa-play"></i>
                 <span>In Progress</span>
-                <span class="wip-counter">2</span>
+                <span class="wip-counter">{{ in_progress_tasks.count }}</span>
             </div>
             <button class="lane-toggle md:hidden">
                 <i class="fas fa-chevron-down"></i>
             </button>
         </div>
         <div class="cards p-4">
-            <!-- Task cards will be dynamically generated here -->
+            {% for task in in_progress_tasks %}
+            <div class="task-card bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-3 cursor-move hover:shadow-md transition-shadow" data-task-id="{{ task.id }}">
+                <div class="flex justify-between items-start mb-2">
+                    <h3 class="font-medium text-gray-900 dark:text-white text-sm">{{ task.title }}</h3>
+                    <div class="flex items-center gap-1">
+                        <span class="priority-{{ task.priority }} text-xs">
+                            {% if task.priority == 'urgent' %}
+                                <i class="fas fa-exclamation-circle"></i>
+                            {% elif task.priority == 'high' %}
+                                <i class="fas fa-arrow-up"></i>
+                            {% elif task.priority == 'medium' %}
+                                <i class="fas fa-equals"></i>
+                            {% else %}
+                                <i class="fas fa-arrow-down"></i>
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-600 dark:text-gray-400 mb-3">{{ task.description|truncatechars:80 }}</p>
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <span class="project-chip bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                            {{ task.category.project.name }}
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                        <i class="fas fa-calendar"></i>
+                        <span>{{ task.deadline|date:"M j" }}</span>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                <i class="fas fa-play text-2xl mb-2"></i>
+                <p class="text-sm">No tasks in progress</p>
+            </div>
+            {% endfor %}
         </div>
-        <button class="add-card-btn w-full p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+        <a href="{% url 'main:task_create' %}" class="add-card-btn w-full p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors block text-center">
             <i class="fas fa-plus mr-2"></i>Add Task
-        </button>
+        </a>
     </div>
 
     <!-- Review Lane -->
@@ -243,38 +315,110 @@
             <div class="flex items-center gap-2">
                 <i class="fas fa-eye"></i>
                 <span>Review</span>
-                <span class="wip-counter">1</span>
+                <span class="wip-counter">{{ review_tasks.count }}</span>
             </div>
             <button class="lane-toggle md:hidden">
                 <i class="fas fa-chevron-down"></i>
             </button>
         </div>
         <div class="cards p-4">
-            <!-- Task cards will be dynamically generated here -->
+            {% for task in review_tasks %}
+            <div class="task-card bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-3 cursor-move hover:shadow-md transition-shadow" data-task-id="{{ task.id }}">
+                <div class="flex justify-between items-start mb-2">
+                    <h3 class="font-medium text-gray-900 dark:text-white text-sm">{{ task.title }}</h3>
+                    <div class="flex items-center gap-1">
+                        <span class="priority-{{ task.priority }} text-xs">
+                            {% if task.priority == 'urgent' %}
+                                <i class="fas fa-exclamation-circle"></i>
+                            {% elif task.priority == 'high' %}
+                                <i class="fas fa-arrow-up"></i>
+                            {% elif task.priority == 'medium' %}
+                                <i class="fas fa-equals"></i>
+                            {% else %}
+                                <i class="fas fa-arrow-down"></i>
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-600 dark:text-gray-400 mb-3">{{ task.description|truncatechars:80 }}</p>
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <span class="project-chip bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                            {{ task.category.project.name }}
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                        <i class="fas fa-calendar"></i>
+                        <span>{{ task.deadline|date:"M j" }}</span>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                <i class="fas fa-eye text-2xl mb-2"></i>
+                <p class="text-sm">No tasks in review</p>
+            </div>
+            {% endfor %}
         </div>
-        <button class="add-card-btn w-full p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+        <a href="{% url 'main:task_create' %}" class="add-card-btn w-full p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors block text-center">
             <i class="fas fa-plus mr-2"></i>Add Task
-        </button>
+        </a>
     </div>
 
     <!-- Done Lane -->
-    <div class="lane done" data-status="done">
+    <div class="lane done" data-status="completed">
         <div class="lane-header flex justify-between items-center">
             <div class="flex items-center gap-2">
                 <i class="fas fa-check"></i>
                 <span>Done</span>
-                <span class="wip-counter">4</span>
+                <span class="wip-counter">{{ done_tasks.count }}</span>
             </div>
             <button class="lane-toggle md:hidden">
                 <i class="fas fa-chevron-down"></i>
             </button>
         </div>
         <div class="cards p-4">
-            <!-- Task cards will be dynamically generated here -->
+            {% for task in done_tasks %}
+            <div class="task-card bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-3 cursor-move hover:shadow-md transition-shadow" data-task-id="{{ task.id }}">
+                <div class="flex justify-between items-start mb-2">
+                    <h3 class="font-medium text-gray-900 dark:text-white text-sm line-through">{{ task.title }}</h3>
+                    <div class="flex items-center gap-1">
+                        <span class="priority-{{ task.priority }} text-xs">
+                            {% if task.priority == 'urgent' %}
+                                <i class="fas fa-exclamation-circle"></i>
+                            {% elif task.priority == 'high' %}
+                                <i class="fas fa-arrow-up"></i>
+                            {% elif task.priority == 'medium' %}
+                                <i class="fas fa-equals"></i>
+                            {% else %}
+                                <i class="fas fa-arrow-down"></i>
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-600 dark:text-gray-400 mb-3">{{ task.description|truncatechars:80 }}</p>
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <span class="project-chip bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                            {{ task.category.project.name }}
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                        <i class="fas fa-calendar"></i>
+                        <span>{{ task.deadline|date:"M j" }}</span>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                <i class="fas fa-check text-2xl mb-2"></i>
+                <p class="text-sm">No completed tasks</p>
+            </div>
+            {% endfor %}
         </div>
-        <button class="add-card-btn w-full p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+        <a href="{% url 'main:task_create' %}" class="add-card-btn w-full p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors block text-center">
             <i class="fas fa-plus mr-2"></i>Add Task
-        </button>
+        </a>
     </div>
 </div>
 

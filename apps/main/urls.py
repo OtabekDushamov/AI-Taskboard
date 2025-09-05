@@ -19,6 +19,7 @@ urlpatterns = [
     path('project-list/', login_required(views.project_list_view), name='project_list'),
     path('project-detail/<int:project_id>/', login_required(views.project_detail_view), name='project_detail'),
     path('project-crud/', login_required(views.project_crud_view), name='project_crud'),
+    path('project-crud/<int:project_id>/', login_required(views.project_crud_view), name='project_crud'),
     
     # Task management
     path('task-list/', login_required(views.task_list_view), name='task_list'),
@@ -38,6 +39,15 @@ urlpatterns = [
     # Habits and settings
     path('habit-tracker/', login_required(views.habit_tracker_view), name='habit_tracker'),
     path('settings/', login_required(views.settings_view), name='settings'),
-    path('team-members/', login_required(views.team_members_view), name='team_members'),
+    path('team-members/<int:project_id>/', login_required(views.team_members_view), name='team_members'),
     path('tasks-calendar/', login_required(views.tasks_calendar_view), name='tasks_calendar'),
+    
+    # AJAX endpoints
+    path('api/update-task-status/', login_required(views.update_task_status), name='update_task_status'),
+    path('api/add-task-comment/', login_required(views.add_task_comment), name='add_task_comment'),
+    path('api/assign-task/', login_required(views.assign_task), name='assign_task'),
+    path('api/project/<int:project_id>/categories/', login_required(views.get_project_categories), name='get_project_categories'),
+    path('api/add-project-member/', login_required(views.add_project_member), name='add_project_member'),
+    path('api/remove-project-member/', login_required(views.remove_project_member), name='remove_project_member'),
+    path('api/update-member-role/', login_required(views.update_member_role), name='update_member_role'),
 ]

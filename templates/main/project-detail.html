@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Project Detail - AI Taskboard{% endblock %}
+{% block title %}{{ project.name }} - AI Taskboard{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -58,53 +58,76 @@
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <div>
-                <h1 class="text-2xl font-bold dark:text-white">Website Redesign Project</h1>
+                <h1 class="text-2xl font-bold dark:text-white">{{ project.name }}</h1>
                 <div class="flex items-center gap-2 mt-2">
                     <span class="text-sm text-gray-500 dark:text-gray-400">Owned by</span>
                     <div class="flex items-center">
-                        <div class="avatar bg-blue-500">JD</div>
-                        <span class="ml-2 text-sm font-medium dark:text-white">John Doe</span>
+                        <div class="avatar bg-blue-500">{{ project.owner.first_name|first|upper }}{{ project.owner.last_name|first|upper }}</div>
+                        <span class="ml-2 text-sm font-medium dark:text-white">{{ project.owner.get_full_name }}</span>
                     </div>
                 </div>
+                {% if project.description %}
+                <p class="text-gray-600 dark:text-gray-400 mt-2">{{ project.description }}</p>
+                {% endif %}
             </div>
             <div class="flex items-center gap-3">
                 <div class="relative">
                     <select class="appearance-none bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md py-1 pl-3 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white">
-                        <option>In Progress</option>
-                        <option>Planning</option>
-                        <option>Completed</option>
-                        <option>On Hold</option>
+                        <option value="planning" {% if project.status == 'planning' %}selected{% endif %}>Planning</option>
+                        <option value="active" {% if project.status == 'active' %}selected{% endif %}>In Progress</option>
+                        <option value="completed" {% if project.status == 'completed' %}selected{% endif %}>Completed</option>
+                        <option value="on_hold" {% if project.status == 'on_hold' %}selected{% endif %}>On Hold</option>
                     </select>
                     <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                         <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
                     </div>
                 </div>
-                <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200">
+                <a href="{% url 'main:project_crud' project.id %}" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200">
                     <i class="fas fa-edit mr-2"></i>Edit Project
-                </button>
+                </a>
             </div>
         </div>
 
         <!-- Project Stats -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">75%</div>
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ project.progress }}%</div>
                 <div class="text-sm text-gray-500 dark:text-gray-400">Progress</div>
                 <div class="progress-bar mt-2">
-                    <div class="progress-fill" style="width: 75%"></div>
+                    <div class="progress-fill" style="width: {{ project.progress }}%"></div>
                 </div>
             </div>
             <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">12</div>
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ completed_tasks_count }}</div>
                 <div class="text-sm text-gray-500 dark:text-gray-400">Tasks Completed</div>
             </div>
             <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">4</div>
-                <div class="text-sm text-gray-500 dark:text-gray-400">Tasks Remaining</div>
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ total_tasks_count }}</div>
+                <div class="text-sm text-gray-500 dark:text-gray-400">Total Tasks</div>
             </div>
             <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">Dec 15</div>
-                <div class="text-sm text-gray-500 dark:text-gray-400">Due Date</div>
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ team_members_count }}</div>
+                <div class="text-sm text-gray-500 dark:text-gray-400">Team Members</div>
+            </div>
+        </div>
+
+        <!-- Project Dates -->
+        <div class="flex items-center gap-6 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+            {% if project.start_date %}
+            <div>
+                <span class="text-sm text-gray-500 dark:text-gray-400">Start Date:</span>
+                <span class="text-sm font-medium text-gray-900 dark:text-white ml-1">{{ project.start_date|date:"M j, Y" }}</span>
+            </div>
+            {% endif %}
+            {% if project.end_date %}
+            <div>
+                <span class="text-sm text-gray-500 dark:text-gray-400">End Date:</span>
+                <span class="text-sm font-medium text-gray-900 dark:text-white ml-1">{{ project.end_date|date:"M j, Y" }}</span>
+            </div>
+            {% endif %}
+            <div>
+                <span class="text-sm text-gray-500 dark:text-gray-400">Priority:</span>
+                <span class="text-sm font-medium text-gray-900 dark:text-white ml-1">{{ project.get_priority_display }}</span>
             </div>
         </div>
     </div>
@@ -113,17 +136,17 @@
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
         <div class="border-b border-gray-200 dark:border-gray-700">
             <nav class="flex space-x-8 px-6">
-                <button class="tab-btn py-4 text-sm font-medium text-gray-500 dark:text-gray-400 border-b-2 border-transparent hover:text-gray-700 dark:hover:text-gray-300 tab-active">
+                <button class="tab-link py-4 px-1 border-b-2 border-transparent text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 tab-active" data-tab="overview">
                     Overview
                 </button>
-                <button class="tab-btn py-4 text-sm font-medium text-gray-500 dark:text-gray-400 border-b-2 border-transparent hover:text-gray-700 dark:hover:text-gray-300">
+                <button class="tab-link py-4 px-1 border-b-2 border-transparent text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300" data-tab="tasks">
                     Tasks
                 </button>
-                <button class="tab-btn py-4 text-sm font-medium text-gray-500 dark:text-gray-400 border-b-2 border-transparent hover:text-gray-700 dark:hover:text-gray-300">
+                <button class="tab-link py-4 px-1 border-b-2 border-transparent text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300" data-tab="team">
                     Team
                 </button>
-                <button class="tab-btn py-4 text-sm font-medium text-gray-500 dark:text-gray-400 border-b-2 border-transparent hover:text-gray-700 dark:hover:text-gray-300">
-                    Timeline
+                <button class="tab-link py-4 px-1 border-b-2 border-transparent text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300" data-tab="activity">
+                    Activity
                 </button>
             </nav>
         </div>
@@ -131,154 +154,170 @@
         <!-- Tab Content -->
         <div class="p-6">
             <!-- Overview Tab -->
-            <div id="overview" class="tab-content">
+            <div id="overview-tab" class="tab-content">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- Project Description -->
+                    <!-- Recent Tasks -->
                     <div>
-                        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Project Description</h3>
-                        <p class="text-gray-600 dark:text-gray-400 mb-4">
-                            Complete overhaul of the company website with modern design principles, improved user experience, and mobile-first responsive design. The project includes new content management system integration and performance optimization.
-                        </p>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Tasks</h3>
                         <div class="space-y-3">
-                            <div class="flex items-center">
-                                <i class="fas fa-calendar text-gray-400 mr-3"></i>
-                                <span class="text-sm text-gray-600 dark:text-gray-400">Started: Oct 1, 2024</span>
+                            {% for task in recent_tasks %}
+                            <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-2 h-2 rounded-full {% if task.status == 'completed' %}bg-green-500{% elif task.status == 'in_progress' %}bg-blue-500{% elif task.status == 'review' %}bg-yellow-500{% else %}bg-gray-500{% endif %}"></div>
+                                    <div>
+                                        <a href="{% url 'main:task_detail' task.id %}" class="text-sm font-medium text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400">{{ task.title }}</a>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ task.category.name }}</p>
+                                    </div>
+                                </div>
+                                <span class="text-xs px-2 py-1 rounded-full {% if task.priority == 'urgent' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200{% elif task.priority == 'high' %}bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200{% elif task.priority == 'medium' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200{% else %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200{% endif %}">
+                                    {{ task.get_priority_display }}
+                                </span>
                             </div>
-                            <div class="flex items-center">
-                                <i class="fas fa-clock text-gray-400 mr-3"></i>
-                                <span class="text-sm text-gray-600 dark:text-gray-400">Estimated: 8 weeks</span>
-                            </div>
-                            <div class="flex items-center">
-                                <i class="fas fa-tag text-gray-400 mr-3"></i>
-                                <span class="text-sm text-gray-600 dark:text-gray-400">Category: Design & Development</span>
-                            </div>
+                            {% empty %}
+                            <p class="text-gray-500 dark:text-gray-400 italic text-center py-4">No tasks yet</p>
+                            {% endfor %}
+                        </div>
+                        <div class="mt-4">
+                            <a href="{% url 'main:task_create' %}?project={{ project.id }}" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+                                <i class="fas fa-plus mr-1"></i>Add Task
+                            </a>
                         </div>
                     </div>
 
-                    <!-- Recent Activity -->
+                    <!-- Team Members -->
                     <div>
-                        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Recent Activity</h3>
-                        <div class="space-y-4">
-                            <div class="flex items-start">
-                                <div class="w-6 h-6 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mr-3 mt-1">
-                                    <i class="fas fa-check text-green-600 dark:text-green-400 text-xs"></i>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Team Members</h3>
+                        <div class="space-y-3">
+                            {% for member in project.members.all %}
+                            <div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                <div class="avatar bg-blue-500">{{ member.user.first_name|first|upper }}{{ member.user.last_name|first|upper }}</div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-gray-900 dark:text-white">{{ member.user.get_full_name }}</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ member.get_role_display }}</p>
                                 </div>
-                                <div>
-                                    <p class="text-sm text-gray-900 dark:text-white">Task "Design homepage layout" completed</p>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">2 hours ago by John Doe</p>
-                                </div>
+                                <span class="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300">
+                                    {{ member.tasks.count }} tasks
+                                </span>
                             </div>
-                            <div class="flex items-start">
-                                <div class="w-6 h-6 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mr-3 mt-1">
-                                    <i class="fas fa-comment text-blue-600 dark:text-blue-400 text-xs"></i>
-                                </div>
-                                <div>
-                                    <p class="text-sm text-gray-900 dark:text-white">Comment added to "Implement navigation"</p>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">4 hours ago by Sarah Smith</p>
-                                </div>
-                            </div>
-                            <div class="flex items-start">
-                                <div class="w-6 h-6 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mr-3 mt-1">
-                                    <i class="fas fa-plus text-purple-600 dark:text-purple-400 text-xs"></i>
-                                </div>
-                                <div>
-                                    <p class="text-sm text-gray-900 dark:text-white">New task "Mobile optimization" added</p>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">1 day ago by Mike Johnson</p>
-                                </div>
-                            </div>
+                            {% empty %}
+                            <p class="text-gray-500 dark:text-gray-400 italic text-center py-4">No team members yet</p>
+                            {% endfor %}
+                        </div>
+                        <div class="mt-4">
+                            <a href="{% url 'main:team_members' project.id %}" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+                                <i class="fas fa-users mr-1"></i>Manage Team
+                            </a>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Tasks Tab (Hidden by default) -->
-            <div id="tasks" class="tab-content hidden">
-                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Project Tasks</h3>
+            <!-- Tasks Tab -->
+            <div id="tasks-tab" class="tab-content hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Project Tasks</h3>
+                    <a href="{% url 'main:task_create' %}?project={{ project.id }}" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200">
+                        <i class="fas fa-plus mr-2"></i>Add Task
+                    </a>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                        <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ todo_tasks.count }}</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">To Do</div>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                        <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ in_progress_tasks.count }}</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">In Progress</div>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                        <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ review_tasks.count }}</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">Review</div>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                        <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ completed_tasks.count }}</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">Completed</div>
+                    </div>
+                </div>
+
                 <div class="space-y-3">
-                    <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                        <div class="flex items-center">
-                            <input type="checkbox" class="mr-3" checked>
-                            <span class="text-sm font-medium text-gray-900 dark:text-white">Design homepage layout</span>
+                    {% for task in project_tasks %}
+                    <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <div class="flex items-center gap-3">
+                            <div class="w-2 h-2 rounded-full {% if task.status == 'completed' %}bg-green-500{% elif task.status == 'in_progress' %}bg-blue-500{% elif task.status == 'review' %}bg-yellow-500{% else %}bg-gray-500{% endif %}"></div>
+                            <div>
+                                <a href="{% url 'main:task_detail' task.id %}" class="text-sm font-medium text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400">{{ task.title }}</a>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ task.category.name }}</p>
+                            </div>
                         </div>
-                        <span class="text-xs text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">Completed</span>
-                    </div>
-                    <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                        <div class="flex items-center">
-                            <input type="checkbox" class="mr-3">
-                            <span class="text-sm font-medium text-gray-900 dark:text-white">Implement navigation</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs px-2 py-1 rounded-full {% if task.priority == 'urgent' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200{% elif task.priority == 'high' %}bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200{% elif task.priority == 'medium' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200{% else %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200{% endif %}">
+                                {{ task.get_priority_display }}
+                            </span>
+                            {% if task.deadline %}
+                            <span class="text-xs text-gray-500 dark:text-gray-400">{{ task.deadline|date:"M j" }}</span>
+                            {% endif %}
                         </div>
-                        <span class="text-xs text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded-full">In Progress</span>
                     </div>
-                    <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                        <div class="flex items-center">
-                            <input type="checkbox" class="mr-3">
-                            <span class="text-sm font-medium text-gray-900 dark:text-white">Mobile optimization</span>
-                        </div>
-                        <span class="text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">To Do</span>
-                    </div>
+                    {% empty %}
+                    <p class="text-gray-500 dark:text-gray-400 italic text-center py-8">No tasks in this project yet</p>
+                    {% endfor %}
                 </div>
             </div>
 
-            <!-- Team Tab (Hidden by default) -->
-            <div id="team" class="tab-content hidden">
-                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Project Team</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                        <div class="avatar bg-blue-500 mr-3">JD</div>
-                        <div>
-                            <div class="text-sm font-medium text-gray-900 dark:text-white">John Doe</div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">Project Manager</div>
+            <!-- Team Tab -->
+            <div id="team-tab" class="tab-content hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Team Members</h3>
+                    <a href="{% url 'main:team_members' project.id %}" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200">
+                        <i class="fas fa-user-plus mr-2"></i>Add Member
+                    </a>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {% for member in project.members.all %}
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="avatar bg-blue-500">{{ member.user.first_name|first|upper }}{{ member.user.last_name|first|upper }}</div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ member.user.get_full_name }}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ member.get_role_display }}</p>
+                            </div>
+                        </div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">
+                            <div class="flex justify-between">
+                                <span>Tasks:</span>
+                                <span>{{ member.tasks.count }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Joined:</span>
+                                <span>{{ member.joined_at|date:"M j, Y" }}</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                        <div class="avatar bg-green-500 mr-3">SS</div>
-                        <div>
-                            <div class="text-sm font-medium text-gray-900 dark:text-white">Sarah Smith</div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">Frontend Developer</div>
-                        </div>
+                    {% empty %}
+                    <div class="col-span-full text-center py-8">
+                        <p class="text-gray-500 dark:text-gray-400 italic">No team members yet</p>
                     </div>
-                    <div class="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                        <div class="avatar bg-purple-500 mr-3">MJ</div>
-                        <div>
-                            <div class="text-sm font-medium text-gray-900 dark:text-white">Mike Johnson</div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">Designer</div>
-                        </div>
-                    </div>
+                    {% endfor %}
                 </div>
             </div>
 
-            <!-- Timeline Tab (Hidden by default) -->
-            <div id="timeline" class="tab-content hidden">
-                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Project Timeline</h3>
-                <div class="relative">
-                    <div class="timeline-item relative pl-8 pb-6">
-                        <div class="absolute left-0 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                            <i class="fas fa-play text-white text-xs"></i>
+            <!-- Activity Tab -->
+            <div id="activity-tab" class="tab-content hidden">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Activity</h3>
+                <div class="space-y-4">
+                    {% for activity in project.activities.all|slice:":10" %}
+                    <div class="flex gap-3 relative timeline-item">
+                        <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-medium">A</div>
+                        <div class="flex-1">
+                            <div class="text-sm text-gray-800 dark:text-white">{{ activity.description }}</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">{{ activity.created_at|timesince }} ago</div>
                         </div>
-                        <div class="text-sm font-medium text-gray-900 dark:text-white">Project Started</div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400">Oct 1, 2024</div>
                     </div>
-                    <div class="timeline-item relative pl-8 pb-6">
-                        <div class="absolute left-0 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                            <i class="fas fa-check text-white text-xs"></i>
-                        </div>
-                        <div class="text-sm font-medium text-gray-900 dark:text-white">Design Phase Complete</div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400">Oct 15, 2024</div>
-                    </div>
-                    <div class="timeline-item relative pl-8 pb-6">
-                        <div class="absolute left-0 w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center">
-                            <i class="fas fa-clock text-white text-xs"></i>
-                        </div>
-                        <div class="text-sm font-medium text-gray-900 dark:text-white">Development Phase</div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400">Oct 16 - Nov 30, 2024</div>
-                    </div>
-                    <div class="timeline-item relative pl-8">
-                        <div class="absolute left-0 w-6 h-6 bg-gray-400 rounded-full flex items-center justify-center">
-                            <i class="fas fa-flag text-white text-xs"></i>
-                        </div>
-                        <div class="text-sm font-medium text-gray-900 dark:text-white">Project Complete</div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400">Dec 15, 2024</div>
-                    </div>
+                    {% empty %}
+                    <p class="text-gray-500 dark:text-gray-400 italic text-center py-8">No activity yet</p>
+                    {% endfor %}
                 </div>
             </div>
         </div>
@@ -288,29 +327,24 @@
 
 {% block extra_js %}
 <script>
-    // Tab switching functionality
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+document.addEventListener('DOMContentLoaded', function() {
+    // Tab switching
+    const tabLinks = document.querySelectorAll('.tab-link');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            const targetTab = this.dataset.tab;
+            
             // Remove active class from all tabs
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('tab-active'));
+            tabLinks.forEach(tab => tab.classList.remove('tab-active'));
+            tabContents.forEach(content => content.classList.add('hidden'));
+            
             // Add active class to clicked tab
             this.classList.add('tab-active');
-            
-            // Hide all tab contents
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
-            
-            // Show corresponding tab content
-            const tabName = this.textContent.toLowerCase();
-            if (tabName === 'overview') {
-                document.getElementById('overview').classList.remove('hidden');
-            } else if (tabName === 'tasks') {
-                document.getElementById('tasks').classList.remove('hidden');
-            } else if (tabName === 'team') {
-                document.getElementById('team').classList.remove('hidden');
-            } else if (tabName === 'timeline') {
-                document.getElementById('timeline').classList.remove('hidden');
-            }
+            document.getElementById(targetTab + '-tab').classList.remove('hidden');
         });
     });
+});
 </script>
 {% endblock %}
