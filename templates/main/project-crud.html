@@ -54,10 +54,16 @@
     
     .multi-select-item.selected {
         background-color: #eff6ff;
+        color: #1e40af;
     }
     
     .dark .multi-select-item.selected {
         background-color: #1e40af;
+        color: #dbeafe;
+    }
+    
+    .dark .multi-select-item.selected::after {
+        color: #dbeafe;
     }
     
     .multi-select-tag {
@@ -325,11 +331,13 @@
                     <div class="multi-select-dropdown">
                         {% for user in available_users %}
                         <div class="multi-select-item" data-user-id="{{ user.id }}">
-                            <div class="flex items-center gap-3">
-                                <div class="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-gray-700 dark:text-gray-300 text-xs font-medium">
-                                    {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-gray-700 dark:text-gray-300 text-xs font-medium">
+                                        {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+                                    </div>
+                                    <span class="text-sm text-gray-900 dark:text-white">{{ user.get_full_name }}</span>
                                 </div>
-                                <span class="text-sm text-gray-900 dark:text-white">{{ user.get_full_name }}</span>
                             </div>
                         </div>
                         {% empty %}
@@ -408,12 +416,34 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Multi-select functionality
     const multiSelectContainer = document.querySelector('.multi-select-container');
-    const multiSelectInput = multiSelectContainer.querySelector('.multi-select-input');
-    const multiSelectDropdown = multiSelectContainer.querySelector('.multi-select-dropdown');
-    const multiSelectTags = multiSelectContainer.querySelector('.multi-select-tags');
-    const multiSelectItems = multiSelectDropdown.querySelectorAll('.multi-select-item');
+    const multiSelectInput = multiSelectContainer?.querySelector('.multi-select-input');
+    const multiSelectDropdown = multiSelectContainer?.querySelector('.multi-select-dropdown');
+    const multiSelectTags = document.querySelector('.multi-select-tags');
+    const multiSelectItems = multiSelectDropdown?.querySelectorAll('.multi-select-item');
+    
+    // Check if all required elements exist
+    if (!multiSelectContainer || !multiSelectInput || !multiSelectDropdown || !multiSelectTags || !multiSelectItems) {
+        console.error('Multi-select elements not found');
+        return;
+    }
     
     let selectedUsers = [];
+    
+    // Initialize selected users if editing existing project
+    {% if project %}
+    {% for member in project.project_members.all %}
+    {% if member.user != project.creator %}
+    selectedUsers.push({ 
+        id: '{{ member.user.id }}', 
+        name: '{{ member.user.get_full_name }}' 
+    });
+    {% endif %}
+    {% endfor %}
+    {% endif %}
+    
+    // Initialize UI state
+    updateTags();
+    updateDropdownSelection();
     
     // Toggle dropdown
     multiSelectInput.addEventListener('click', function() {
@@ -433,11 +463,20 @@ document.addEventListener('DOMContentLoaded', function() {
             const userId = this.dataset.userId;
             const userName = this.querySelector('span').textContent;
             
-            if (!selectedUsers.find(user => user.id === userId)) {
+            // Check if user is already selected
+            const existingUser = selectedUsers.find(user => user.id === userId);
+            
+            if (existingUser) {
+                // Remove user if already selected (toggle off)
+                selectedUsers = selectedUsers.filter(user => user.id !== userId);
+                this.classList.remove('selected');
+            } else {
+                // Add user if not selected (toggle on)
                 selectedUsers.push({ id: userId, name: userName });
                 this.classList.add('selected');
-                updateTags();
             }
+            
+            updateTags();
         });
     });
     
@@ -470,6 +509,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 updateTags();
             });
+        });
+    }
+    
+    // Update dropdown selection state
+    function updateDropdownSelection() {
+        multiSelectItems.forEach(item => {
+            const userId = item.dataset.userId;
+            const isSelected = selectedUsers.find(user => user.id === userId);
+            
+            if (isSelected) {
+                item.classList.add('selected');
+            } else {
+                item.classList.remove('selected');
+            }
         });
     }
     
