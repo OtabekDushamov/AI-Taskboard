@@ -488,9 +488,10 @@
                                     <img class="h-8 w-8 rounded-full" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="">
                                 </div>
                                 <select id="task-assignee" class="ml-2 flex-1 rounded-md border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="1" selected>John Doe</option>
-                                    <option value="2">Jane Smith</option>
-                                    <option value="3">Robert Johnson</option>
+                                    <option value="">No assignee</option>
+                                    {% for user in users %}
+                                    <option value="{{ user.id }}">{{ user.get_full_name }}</option>
+                                    {% endfor %}
                                 </select>
                             </div>
                         </div>
@@ -556,9 +557,14 @@
                 </div>
 
                 <div class="p-4 border-t border-gray-200 dark:border-slate-700 flex justify-between">
-                    <button id="archive-task" class="px-4 py-2 text-sm rounded-md bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600">
-                        Archive
-                    </button>
+                    <div class="space-x-2">
+                        <button id="delete-node" class="px-4 py-2 text-sm rounded-md bg-red-500 text-white hover:bg-red-600">
+                            Delete Node
+                        </button>
+                        <button id="archive-task" class="px-4 py-2 text-sm rounded-md bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600">
+                            Archive
+                        </button>
+                    </div>
                     <div class="space-x-2">
                         <button id="cancel-changes" class="px-4 py-2 text-sm rounded-md bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600">
                             Cancel
@@ -574,13 +580,13 @@
 
     <!-- Context Menu -->
     <div id="context-menu" class="absolute hidden bg-white dark:bg-slate-800 shadow-lg rounded-md py-1 z-50 w-48 border border-gray-200 dark:border-slate-700">
-        <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700">
+        <a href="#" id="add-child" class="block px-4 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-2" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
             </svg>
             Add Child
         </a>
-        <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700">
+        <a href="#" id="add-sibling" class="block px-4 py-2 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-2" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M8 4a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1zM8 8a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1zM8 12a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" clip-rule="evenodd" />
             </svg>
@@ -698,167 +704,45 @@
     </div>
 
     <script>
-        // Sample data for the mind map
-        const sampleNodes = [
+        // Django data for the mind map
+        const djangoNodes = [
+            {% for node in nodes %}
             {
-                id: '1',
-                title: 'Product Roadmap',
-                description: 'Main product development roadmap',
-                status: 'todo',
-                priority: 'med',
-                assignee: { id: '1', name: 'John Doe', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
-                tags: ['planning'],
-                x: 400,
-                y: 50,
-                width: 200,
-                height: 80,
-                children: ['2', '3', '4']
-            },
-            {
-                id: '2',
-                title: 'User Authentication',
-                description: 'Implement authentication system',
-                status: 'todo',
-                priority: 'med',
-                assignee: { id: '1', name: 'John Doe', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
-                tags: ['feature', 'security'],
-                x: 200,
-                y: 200,
-                width: 200,
-                height: 80,
-                children: ['5', '6', '7', '8', '9']
-            },
-            {
-                id: '3',
-                title: 'Dashboard UI',
-                description: 'Design and implement dashboard interface',
-                status: 'in_progress',
-                priority: 'high',
-                assignee: { id: '2', name: 'Jane Smith', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
-                tags: ['frontend'],
-                x: 400,
-                y: 200,
-                width: 200,
-                height: 80,
-                children: ['10', '11']
-            },
-            {
-                id: '4',
-                title: 'API Documentation',
-                description: 'Create comprehensive API docs',
-                status: 'backlog',
-                priority: 'low',
-                assignee: null,
-                tags: ['documentation'],
-                x: 600,
-                y: 200,
-                width: 200,
-                height: 80,
+                id: '{{ node.id }}',
+                title: '{{ node.title|escapejs }}',
+                description: '{{ node.description|escapejs }}',
+                status: '{{ node.status }}',
+                priority: '{{ node.priority }}',
+                assignee: {% if node.assignee %}{ id: '{{ node.assignee.id }}', name: '{{ node.assignee.get_full_name|escapejs }}', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' }{% else %}null{% endif %},
+                tags: {{ node.tags|safe }},
+                x: {{ node.x_position }},
+                y: {{ node.y_position }},
+                width: {{ node.width }},
+                height: {{ node.height }},
                 children: []
-            },
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
+
+        // Django connections data
+        const djangoConnections = [
+            {% for connection in connections %}
             {
-                id: '5',
-                title: 'Database Schema',
-                description: 'Design user tables and relationships',
-                status: 'done',
-                priority: 'med',
-                assignee: { id: '1', name: 'John Doe', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
-                tags: ['backend'],
-                x: 100,
-                y: 350,
-                width: 180,
-                height: 70,
-                children: []
-            },
-            {
-                id: '6',
-                title: 'Registration Endpoint',
-                description: 'Implement user registration API',
-                status: 'in_progress',
-                priority: 'med',
-                assignee: { id: '1', name: 'John Doe', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
-                tags: ['api'],
-                x: 300,
-                y: 350,
-                width: 180,
-                height: 70,
-                children: []
-            },
-            {
-                id: '7',
-                title: 'Login Endpoint',
-                description: 'Implement user login API',
-                status: 'todo',
-                priority: 'med',
-                assignee: null,
-                tags: ['api'],
-                x: 500,
-                y: 350,
-                width: 180,
-                height: 70,
-                children: []
-            },
-            {
-                id: '8',
-                title: 'Password Reset',
-                description: 'Implement password reset flow',
-                status: 'todo',
-                priority: 'med',
-                assignee: null,
-                tags: ['security'],
-                x: 700,
-                y: 350,
-                width: 180,
-                height: 70,
-                children: []
-            },
-            {
-                id: '9',
-                title: 'Role-based Access',
-                description: 'Implement RBAC system',
-                status: 'todo',
-                priority: 'high',
-                assignee: null,
-                tags: ['security'],
-                x: 900,
-                y: 350,
-                width: 180,
-                height: 70,
-                children: []
-            },
-            {
-                id: '10',
-                title: 'Dashboard Layout',
-                description: 'Design dashboard wireframes',
-                status: 'done',
-                priority: 'med',
-                assignee: { id: '2', name: 'Jane Smith', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
-                tags: ['design'],
-                x: 300,
-                y: 500,
-                width: 180,
-                height: 70,
-                children: []
-            },
-            {
-                id: '11',
-                title: 'Data Visualization',
-                description: 'Implement charts and graphs',
-                status: 'in_progress',
-                priority: 'high',
-                assignee: { id: '2', name: 'Jane Smith', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
-                tags: ['frontend'],
-                x: 500,
-                y: 500,
-                width: 180,
-                height: 70,
-                children: []
-            }
+                id: {{ connection.id }},
+                from_node_id: '{{ connection.from_node.id }}',
+                to_node_id: '{{ connection.to_node.id }}',
+                connection_type: '{{ connection.connection_type }}',
+                label: '{{ connection.label|escapejs }}',
+                color: '{{ connection.color }}',
+                thickness: {{ connection.thickness }}
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
         ];
 
         // State management
         let state = {
-            nodes: [...sampleNodes],
+            nodes: [...djangoNodes],
+            connections: [...djangoConnections],
             selectedNode: null,
             isDragging: false,
             dragStartX: 0,
@@ -935,7 +819,17 @@
             
             state.nodes.forEach(node => {
                 const nodeEl = document.createElement('div');
+                
+                // Check if this is a project node
+                const isProjectNode = node.tags && node.tags.includes('project');
+                
                 nodeEl.className = `node absolute rounded-xl p-3 cursor-move ${getStatusClass(node.status)} ${getPriorityClass(node.priority)}`;
+                
+                // Add special styling for project nodes
+                if (isProjectNode) {
+                    nodeEl.classList.add('project-node', 'border-2', 'border-blue-500', 'bg-gradient-to-br', 'from-blue-50', 'to-blue-100', 'dark:from-blue-900', 'dark:to-blue-800');
+                }
+                
                 nodeEl.style.width = `${node.width}px`;
                 nodeEl.style.height = `${node.height}px`;
                 nodeEl.style.left = `${node.x}px`;
@@ -952,7 +846,10 @@
                 // Node content
                 nodeEl.innerHTML = `
                     <div class="flex justify-between items-start mb-1">
-                        <h3 class="font-medium truncate">${node.title}</h3>
+                        <div class="flex items-center">
+                            ${isProjectNode ? '<i class="fas fa-project-diagram mr-2 text-blue-600 dark:text-blue-400"></i>' : ''}
+                            <h3 class="font-medium truncate">${node.title}</h3>
+                        </div>
                         ${node.assignee ? `<img src="${node.assignee.avatar}" class="h-6 w-6 rounded-full ml-2" alt="${node.assignee.name}" title="${node.assignee.name}">` : ''}
                     </div>
                     <div class="flex flex-wrap gap-1 mt-2">
@@ -960,6 +857,35 @@
                     </div>
                     ${node.children.length > 0 ? `<div class="absolute -bottom-2 -right-2 bg-gray-200 dark:bg-slate-700 rounded-full w-5 h-5 flex items-center justify-center text-xs">${node.children.length}</div>` : ''}
                 `;
+                
+                // Add click event listener for node selection and editing
+                nodeEl.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    
+                    // Normal selection mode
+                    if (e.ctrlKey || e.metaKey) {
+                        // Multi-select
+                        if (state.selectedNodes.includes(node.id)) {
+                            state.selectedNodes = state.selectedNodes.filter(id => id !== node.id);
+                        } else {
+                            state.selectedNodes.push(node.id);
+                        }
+                    } else {
+                        // Single select
+                        state.selectedNodes = [node.id];
+                    }
+                    
+                    renderNodes();
+                    
+                    // Show details panel for single selection
+                    if (state.selectedNodes.length === 1) {
+                        showNodeDetails(node.id);
+                    } else {
+                        // Hide details panel for multi-selection or no selection
+                        const detailsPanel = document.getElementById('details-panel');
+                        detailsPanel.classList.add('details-collapsed');
+                    }
+                });
                 
                 nodesContainer.appendChild(nodeEl);
             });
@@ -980,43 +906,43 @@
             marker.setAttribute('orient', 'auto');
             const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
             polygon.setAttribute('points', '0 0, 10 3.5, 0 7');
-            polygon.setAttribute('class', 'connection');
+            polygon.setAttribute('fill', '#6b7280');
             marker.appendChild(polygon);
             defs.appendChild(marker);
             connectionsLayer.appendChild(defs);
             
-            state.nodes.forEach(node => {
-                if (node.children && node.children.length > 0) {
-                    const parentX = node.x + node.width / 2;
-                    const parentY = node.y + node.height;
+            // Render connections from state.connections array
+            state.connections.forEach(connection => {
+                const fromNode = state.nodes.find(n => n.id === connection.from_node_id);
+                const toNode = state.nodes.find(n => n.id === connection.to_node_id);
+                
+                if (fromNode && toNode) {
+                    // Calculate connection points
+                    const fromX = fromNode.x + fromNode.width / 2;
+                    const fromY = fromNode.y + fromNode.height;
+                    const toX = toNode.x + toNode.width / 2;
+                    const toY = toNode.y;
                     
-                    node.children.forEach(childId => {
-                        const child = state.nodes.find(n => n.id === childId);
-                        if (child) {
-                            const childX = child.x + child.width / 2;
-                            const childY = child.y;
-                            
-                            // Create path element
-                            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                            
-                            // Calculate control points for curved lines
-                            const midY = (parentY + childY) / 2;
-                            const controlPoint1X = parentX;
-                            const controlPoint1Y = midY;
-                            const controlPoint2X = childX;
-                            const controlPoint2Y = midY;
-                            
-                            // Create curved path
-                            const d = `M ${parentX} ${parentY} C ${controlPoint1X} ${controlPoint1Y}, ${controlPoint2X} ${controlPoint2Y}, ${childX} ${childY}`;
-                            path.setAttribute('d', d);
-                            path.setAttribute('class', 'connection');
-                            path.setAttribute('marker-end', 'url(#arrowhead)');
-                            path.setAttribute('stroke-width', '2');
-                            path.setAttribute('fill', 'none');
-                            
-                            connectionsLayer.appendChild(path);
-                        }
-                    });
+                    // Create path element
+                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    
+                    // Calculate control points for curved lines
+                    const midY = (fromY + toY) / 2;
+                    const controlPoint1X = fromX;
+                    const controlPoint1Y = midY;
+                    const controlPoint2X = toX;
+                    const controlPoint2Y = midY;
+                    
+                    // Create curved path
+                    const d = `M ${fromX} ${fromY} C ${controlPoint1X} ${controlPoint1Y}, ${controlPoint2X} ${controlPoint2Y}, ${toX} ${toY}`;
+                    path.setAttribute('d', d);
+                    path.setAttribute('class', 'connection');
+                    path.setAttribute('marker-end', 'url(#arrowhead)');
+                    path.setAttribute('stroke', connection.color || '#6b7280');
+                    path.setAttribute('stroke-width', connection.thickness || 2);
+                    path.setAttribute('fill', 'none');
+                    
+                    connectionsLayer.appendChild(path);
                 }
             });
         }
@@ -1203,6 +1129,10 @@
                     if (nodeEl) {
                         nodeEl.classList.remove('dragging');
                     }
+                    
+                    // Save position to backend after dragging
+                    saveNodePosition(state.draggingNode);
+                    
                     state.draggingNode = null;
                 }
             });
@@ -1226,6 +1156,22 @@
                 if (state.contextMenu.visible) {
                     hideContextMenu();
                 }
+            });
+            
+            // Context menu item event listeners
+            const addChildBtn = document.getElementById('add-child');
+            const addSiblingBtn = document.getElementById('add-sibling');
+            
+            addChildBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                hideContextMenu();
+                createChildNode();
+            });
+            
+            addSiblingBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                hideContextMenu();
+                createSiblingNode();
             });
             
             // Context menu actions
@@ -1462,29 +1408,47 @@
         
         // Create new node
         function createNewNode() {
-            const newNode = {
-                id: Date.now().toString(),
+            const newNodeData = {
                 title: 'New Node',
                 description: '',
                 status: 'todo',
                 priority: 'med',
-                assignee: null,
-                tags: [],
                 x: 100,
                 y: 100,
                 width: 200,
                 height: 80,
-                children: []
+                tags: [],
+                assignee_id: null
             };
             
-            state.nodes.push(newNode);
-            renderNodes();
-            renderConnections();
-            
-            // Select and show details for new node
-            state.selectedNodes = [newNode.id];
-            renderNodes();
-            showNodeDetails(newNode.id);
+            // Send create request to backend
+            fetch('{% url "mindmap:create_node" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(newNodeData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Add new node to state
+                    state.nodes.push(data.node);
+                    renderNodes();
+                    renderConnections();
+                    
+                    // Select and show details for new node
+                    state.selectedNodes = [data.node.id];
+                    renderNodes();
+                    showNodeDetails(data.node.id);
+                } else {
+                    console.error('Failed to create node:', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
         }
         
         // Apply auto layout to nodes
@@ -1707,6 +1671,22 @@
             }
         }
         
+        // Helper function to get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
         // Initialize the app when DOM is loaded
         document.addEventListener('DOMContentLoaded', init);
 
@@ -1716,10 +1696,12 @@
             const saveChangesBtn = document.getElementById('save-changes');
             const cancelChangesBtn = document.getElementById('cancel-changes');
             const archiveTaskBtn = document.getElementById('archive-task');
+            const deleteNodeBtn = document.getElementById('delete-node');
             
             saveChangesBtn.addEventListener('click', saveNodeChanges);
             cancelChangesBtn.addEventListener('click', cancelNodeChanges);
             archiveTaskBtn.addEventListener('click', archiveNode);
+            deleteNodeBtn.addEventListener('click', deleteNode);
             
             // Add input event listeners for real-time updates
             const taskTitle = document.getElementById('task-title');
@@ -1832,36 +1814,149 @@
                 
                 if (node) {
                     // Update node data from form fields
-                    node.title = document.getElementById('task-title').value;
-                    node.description = document.getElementById('task-description').innerHTML;
-                    node.status = document.getElementById('task-status').value;
-                    node.priority = document.getElementById('task-priority').value;
+                    const updatedData = {
+                        id: nodeId,
+                        title: document.getElementById('task-title').value,
+                        description: document.getElementById('task-description').innerHTML,
+                        status: document.getElementById('task-status').value,
+                        priority: document.getElementById('task-priority').value,
+                        x: node.x,
+                        y: node.y,
+                        width: node.width,
+                        height: node.height,
+                        tags: node.tags,
+                        assignee_id: document.getElementById('task-assignee').value || null
+                    };
                     
-                    // Update assignee if changed
-                    const assigneeSelect = document.getElementById('task-assignee');
-                    if (assigneeSelect.value) {
-                        const assigneeId = assigneeSelect.value;
-                        const assigneeName = assigneeSelect.options[assigneeSelect.selectedIndex].text;
-                        node.assignee = { 
-                            id: assigneeId, 
-                            name: assigneeName, 
-                            avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' 
-                        };
-                    } else {
-                        node.assignee = null;
-                    }
-                    
-                    // Clear original data
-                    state.originalNodeData = null;
-                    
-                    // Re-render the mindmap to show updated data
-                    renderNodes();
-                    renderConnections();
-                    
-                    // Show success feedback
-                    showSaveFeedback(true);
+                    // Send update to backend
+                    fetch('{% url "mindmap:update_node" %}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify(updatedData)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Update local state with backend response
+                            Object.assign(node, data.node);
+                            
+                            // Clear original data
+                            state.originalNodeData = null;
+                            
+                            // Re-render the mindmap to show updated data
+                            renderNodes();
+                            renderConnections();
+                            
+                            // Show success feedback
+                            showSaveFeedback(true);
+                        } else {
+                            showSaveFeedback(false, data.error);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showSaveFeedback(false, 'Network error occurred');
+                    });
                 }
             }
+        }
+        
+        // Save node position to backend (called after dragging)
+        function saveNodePosition(nodeId) {
+            const node = state.nodes.find(n => n.id === nodeId);
+            
+            if (node) {
+                // If it's a temporary node (starts with 'temp-'), create it first
+                if (nodeId.startsWith('temp-')) {
+                    createNodeFromPosition(node);
+                    return;
+                }
+                
+                const positionData = {
+                    id: nodeId,
+                    x: node.x,
+                    y: node.y,
+                    width: node.width,
+                    height: node.height
+                };
+                
+                // Send position update to backend
+                fetch('{% url "mindmap:update_node" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify(positionData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update local state with backend response
+                        Object.assign(node, data.node);
+                        console.log('Position saved successfully');
+
+                        // стало:
+                        const keepId = String(node.id);
+                        Object.assign(node, data.node);
+                        node.id = keepId;
+
+                        // и неплохо перерисовать:
+                        renderNodes();
+                        renderConnections();
+                    } else {
+                        console.error('Failed to save position:', data.error);
+                        // If node doesn't exist, create it first
+                        if (data.error && data.error.includes('No MindmapNode matches')) {
+                            createNodeFromPosition(node);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving position:', error);
+                });
+            }
+        }
+        
+        // Create a new node from position data when the node doesn't exist in database
+        function createNodeFromPosition(node) {
+            const nodeData = {
+                title: node.title,
+                description: node.description,
+                status: node.status,
+                priority: node.priority,
+                x: node.x,
+                y: node.y,
+                width: node.width,
+                height: node.height,
+                tags: node.tags,
+                assignee_id: node.assignee ? node.assignee.id : null
+            };
+            
+            fetch('{% url "mindmap:create_node" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(nodeData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update the node with the new database ID
+                    node.id = data.node.id;
+                    console.log('Node created successfully with ID:', data.node.id);
+                } else {
+                    console.error('Failed to create node:', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error creating node:', error);
+            });
         }
         
         // Cancel changes and restore original values
@@ -1909,6 +2004,224 @@
                     showSaveFeedback(true);
                 }
             }
+        }
+        
+        // Delete the selected node
+        function deleteNode() {
+            if (state.selectedNodes.length === 1) {
+                const nodeId = state.selectedNodes[0];
+                
+                // Confirm deletion
+                if (confirm('Are you sure you want to delete this node? This action cannot be undone.')) {
+                    // Send delete request to backend
+                    fetch('{% url "mindmap:delete_node" %}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify({ id: nodeId })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Remove node from state
+                            state.nodes = state.nodes.filter(n => n.id !== nodeId);
+                            
+                            // Remove connections involving this node
+                            state.connections = state.connections.filter(c => 
+                                c.from_node_id !== nodeId && c.to_node_id !== nodeId
+                            );
+                            
+                            // Clear selection
+                            state.selectedNodes = [];
+                            
+                            // Hide details panel
+                            const detailsPanel = document.getElementById('details-panel');
+                            detailsPanel.classList.add('details-collapsed');
+                            
+                            // Re-render the mindmap
+                            renderNodes();
+                            renderConnections();
+                            
+                            console.log('Node deleted successfully');
+                        } else {
+                            console.error('Failed to delete node:', data.error);
+                            alert('Failed to delete node: ' + data.error);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error deleting node:', error);
+                        alert('An error occurred while deleting the node');
+                    });
+                }
+            }
+        }
+        
+        // Create a child node connected to the context menu node
+        function createChildNode() {
+            if (state.contextMenu.nodeId) {
+                const parentNode = state.nodes.find(n => n.id === state.contextMenu.nodeId);
+                if (parentNode) {
+                    // Position child node below parent
+                    const x = parentNode.x;
+                    const y = parentNode.y + parentNode.height + 50;
+                    
+                    const newNodeData = {
+                        title: 'New Child Node',
+                        description: '',
+                        status: 'todo',
+                        priority: 'med',
+                        x: x,
+                        y: y,
+                        width: 200,
+                        height: 80,
+                        tags: [],
+                        assignee_id: null
+                    };
+                    
+                    // Send create request to backend
+                    fetch('{% url "mindmap:create_node" %}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify(newNodeData)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Add new node to state
+                            state.nodes.push(data.node);
+                            
+                            // Create connection from parent to child
+                            createConnection(state.contextMenu.nodeId, data.node.id);
+                            
+                            renderNodes();
+                            renderConnections();
+                            
+                            // Select and show details for new node
+                            state.selectedNodes = [data.node.id];
+                            renderNodes();
+                            showNodeDetails(data.node.id);
+                        } else {
+                            console.error('Failed to create child node:', data.error);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+                }
+            }
+        }
+        
+        // Create a sibling node connected to the context menu node's parent
+        function createSiblingNode() {
+            if (state.contextMenu.nodeId) {
+                const currentNode = state.nodes.find(n => n.id === state.contextMenu.nodeId);
+                if (currentNode) {
+                    // Find parent node (node that has a connection to current node)
+                    const parentConnection = state.connections.find(c => c.to_node_id === state.contextMenu.nodeId);
+                    let parentNodeId = null;
+                    
+                    if (parentConnection) {
+                        parentNodeId = parentConnection.from_node_id;
+                    } else {
+                        // If no parent, use project node
+                        const projectNode = state.nodes.find(n => n.tags && n.tags.includes('project'));
+                        if (projectNode) {
+                            parentNodeId = projectNode.id;
+                        }
+                    }
+                    
+                    // Position sibling node to the right of current node
+                    const x = currentNode.x + currentNode.width + 50;
+                    const y = currentNode.y;
+                    
+                    const newNodeData = {
+                        title: 'New Sibling Node',
+                        description: '',
+                        status: 'todo',
+                        priority: 'med',
+                        x: x,
+                        y: y,
+                        width: 200,
+                        height: 80,
+                        tags: [],
+                        assignee_id: null
+                    };
+                    
+                    // Send create request to backend
+                    fetch('{% url "mindmap:create_node" %}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify(newNodeData)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Add new node to state
+                            state.nodes.push(data.node);
+                            
+                            // Create connection from parent to sibling
+                            if (parentNodeId) {
+                                createConnection(parentNodeId, data.node.id);
+                            }
+                            
+                            renderNodes();
+                            renderConnections();
+                            
+                            // Select and show details for new node
+                            state.selectedNodes = [data.node.id];
+                            renderNodes();
+                            showNodeDetails(data.node.id);
+                        } else {
+                            console.error('Failed to create sibling node:', data.error);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+                }
+            }
+        }
+        
+        // Create a connection between two nodes
+        function createConnection(fromNodeId, toNodeId) {
+            const connectionData = {
+                from_node_id: fromNodeId,
+                to_node_id: toNodeId,
+                connection_type: 'related',
+                label: '',
+                color: '#6b7280',
+                thickness: 2
+            };
+            
+            fetch('{% url "mindmap:create_connection" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(connectionData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Add connection to state
+                    state.connections.push(data.connection);
+                    renderConnections();
+                } else {
+                    console.error('Failed to create connection:', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error creating connection:', error);
+            });
         }
         
         // Show save feedback

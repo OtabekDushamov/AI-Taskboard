@@ -44,6 +44,7 @@ INSTALLED_APPS = [
 LOCAL_APPS = [
     'apps.authentication',
     'apps.main',
+    'apps.mindmap',
     'apps.webapp',
 ]
 

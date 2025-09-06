@@ -9,7 +9,6 @@ urlpatterns = [
     path('', login_required(views.dashboard_view), name='home'),
     path('profile/', login_required(views.profile_view), name='profile'),
     path('users/', login_required(views.users_view), name='users'),
-    path('mindmap/', login_required(views.mindmap_view), name='mindmap'),
     
     # Dashboard and overview
     path('analytics/', login_required(views.analytics_view), name='analytics'),

@@ -67,11 +67,6 @@ def users_view(request):
     return render(request, 'main/users.html')
 
 
-def mindmap_view(request):
-    """Mindmap view"""
-    return render(request, 'main/mindmap.html')
-
-
 # =============================================================================
 # DASHBOARD AND OVERVIEW
 # =============================================================================
