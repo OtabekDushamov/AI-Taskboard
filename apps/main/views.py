@@ -265,6 +265,14 @@ def project_detail_view(request, project_id):
     review_tasks = tasks.filter(status='review')
     completed_tasks = tasks.filter(status='completed')
     
+    # Group tasks by status for Kanban board
+    tasks_by_status = {
+        'todo': todo_tasks,
+        'in_progress': in_progress_tasks,
+        'review': review_tasks,
+        'completed': completed_tasks,
+    }
+    
     # Get project members
     project_members = ProjectMember.objects.filter(project=project)
     
@@ -281,6 +289,7 @@ def project_detail_view(request, project_id):
         'in_progress_tasks': in_progress_tasks,
         'review_tasks': review_tasks,
         'completed_tasks': completed_tasks,
+        'tasks_by_status': tasks_by_status,
         'project_members': project_members,
         'recent_activities': recent_activities,
         'progress_percentage': project.get_progress_percentage(),

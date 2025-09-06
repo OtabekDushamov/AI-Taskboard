@@ -49,6 +49,45 @@
         color: #60a5fa;
         border-bottom-color: #60a5fa;
     }
+
+    .line-clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    .task-card {
+        transition: all 0.2s ease-in-out;
+    }
+    
+    .task-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .task-card.dragging {
+        opacity: 0.5;
+        transform: rotate(5deg);
+    }
+    
+    [data-status] {
+        transition: background-color 0.2s ease-in-out;
+    }
+    
+    [data-status].drag-over {
+        background-color: rgba(59, 130, 246, 0.1);
+        border: 2px dashed #3b82f6;
+    }
+    
+    .kanban-column {
+        min-height: 400px;
+    }
+    
+    .kanban-column.empty {
+        background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23e5e7eb' fill-opacity='0.3'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        background-repeat: repeat;
+    }
 </style>
 {% endblock %}
 
@@ -254,28 +293,131 @@
                     </div>
                 </div>
 
-                <div class="space-y-3">
-                    {% for task in tasks %}
-                    <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                        <div class="flex items-center gap-3">
-                            <div class="w-2 h-2 rounded-full {% if task.status == 'completed' %}bg-green-500{% elif task.status == 'in_progress' %}bg-blue-500{% elif task.status == 'review' %}bg-yellow-500{% else %}bg-gray-500{% endif %}"></div>
-                            <div>
-                                <a href="{% url 'main:task_detail' task.id %}" class="text-sm font-medium text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400">{{ task.title }}</a>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ task.category.name }}</p>
-                            </div>
+                <!-- Kanban Board -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <!-- To Do Column -->
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 kanban-column">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="font-semibold text-gray-900 dark:text-white">To Do</h4>
+                            <span class="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 text-xs px-2 py-1 rounded-full">{{ tasks_by_status.todo.count }}</span>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-xs px-2 py-1 rounded-full {% if task.priority == 'urgent' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200{% elif task.priority == 'high' %}bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200{% elif task.priority == 'medium' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200{% else %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200{% endif %}">
-                                {{ task.get_priority_display }}
-                            </span>
-                            {% if task.deadline %}
-                            <span class="text-xs text-gray-500 dark:text-gray-400">{{ task.deadline|date:"M j" }}</span>
-                            {% endif %}
+                        <div class="space-y-3 min-h-[200px] {% if not tasks_by_status.todo %}empty{% endif %}" data-status="todo">
+                            {% for task in tasks_by_status.todo %}
+                            <div class="task-card bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-200 dark:border-gray-600 cursor-move hover:shadow-md transition-shadow duration-200" data-task-id="{{ task.id }}" draggable="true">
+                                <div class="flex items-start justify-between mb-2">
+                                    <h5 class="text-sm font-medium text-gray-900 dark:text-white line-clamp-2">
+                                        <a href="{% url 'main:task_detail' task.id %}" class="hover:text-blue-600 dark:hover:text-blue-400">{{ task.title }}</a>
+                                    </h5>
+                                    <span class="text-xs px-2 py-1 rounded-full {% if task.priority == 'urgent' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200{% elif task.priority == 'high' %}bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200{% elif task.priority == 'medium' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200{% else %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200{% endif %}">
+                                        {{ task.get_priority_display }}
+                                    </span>
+                                </div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">{{ task.category.name }}</p>
+                                {% if task.deadline %}
+                                <div class="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                                    <i class="fas fa-calendar-alt mr-1"></i>
+                                    {{ task.deadline|date:"M j" }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% empty %}
+                            <p class="text-gray-400 dark:text-gray-500 text-sm italic text-center py-8">No tasks</p>
+                            {% endfor %}
                         </div>
                     </div>
-                    {% empty %}
-                    <p class="text-gray-500 dark:text-gray-400 italic text-center py-8">No tasks in this project yet</p>
-                    {% endfor %}
+
+                    <!-- In Progress Column -->
+                    <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 kanban-column">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="font-semibold text-gray-900 dark:text-white">In Progress</h4>
+                            <span class="bg-blue-200 dark:bg-blue-800 text-blue-700 dark:text-blue-300 text-xs px-2 py-1 rounded-full">{{ tasks_by_status.in_progress.count }}</span>
+                        </div>
+                        <div class="space-y-3 min-h-[200px] {% if not tasks_by_status.in_progress %}empty{% endif %}" data-status="in_progress">
+                            {% for task in tasks_by_status.in_progress %}
+                            <div class="task-card bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-200 dark:border-gray-600 cursor-move hover:shadow-md transition-shadow duration-200" data-task-id="{{ task.id }}" draggable="true">
+                                <div class="flex items-start justify-between mb-2">
+                                    <h5 class="text-sm font-medium text-gray-900 dark:text-white line-clamp-2">
+                                        <a href="{% url 'main:task_detail' task.id %}" class="hover:text-blue-600 dark:hover:text-blue-400">{{ task.title }}</a>
+                                    </h5>
+                                    <span class="text-xs px-2 py-1 rounded-full {% if task.priority == 'urgent' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200{% elif task.priority == 'high' %}bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200{% elif task.priority == 'medium' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200{% else %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200{% endif %}">
+                                        {{ task.get_priority_display }}
+                                    </span>
+                                </div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">{{ task.category.name }}</p>
+                                {% if task.deadline %}
+                                <div class="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                                    <i class="fas fa-calendar-alt mr-1"></i>
+                                    {{ task.deadline|date:"M j" }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% empty %}
+                            <p class="text-gray-400 dark:text-gray-500 text-sm italic text-center py-8">No tasks</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Review Column -->
+                    <div class="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4 kanban-column">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="font-semibold text-gray-900 dark:text-white">Review</h4>
+                            <span class="bg-yellow-200 dark:bg-yellow-800 text-yellow-700 dark:text-yellow-300 text-xs px-2 py-1 rounded-full">{{ tasks_by_status.review.count }}</span>
+                        </div>
+                        <div class="space-y-3 min-h-[200px] {% if not tasks_by_status.review %}empty{% endif %}" data-status="review">
+                            {% for task in tasks_by_status.review %}
+                            <div class="task-card bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-200 dark:border-gray-600 cursor-move hover:shadow-md transition-shadow duration-200" data-task-id="{{ task.id }}" draggable="true">
+                                <div class="flex items-start justify-between mb-2">
+                                    <h5 class="text-sm font-medium text-gray-900 dark:text-white line-clamp-2">
+                                        <a href="{% url 'main:task_detail' task.id %}" class="hover:text-blue-600 dark:hover:text-blue-400">{{ task.title }}</a>
+                                    </h5>
+                                    <span class="text-xs px-2 py-1 rounded-full {% if task.priority == 'urgent' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200{% elif task.priority == 'high' %}bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200{% elif task.priority == 'medium' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200{% else %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200{% endif %}">
+                                        {{ task.get_priority_display }}
+                                    </span>
+                                </div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">{{ task.category.name }}</p>
+                                {% if task.deadline %}
+                                <div class="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                                    <i class="fas fa-calendar-alt mr-1"></i>
+                                    {{ task.deadline|date:"M j" }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% empty %}
+                            <p class="text-gray-400 dark:text-gray-500 text-sm italic text-center py-8">No tasks</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Completed Column -->
+                    <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 kanban-column">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="font-semibold text-gray-900 dark:text-white">Completed</h4>
+                            <span class="bg-green-200 dark:bg-green-800 text-green-700 dark:text-green-300 text-xs px-2 py-1 rounded-full">{{ tasks_by_status.completed.count }}</span>
+                        </div>
+                        <div class="space-y-3 min-h-[200px] {% if not tasks_by_status.completed %}empty{% endif %}" data-status="completed">
+                            {% for task in tasks_by_status.completed %}
+                            <div class="task-card bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-200 dark:border-gray-600 cursor-move hover:shadow-md transition-shadow duration-200" data-task-id="{{ task.id }}" draggable="true">
+                                <div class="flex items-start justify-between mb-2">
+                                    <h5 class="text-sm font-medium text-gray-900 dark:text-white line-clamp-2">
+                                        <a href="{% url 'main:task_detail' task.id %}" class="hover:text-blue-600 dark:hover:text-blue-400">{{ task.title }}</a>
+                                    </h5>
+                                    <span class="text-xs px-2 py-1 rounded-full {% if task.priority == 'urgent' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200{% elif task.priority == 'high' %}bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200{% elif task.priority == 'medium' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200{% else %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200{% endif %}">
+                                        {{ task.get_priority_display }}
+                                    </span>
+                                </div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">{{ task.category.name }}</p>
+                                {% if task.deadline %}
+                                <div class="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                                    <i class="fas fa-calendar-alt mr-1"></i>
+                                    {{ task.deadline|date:"M j" }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% empty %}
+                            <p class="text-gray-400 dark:text-gray-500 text-sm italic text-center py-8">No tasks</p>
+                            {% endfor %}
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -340,25 +482,168 @@
 {% endblock %}
 
 {% block extra_js %}
+{% csrf_token %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Tab switching
-    const tabLinks = document.querySelectorAll('.tab-link');
-    const tabContents = document.querySelectorAll('.tab-content');
+    document.addEventListener('DOMContentLoaded', function() {
+        // Tab switching
+        const tabLinks = document.querySelectorAll('.tab-link');
+        const tabContents = document.querySelectorAll('.tab-content');
 
-    tabLinks.forEach(link => {
-        link.addEventListener('click', function() {
-            const targetTab = this.dataset.tab;
-            
-            // Remove active class from all tabs
-            tabLinks.forEach(tab => tab.classList.remove('tab-active'));
-            tabContents.forEach(content => content.classList.add('hidden'));
-            
-            // Add active class to clicked tab
-            this.classList.add('tab-active');
-            document.getElementById(targetTab + '-tab').classList.remove('hidden');
+        tabLinks.forEach(link => {
+            link.addEventListener('click', function() {
+                const targetTab = this.dataset.tab;
+                
+                // Remove active class from all tabs
+                tabLinks.forEach(tab => tab.classList.remove('tab-active'));
+                tabContents.forEach(content => content.classList.add('hidden'));
+                
+                // Add active class to clicked tab
+                this.classList.add('tab-active');
+                document.getElementById(targetTab + '-tab').classList.remove('hidden');
+            });
         });
+
+        // Kanban drag and drop functionality
+        let draggedTask = null;
+
+        // Add drag event listeners to task cards
+        document.querySelectorAll('.task-card').forEach(card => {
+            card.addEventListener('dragstart', function(e) {
+                draggedTask = this;
+                this.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/html', this.outerHTML);
+            });
+
+            card.addEventListener('dragend', function(e) {
+                this.classList.remove('dragging');
+                draggedTask = null;
+                // Remove all drag-over classes
+                document.querySelectorAll('[data-status]').forEach(col => {
+                    col.classList.remove('drag-over');
+                });
+            });
+        });
+
+        // Add drop event listeners to status columns
+        document.querySelectorAll('[data-status]').forEach(column => {
+            column.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                this.classList.add('drag-over');
+            });
+
+            column.addEventListener('dragleave', function(e) {
+                // Only remove if we're actually leaving the column
+                if (!this.contains(e.relatedTarget)) {
+                    this.classList.remove('drag-over');
+                }
+            });
+
+            column.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.classList.remove('drag-over');
+                
+                if (draggedTask) {
+                    const newStatus = this.dataset.status;
+                    const taskId = draggedTask.dataset.taskId;
+                    
+                    // Update task status via AJAX
+                    updateTaskStatus(taskId, newStatus, draggedTask, this);
+                }
+            });
+        });
+
+         // Function to update task status
+         function updateTaskStatus(taskId, newStatus, taskCard, targetColumn) {
+             fetch('{% url "main:update_task_status" %}', {
+                 method: 'POST',
+                 headers: {
+                     'Content-Type': 'application/json',
+                     'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                 },
+                 body: JSON.stringify({
+                     task_id: taskId,
+                     status: newStatus
+                 })
+             })
+             .then(response => response.json())
+             .then(data => {
+                 if (data.success) {
+                     // Remove "No tasks" text if it exists in the target column
+                     const noTasksText = targetColumn.querySelector('p.text-gray-400');
+                     if (noTasksText) {
+                         noTasksText.remove();
+                     }
+                     
+                     // Remove empty class from target column
+                     targetColumn.classList.remove('empty');
+                     
+                     // Move the task card to the new column
+                     targetColumn.appendChild(taskCard);
+                     
+                     // Update the count badges
+                     updateColumnCounts();
+                     
+                     // Show success message
+                     showNotification('Task status updated successfully!', 'success');
+                 } else {
+                     showNotification('Failed to update task status: ' + data.error, 'error');
+                 }
+             })
+             .catch(error => {
+                 console.error('Error:', error);
+                 showNotification('An error occurred while updating task status', 'error');
+             });
+         }
+
+         // Function to update column counts
+         function updateColumnCounts() {
+             document.querySelectorAll('[data-status]').forEach(column => {
+                 const status = column.dataset.status;
+                 const count = column.querySelectorAll('.task-card').length;
+                 const countBadge = column.parentElement.querySelector('.bg-gray-200, .bg-blue-200, .bg-yellow-200, .bg-green-200');
+                 
+                 // Update count badge
+                 if (countBadge) {
+                     countBadge.textContent = count;
+                 }
+                 
+                 // Handle empty state
+                 if (count === 0) {
+                     // Add empty class and "No tasks" text if not already present
+                     column.classList.add('empty');
+                     if (!column.querySelector('p.text-gray-400')) {
+                         const noTasksText = document.createElement('p');
+                         noTasksText.className = 'text-gray-400 dark:text-gray-500 text-sm italic text-center py-8';
+                         noTasksText.textContent = 'No tasks';
+                         column.appendChild(noTasksText);
+                     }
+                 } else {
+                     // Remove empty class and "No tasks" text if tasks exist
+                     column.classList.remove('empty');
+                     const noTasksText = column.querySelector('p.text-gray-400');
+                     if (noTasksText) {
+                         noTasksText.remove();
+                     }
+                 }
+             });
+         }
+
+        // Function to show notifications
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+            }`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
     });
-});
 </script>
 {% endblock %}
