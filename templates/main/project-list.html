@@ -71,21 +71,24 @@
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 mb-6">
         <div class="flex flex-col md:flex-row gap-4">
             <div class="flex-1">
-                <input type="text" placeholder="Search projects..." class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                <input type="text" id="search-input" placeholder="Search projects..." class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
             </div>
             <div class="flex gap-2">
-                <select class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                <select id="status-filter" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                     <option value="">All Status</option>
                     <option value="active">Active</option>
                     <option value="completed">Completed</option>
                     <option value="on_hold">On Hold</option>
                 </select>
-                <select class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                <select id="priority-filter" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                     <option value="">All Priority</option>
                     <option value="high">High</option>
                     <option value="medium">Medium</option>
                     <option value="low">Low</option>
                 </select>
+                <button id="clear-filters" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors duration-200">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
         </div>
     </div>
@@ -93,7 +96,10 @@
     <!-- Projects Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {% for project in projects %}
-        <div class="project-card bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+        <div class="project-card bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700" 
+             data-name="{{ project.name|lower }}" 
+             data-status="{{ project.status }}" 
+             data-priority="{{ project.priority }}">
             <div class="flex items-start justify-between mb-4">
                 <div class="flex-1">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
@@ -205,4 +211,59 @@
     </div>
     {% endif %}
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('search-input');
+    const statusFilter = document.getElementById('status-filter');
+    const priorityFilter = document.getElementById('priority-filter');
+    const clearFiltersBtn = document.getElementById('clear-filters');
+    const projectCards = document.querySelectorAll('.project-card');
+    
+    function filterProjects() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const statusValue = statusFilter.value;
+        const priorityValue = priorityFilter.value;
+        
+        projectCards.forEach(card => {
+            const name = card.dataset.name;
+            const status = card.dataset.status;
+            const priority = card.dataset.priority;
+            
+            const matchesSearch = name.includes(searchTerm);
+            const matchesStatus = !statusValue || status === statusValue;
+            const matchesPriority = !priorityValue || priority === priorityValue;
+            
+            if (matchesSearch && matchesStatus && matchesPriority) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        
+        // Update project count
+        const visibleProjects = Array.from(projectCards).filter(card => card.style.display !== 'none');
+        const countElement = document.querySelector('p.text-gray-500');
+        if (countElement) {
+            countElement.textContent = `Manage your team's work - ${visibleProjects.length} projects`;
+        }
+    }
+    
+    function clearFilters() {
+        searchInput.value = '';
+        statusFilter.value = '';
+        priorityFilter.value = '';
+        filterProjects();
+    }
+    
+    // Event listeners
+    searchInput.addEventListener('input', filterProjects);
+    statusFilter.addEventListener('change', filterProjects);
+    priorityFilter.addEventListener('change', filterProjects);
+    clearFiltersBtn.addEventListener('click', clearFilters);
+    
+    // Initial filter (in case there are URL parameters)
+    filterProjects();
+});
+</script>
 {% endblock %}

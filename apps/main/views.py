@@ -26,7 +26,40 @@ from apps.webapp.models import BotUser
 
 def profile_view(request):
     """Profile page view"""
-    return render(request, 'main/profile.html')
+    try:
+        bot_user = BotUser.objects.get(user=request.user)
+    except BotUser.DoesNotExist:
+        bot_user = BotUser.objects.create(
+            user=request.user,
+            telegram_id=0,
+            first_name=request.user.first_name or 'User',
+            last_name=request.user.last_name or '',
+            username=request.user.username or ''
+        )
+    
+    # Handle profile updates
+    if request.method == 'POST':
+        # Update BotUser fields
+        bot_user.first_name = request.POST.get('first_name', bot_user.first_name)
+        bot_user.last_name = request.POST.get('last_name', bot_user.last_name)
+        bot_user.username = request.POST.get('username', bot_user.username)
+        bot_user.save()
+        
+        # Update User fields
+        user = request.user
+        user.first_name = request.POST.get('first_name', user.first_name)
+        user.last_name = request.POST.get('last_name', user.last_name)
+        user.email = request.POST.get('email', user.email)
+        user.save()
+        
+        messages.success(request, 'Profile updated successfully!')
+        return redirect('main:profile')
+    
+    context = {
+        'bot_user': bot_user,
+        'user': request.user,
+    }
+    return render(request, 'main/profile.html', context)
 
 
 def users_view(request):

@@ -128,8 +128,8 @@
                         <div>
                             <a href="{% url 'main:profile' %}" class="max-w-xs flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 hover:opacity-80 transition-opacity" id="user-menu" aria-expanded="false" aria-haspopup="true">
                                 <span class="sr-only">Go to profile</span>
-                                <img class="h-8 w-8 rounded-full cursor-pointer" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="">
-                                <span class="ml-2 hidden md:block text-gray-800 dark:text-white">John Doe</span>
+                                <img class="h-8 w-8 rounded-full cursor-pointer" src="https://ui-avatars.com/api/?name={{ user.get_full_name|default:user.username }}&background=3b82f6&color=fff&size=32" alt="{{ user.get_full_name|default:user.username }}">
+                                <span class="ml-2 hidden md:block text-gray-800 dark:text-white">{{ user.get_full_name|default:user.username }}</span>
                                 <i class="fas fa-chevron-down ml-1 text-gray-400 hidden md:block"></i>
                             </a>
                         </div>
@@ -168,9 +168,55 @@
     </div>
 
     <script>
+        // Theme persistence functions
+        function setTheme(theme) {
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+            // Save to cookie
+            document.cookie = `theme=${theme}; path=/; max-age=31536000`; // 1 year
+        }
+        
+        function getTheme() {
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if (name === 'theme') {
+                    return value;
+                }
+            }
+            return null;
+        }
+        
+        function initTheme() {
+            const savedTheme = getTheme();
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            
+            if (savedTheme) {
+                setTheme(savedTheme);
+            } else if (prefersDark) {
+                setTheme('dark');
+            } else {
+                setTheme('light');
+            }
+        }
+        
+        // Initialize theme on page load
+        initTheme();
+        
         // Toggle dark mode
         document.getElementById('theme-toggle').addEventListener('click', function() {
-            document.documentElement.classList.toggle('dark');
+            const isDark = document.documentElement.classList.contains('dark');
+            setTheme(isDark ? 'light' : 'dark');
+        });
+        
+        // Listen for system theme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+            if (!getTheme()) { // Only auto-switch if user hasn't set a preference
+                setTheme(e.matches ? 'dark' : 'light');
+            }
         });
         
         // Toggle user dropdown

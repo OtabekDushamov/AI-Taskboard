@@ -5,7 +5,7 @@ from django.utils import timezone
 
 class BotUser(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='bot_user')
-    telegram_id = models.BigIntegerField(unique=True)
+    telegram_id = models.BigIntegerField()
     profile_image = models.URLField(max_length=500, blank=True, null=True)
     username = models.CharField(max_length=100, blank=True, null=True)
     first_name = models.CharField(max_length=100)

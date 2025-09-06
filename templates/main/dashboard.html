@@ -106,7 +106,7 @@
                                 <a href="{% url 'main:task_detail' task.id %}" class="hover:text-primary-600 dark:hover:text-primary-400">{{ task.title }}</a>
                             </label>
                             <div class="task-actions flex space-x-2">
-                                <a href="{% url 'main:task_detail' task.id %}" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                                <a href="{% url 'main:task_crud' task.id %}" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
                                     <i class="fas fa-pencil-alt text-xs"></i>
                                 </a>
                             </div>

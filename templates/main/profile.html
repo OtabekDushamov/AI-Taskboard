@@ -99,53 +99,96 @@
     .toggle-checkbox:checked + .toggle-label {
         background-color: #3b82f6;
     }
+    
+    /* Dark mode toggle switches */
+    .dark .peer-checked\:bg-blue-600 {
+        background-color: #2563eb;
+    }
+    
+    .dark .bg-gray-200 {
+        background-color: #374151;
+    }
+    
+    .dark .after\:bg-white {
+        background-color: #f9fafb;
+    }
+    
+    .dark .after\:border-gray-300 {
+        border-color: #6b7280;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="max-w-4xl mx-auto">
-    <!-- Header Section -->
-    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-        <div class="flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-6">
-            <!-- Avatar Upload -->
-            <div class="avatar-upload">
-                <div class="avatar-edit">
-                    <input type='file' id="avatarUpload" accept=".png, .jpg, .jpeg" />
-                    <label for="avatarUpload"><i class="fas fa-camera"></i></label>
+    <!-- Success Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="mb-4 p-4 rounded-lg {% if message.tags == 'success' %}bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200{% else %}bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200{% endif %}">
+                <div class="flex items-center">
+                    <i class="fas {% if message.tags == 'success' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %} mr-2"></i>
+                    {{ message }}
                 </div>
-                <div class="avatar-preview">
-                    <div id="avatarPreview" style="background-image: url('https://ui-avatars.com/api/?name=John+Doe&background=3b82f6&color=fff&size=120');"></div>
+            </div>
+        {% endfor %}
+    {% endif %}
+    
+    <!-- Header Section -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+        <form method="post">
+            {% csrf_token %}
+            <div class="flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-6">
+                <!-- Avatar Upload -->
+                <div class="avatar-upload">
+                    <div class="avatar-edit">
+                        <input type='file' id="avatarUpload" accept=".png, .jpg, .jpeg" />
+                        <label for="avatarUpload"><i class="fas fa-camera"></i></label>
+                    </div>
+                    <div class="avatar-preview">
+                        <div id="avatarPreview" style="background-image: url('https://ui-avatars.com/api/?name={{ user.get_full_name|default:user.username }}&background=3b82f6&color=fff&size=120');"></div>
+                    </div>
+                </div>
+                
+                <!-- User Info -->
+                <div class="flex-1 w-full">
+                    <div class="mb-4">
+                        <label for="first_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">First Name</label>
+                        <input type="text" id="first_name" name="first_name" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white" value="{{ user.first_name|default:'' }}">
+                    </div>
+                    <div class="mb-4">
+                        <label for="last_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Last Name</label>
+                        <input type="text" id="last_name" name="last_name" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white" value="{{ user.last_name|default:'' }}">
+                    </div>
+                    <div class="mb-4">
+                        <label for="username" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username</label>
+                        <input type="text" id="username" name="username" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white" value="{{ user.username|default:'' }}">
+                    </div>
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                        <input type="email" id="email" name="email" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white" value="{{ user.email|default:'' }}">
+                    </div>
                 </div>
             </div>
             
-            <!-- User Info -->
-            <div class="flex-1 w-full">
-                <div class="mb-4">
-                    <label for="fullName" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                    <input type="text" id="fullName" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" value="John Doe">
-                </div>
-                <div class="mb-4">
-                    <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                    <input type="text" id="username" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" value="johndoe">
-                </div>
-                <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                    <input type="email" id="email" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" value="john.doe@example.com">
-                </div>
+            <!-- Save Button -->
+            <div class="mt-6 flex justify-end">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-medium transition-colors duration-200">
+                    <i class="fas fa-save mr-2"></i>Save Changes
+                </button>
             </div>
-        </div>
+        </form>
     </div>
     
     <!-- Tabs Navigation -->
-    <div class="bg-white rounded-lg shadow-md overflow-hidden mb-6">
-        <div class="flex border-b border-gray-200">
-            <button class="tab-btn py-4 px-6 font-medium text-sm focus:outline-none border-b-2 border-transparent hover:text-blue-500 transition-colors active" data-tab="general">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden mb-6">
+        <div class="flex border-b border-gray-200 dark:border-gray-700">
+            <button class="tab-btn py-4 px-6 font-medium text-sm focus:outline-none border-b-2 border-transparent hover:text-blue-500 transition-colors active text-gray-700 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400" data-tab="general">
                 <i class="fas fa-cog mr-2"></i> General
             </button>
-            <button class="tab-btn py-4 px-6 font-medium text-sm focus:outline-none border-b-2 border-transparent hover:text-blue-500 transition-colors" data-tab="notifications">
+            <button class="tab-btn py-4 px-6 font-medium text-sm focus:outline-none border-b-2 border-transparent hover:text-blue-500 transition-colors text-gray-700 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400" data-tab="notifications">
                 <i class="fas fa-bell mr-2"></i> Notifications
             </button>
-            <button class="tab-btn py-4 px-6 font-medium text-sm focus:outline-none border-b-2 border-transparent hover:text-blue-500 transition-colors" data-tab="integrations">
+            <button class="tab-btn py-4 px-6 font-medium text-sm focus:outline-none border-b-2 border-transparent hover:text-blue-500 transition-colors text-gray-700 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400" data-tab="integrations">
                 <i class="fas fa-plug mr-2"></i> Integrations
             </button>
         </div>
@@ -154,10 +197,10 @@
     <!-- Tab Contents -->
     <div class="tab-contents">
         <!-- General Tab -->
-        <div id="general" class="tab-content active bg-white rounded-lg shadow-md p-6">
+        <div id="general" class="tab-content active bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
             <div class="mb-4">
-                <label for="locale" class="block text-sm font-medium text-gray-700 mb-1">Locale</label>
-                <select id="locale" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <label for="locale" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Locale</label>
+                <select id="locale" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
                     <option value="en-US">English (United States)</option>
                     <option value="en-GB">English (United Kingdom)</option>
                     <option value="es-ES">Spanish (Spain)</option>
@@ -167,8 +210,8 @@
             </div>
             
             <div class="mb-4">
-                <label for="timezone" class="block text-sm font-medium text-gray-700 mb-1">Timezone</label>
-                <select id="timezone" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <label for="timezone" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Timezone</label>
+                <select id="timezone" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
                     <option value="UTC-12">UTC-12:00</option>
                     <option value="UTC-8">UTC-08:00 (PST)</option>
                     <option value="UTC-5">UTC-05:00 (EST)</option>
@@ -179,19 +222,19 @@
             </div>
             
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Working Hours</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Working Hours</label>
                 <div class="flex items-center space-x-4">
                     <div class="flex-1">
-                        <label for="startTime" class="block text-xs text-gray-500 mb-1">Start Time</label>
-                        <select id="startTime" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label for="startTime" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Start Time</label>
+                        <select id="startTime" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
                             <option value="9:00">9:00 AM</option>
                             <option value="8:00" selected>8:00 AM</option>
                             <option value="7:00">7:00 AM</option>
                         </select>
                     </div>
                     <div class="flex-1">
-                        <label for="endTime" class="block text-xs text-gray-500 mb-1">End Time</label>
-                        <select id="endTime" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <label for="endTime" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">End Time</label>
+                        <select id="endTime" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
                             <option value="17:00" selected>5:00 PM</option>
                             <option value="18:00">6:00 PM</option>
                             <option value="19:00">7:00 PM</option>
@@ -202,64 +245,64 @@
         </div>
         
         <!-- Notifications Tab -->
-        <div id="notifications" class="tab-content bg-white rounded-lg shadow-md p-6">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">Email Notifications</h3>
+        <div id="notifications" class="tab-content bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Email Notifications</h3>
             <div class="space-y-4 mb-6">
                 <div class="flex items-center justify-between">
                     <div>
-                        <h4 class="text-sm font-medium text-gray-700">Task Assigned</h4>
-                        <p class="text-xs text-gray-500">Receive email when a task is assigned to you</p>
+                        <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Task Assigned</h4>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Receive email when a task is assigned to you</p>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" class="sr-only peer" checked>
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
                 </div>
                 
                 <div class="flex items-center justify-between">
                     <div>
-                        <h4 class="text-sm font-medium text-gray-700">Task Due</h4>
-                        <p class="text-xs text-gray-500">Receive email when a task is due soon</p>
+                        <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Task Due</h4>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Receive email when a task is due soon</p>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" class="sr-only peer" checked>
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
                 </div>
                 
                 <div class="flex items-center justify-between">
                     <div>
-                        <h4 class="text-sm font-medium text-gray-700">Task Overdue</h4>
-                        <p class="text-xs text-gray-500">Receive email when a task is overdue</p>
+                        <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Task Overdue</h4>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Receive email when a task is overdue</p>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" class="sr-only peer" checked>
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
                 </div>
                 
                 <div class="flex items-center justify-between">
                     <div>
-                        <h4 class="text-sm font-medium text-gray-700">Comments</h4>
-                        <p class="text-xs text-gray-500">Receive email when someone comments on your task</p>
+                        <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Comments</h4>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Receive email when someone comments on your task</p>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" class="sr-only peer" checked>
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
                 </div>
             </div>
             
-            <h3 class="text-lg font-medium text-gray-900 mb-4">Push Notifications</h3>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Push Notifications</h3>
             <div class="space-y-4">
                 <div class="flex items-center justify-between">
                     <div>
-                        <h4 class="text-sm font-medium text-gray-700">Task Assigned</h4>
-                        <p class="text-xs text-gray-500">Receive push notification when a task is assigned to you</p>
+                        <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Task Assigned</h4>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Receive push notification when a task is assigned to you</p>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" class="sr-only peer">
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
                 </div>
                 
@@ -270,7 +313,7 @@
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" class="sr-only peer" checked>
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
                 </div>
                 
@@ -281,7 +324,7 @@
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" class="sr-only peer" checked>
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
                 </div>
                 
@@ -292,7 +335,7 @@
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" class="sr-only peer">
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
                 </div>
             </div>
@@ -390,6 +433,46 @@
             };
             reader.readAsDataURL(e.target.files[0]);
         }
+    });
+    
+    // Show toast notification
+    function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type === 'success' ? 'bg-green-500' : 'bg-red-500'} text-white px-6 py-3 rounded-lg shadow-lg`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => toast.classList.add('show'), 100);
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => document.body.removeChild(toast), 300);
+        }, 3000);
+    }
+    
+    // Handle form submission
+    document.querySelector('form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        
+        fetch(window.location.href, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                showToast('Profile updated successfully!');
+            } else {
+                showToast('Error updating profile. Please try again.', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('Error updating profile. Please try again.', 'error');
+        });
     });
     
     // Copy API token to clipboard
