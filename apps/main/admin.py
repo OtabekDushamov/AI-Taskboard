@@ -134,7 +134,7 @@ class TaskAdmin(admin.ModelAdmin):
             'fields': ('status', 'priority', 'deadline', 'is_overdue_display')
         }),
         ('Time Tracking', {
-            'fields': ('estimated_hours', 'actual_hours'),
+            'fields': ('actual_hours',),
             'classes': ('collapse',)
         }),
         ('Timestamps', {

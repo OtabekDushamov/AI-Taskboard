@@ -53,6 +53,12 @@ class Project(models.Model):
         )['completed'] or 0
         
         return round((completed_tasks / total_tasks) * 100, 1)
+    
+    def get_task_count(self):
+        """Get total number of tasks in this project"""
+        return self.categories.aggregate(
+            total=models.Count('tasks')
+        )['total'] or 0
 
 
 class Category(models.Model):
@@ -104,7 +110,6 @@ class Task(models.Model):
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
     status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='todo')
     deadline = models.DateTimeField(blank=True, null=True)
-    estimated_hours = models.PositiveIntegerField(blank=True, null=True, help_text='Estimated hours to complete')
     actual_hours = models.PositiveIntegerField(blank=True, null=True, help_text='Actual hours spent')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -305,6 +310,7 @@ class TaskActivity(models.Model):
         ('updated', 'Updated'),
         ('assigned', 'Assigned'),
         ('status_changed', 'Status Changed'),
+        ('priority_changed', 'Priority Changed'),
         ('commented', 'Commented'),
         ('attachment_added', 'Attachment Added'),
         ('completed', 'Completed'),

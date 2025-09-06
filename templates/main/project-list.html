@@ -124,11 +124,11 @@
                 <div class="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
                     <span class="flex items-center gap-1">
                         <i class="fas fa-tasks"></i>
-                        <span>{{ project.tasks.count }} tasks</span>
+                        <span>{{ project.get_task_count }} tasks</span>
                     </span>
                     <span class="flex items-center gap-1">
                         <i class="fas fa-users"></i>
-                        <span>{{ project.members.count }} members</span>
+                        <span>{{ project.project_members.count }} members</span>
                     </span>
                 </div>
                 <div class="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
@@ -140,14 +140,14 @@
             <!-- Team Avatars -->
             <div class="flex items-center justify-between">
                 <div class="avatar-group">
-                    {% for member in project.members.all|slice:":4" %}
-                    <div class="avatar" title="{{ member.get_full_name }}">
-                        {{ member.first_name|first|upper }}{{ member.last_name|first|upper }}
+                    {% for member in project.project_members.all|slice:":4" %}
+                    <div class="avatar" title="{{ member.user.get_full_name }}">
+                        {{ member.user.first_name|first|upper }}{{ member.user.last_name|first|upper }}
                     </div>
                     {% endfor %}
-                    {% if project.members.count > 4 %}
+                    {% if project.project_members.count > 4 %}
                     <div class="avatar bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-400">
-                        +{{ project.members.count|add:"-4" }}
+                        +{{ project.project_members.count|add:"-4" }}
                     </div>
                     {% endif %}
                 </div>

@@ -63,8 +63,7 @@ class TaskForm(forms.ModelForm):
         model = Task
         fields = [
             'title', 'description', 'notes', 'category', 
-            'assignees', 'priority', 'status', 'deadline', 
-            'estimated_hours'
+            'assignees', 'priority', 'status', 'deadline'
         ]
         widgets = {
             'title': forms.TextInput(attrs={
@@ -93,12 +92,6 @@ class TaskForm(forms.ModelForm):
             'deadline': forms.DateTimeInput(attrs={
                 'class': 'w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200',
                 'type': 'datetime-local'
-            }),
-            'estimated_hours': forms.NumberInput(attrs={
-                'class': 'w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors duration-200',
-                'min': '0',
-                'step': '0.5',
-                'placeholder': 'Enter estimated hours'
             }),
         }
     

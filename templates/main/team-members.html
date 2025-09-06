@@ -142,10 +142,10 @@
         
                 <div class="flex items-center space-x-4">
                     <div class="text-right">
-                        <div class="text-sm font-medium text-gray-900 dark:text-white">{{ member.tasks.count }} tasks</div>
+                        <div class="text-sm font-medium text-gray-900 dark:text-white">{{ member.user.assigned_tasks.count }} tasks</div>
                         <div class="text-xs text-gray-500 dark:text-gray-400">
-                            {% if member.tasks.count > 0 %}
-                                {{ member.completed_tasks_count }} completed
+                            {% if member.user.assigned_tasks.count > 0 %}
+                                Tasks assigned
                             {% else %}
                                 No tasks assigned
                             {% endif %}

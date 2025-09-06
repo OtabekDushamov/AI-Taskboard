@@ -90,7 +90,7 @@
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                 <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Today's Focus</h2>
-                <a href="{% url 'main:task_create' %}" class="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 font-medium transition-colors duration-200">
+                <a href="{% url 'main:task_crud' %}" class="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 font-medium transition-colors duration-200">
                     <i class="fas fa-plus mr-1"></i> Add Task
                 </a>
             </div>
@@ -139,7 +139,7 @@
                     <h3 class="text-sm font-medium text-gray-900 dark:text-white">No tasks for today</h3>
                     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Get started by creating a new task.</p>
                     <div class="mt-6">
-                        <a href="{% url 'main:task_create' %}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200">
+                        <a href="{% url 'main:task_crud' %}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200">
                             <i class="fas fa-plus -ml-1 mr-2"></i> New Task
                         </a>
                     </div>
@@ -256,7 +256,7 @@
                 <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Quick Actions</h2>
             </div>
             <div class="px-6 py-4 grid grid-cols-1 gap-3">
-                <a href="{% url 'main:task_create' %}" class="inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200">
+                <a href="{% url 'main:task_crud' %}" class="inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200">
                     <i class="fas fa-plus -ml-1 mr-2"></i> New Task
                 </a>
                 <a href="{% url 'main:project_crud' %}" class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md shadow-sm text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200">

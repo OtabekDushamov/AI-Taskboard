@@ -35,6 +35,12 @@
         padding: 0 2px;
         border-radius: 3px;
     }
+    .prose {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        word-break: break-word;
+        hyphens: auto;
+    }
     @media (max-width: 768px) {
         .sticky-action-bar {
             position: fixed;
@@ -97,6 +103,12 @@
                     </div>
                 </div>
                 
+                <!-- Edit Button -->
+                <a href="{% url 'main:task_crud' task.id %}" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200">
+                    <i class="fas fa-edit"></i>
+                    Edit Task
+                </a>
+                
                 <div class="flex items-center gap-2">
                     <span class="text-sm text-gray-600 dark:text-gray-400">Due:</span>
                     <span class="text-sm font-medium text-gray-900 dark:text-white">
@@ -120,12 +132,6 @@
                 <i class="fas fa-tag"></i>
                 <span>{{ task.category.name }}</span>
             </div>
-            {% if task.estimated_minutes %}
-            <div class="flex items-center gap-2">
-                <i class="fas fa-clock"></i>
-                <span>{{ task.estimated_minutes }} min</span>
-            </div>
-            {% endif %}
         </div>
     </div>
 
@@ -166,7 +172,7 @@
                 <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Comments</h2>
                 
                 <!-- Add Comment Form -->
-                <form method="post" action="{% url 'main:add_task_comment' task.id %}" class="mb-6">
+                <form method="post" action="{% url 'main:task_detail' task.id %}" class="mb-6">
                     {% csrf_token %}
                     <div class="flex gap-3">
                         <div class="flex-1">
@@ -244,24 +250,41 @@
                         <p class="text-sm text-gray-900 dark:text-white">{{ task.deadline|date:"M j, Y" }}</p>
                     </div>
                     {% endif %}
-                    {% if task.estimated_minutes %}
-                    <div>
-                        <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Estimated Time</label>
-                        <p class="text-sm text-gray-900 dark:text-white">{{ task.estimated_minutes }} minutes</p>
-                    </div>
-                    {% endif %}
                 </div>
             </div>
 
             <!-- Dependencies -->
             {% if task.dependencies.all %}
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Dependencies</h3>
-                <div class="space-y-2">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                    <i class="fas fa-link mr-2 text-indigo-500"></i>
+                    Dependencies
+                </h3>
+                <div class="space-y-3">
                     {% for dependency in task.dependencies.all %}
-                    <div class="flex items-center gap-2">
-                        <i class="fas fa-link text-gray-400"></i>
-                        <a href="{% url 'main:task_detail' dependency.id %}" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">{{ dependency.title }}</a>
+                    <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <a href="{% url 'main:task_detail' dependency.depends_on.id %}" class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">
+                                    {{ dependency.depends_on.title }}
+                                </a>
+                                <div class="mt-1 flex items-center gap-2">
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                        {% if dependency.depends_on.status == 'completed' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                        {% elif dependency.depends_on.status == 'in_progress' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                                        {% elif dependency.depends_on.status == 'review' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                        {% else %}bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200{% endif %}">
+                                        {{ dependency.depends_on.get_status_display }}
+                                    </span>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">{{ dependency.depends_on.category.project.name }}</span>
+                                </div>
+                            </div>
+                            {% if dependency.depends_on.status == 'completed' %}
+                            <i class="fas fa-check-circle text-green-500 text-sm"></i>
+                            {% else %}
+                            <i class="fas fa-clock text-gray-400 text-sm"></i>
+                            {% endif %}
+                        </div>
                     </div>
                     {% endfor %}
                 </div>
@@ -298,13 +321,14 @@ document.addEventListener('DOMContentLoaded', function() {
     if (statusDropdown) {
         statusDropdown.addEventListener('change', function() {
             const newStatus = this.value;
-            fetch('{% url "main:update_task_status" task.id %}', {
+            fetch('{% url "main:update_task_status" %}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': '{{ csrf_token }}'
                 },
                 body: JSON.stringify({
+                    task_id: {{ task.id }},
                     status: newStatus
                 })
             })
@@ -341,8 +365,62 @@ document.addEventListener('DOMContentLoaded', function() {
             if (e.target.tagName === 'A') {
                 e.preventDefault();
                 const priority = e.target.dataset.priority;
+                
                 // Update priority via AJAX
-                console.log('Priority changed to:', priority);
+                fetch('{% url "main:update_task_priority" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({
+                        task_id: {{ task.id }},
+                        priority: priority
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update the priority button display
+                        const priorityBtn = document.getElementById('priority-btn');
+                        
+                        // Get the priority text from the clicked link
+                        const priorityTextContent = e.target.textContent.trim();
+                        
+                        // Determine the dot color
+                        const dotColor = priority === 'urgent' ? 'bg-red-500' : 
+                                       priority === 'high' ? 'bg-orange-500' : 
+                                       priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500';
+                        
+                        // Update the entire button content
+                        priorityBtn.innerHTML = `
+                            <span class="w-3 h-3 rounded-full ${dotColor}"></span>
+                            <span>${priorityTextContent}</span>
+                            <i class="fas fa-chevron-down text-xs ml-1"></i>
+                        `;
+                        
+                        // Update the sidebar priority display
+                        const sidebarPriority = document.querySelector('.space-y-3 div:nth-child(2) p');
+                        if (sidebarPriority) {
+                            sidebarPriority.textContent = priorityTextContent;
+                        }
+                        
+                        // Force a re-render by adding a temporary class
+                        priorityBtn.style.transition = 'all 0.2s ease';
+                        priorityBtn.classList.add('opacity-50');
+                        setTimeout(() => {
+                            priorityBtn.classList.remove('opacity-50');
+                        }, 100);
+                        
+                        console.log('Priority updated successfully to:', priority);
+                    } else {
+                        console.error('Failed to update priority:', data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating priority:', error);
+                });
+                
                 priorityMenu.classList.add('hidden');
             }
         });

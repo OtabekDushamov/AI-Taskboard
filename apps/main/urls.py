@@ -24,7 +24,8 @@ urlpatterns = [
     # Task management
     path('task-list/', login_required(views.task_list_view), name='task_list'),
     path('task-detail/<int:task_id>/', login_required(views.task_detail_view), name='task_detail'),
-    path('task-create/', login_required(views.task_create_view), name='task_create'),
+    path('task-crud/', login_required(views.task_crud_view), name='task_crud'),
+    path('task-crud/<int:task_id>/', login_required(views.task_crud_view), name='task_crud'),
     path('my-tasks/', login_required(views.my_tasks_view), name='my_tasks'),
     
     # Daily tasks
@@ -45,6 +46,7 @@ urlpatterns = [
     
     # AJAX endpoints
     path('api/update-task-status/', login_required(views.update_task_status), name='update_task_status'),
+    path('api/update-task-priority/', login_required(views.update_task_priority), name='update_task_priority'),
     path('api/add-task-comment/', login_required(views.add_task_comment), name='add_task_comment'),
     path('api/assign-task/', login_required(views.assign_task), name='assign_task'),
     path('api/project/<int:project_id>/categories/', login_required(views.get_project_categories), name='get_project_categories'),

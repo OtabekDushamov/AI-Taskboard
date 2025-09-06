@@ -141,7 +141,7 @@ def project_list_view(request):
     # Get user's projects
     projects = Project.objects.filter(
         Q(creator=bot_user) | Q(members=bot_user)
-    ).distinct().order_by('-created_at')
+    ).distinct().order_by('created_at')
     
     # Add pagination
     paginator = Paginator(projects, 12)
@@ -182,6 +182,12 @@ def project_detail_view(request, project_id):
     categories = project.categories.all()
     tasks = Task.objects.filter(category__project=project).order_by('-created_at')
     
+    # Get filtered task counts for the dashboard
+    todo_tasks = tasks.filter(status='todo')
+    in_progress_tasks = tasks.filter(status='in_progress')
+    review_tasks = tasks.filter(status='review')
+    completed_tasks = tasks.filter(status='completed')
+    
     # Get project members
     project_members = ProjectMember.objects.filter(project=project)
     
@@ -194,6 +200,10 @@ def project_detail_view(request, project_id):
         'project': project,
         'categories': categories,
         'tasks': tasks,
+        'todo_tasks': todo_tasks,
+        'in_progress_tasks': in_progress_tasks,
+        'review_tasks': review_tasks,
+        'completed_tasks': completed_tasks,
         'project_members': project_members,
         'recent_activities': recent_activities,
         'progress_percentage': project.get_progress_percentage(),
@@ -219,6 +229,11 @@ def project_crud_view(request, project_id=None):
     if project_id:
         try:
             project = Project.objects.get(id=project_id)
+            # Check if user has access to edit this project
+            if not (project.creator == bot_user or 
+                    ProjectMember.objects.filter(project=project, user=bot_user, role__in=['owner', 'admin']).exists()):
+                messages.error(request, 'You do not have permission to edit this project.')
+                return redirect('main:project_list')
         except Project.DoesNotExist:
             messages.error(request, 'Project not found.')
             return redirect('main:project_list')
@@ -238,26 +253,83 @@ def project_crud_view(request, project_id=None):
                     role='owner'
                 )
             
-            # Handle labels
+            # Handle labels - for both creation and editing
             labels_text = request.POST.get('labels', '')
             if labels_text:
-                labels = [label.strip() for label in labels_text.split(',') if label.strip()]
-                for label_name in labels:
+                # Get current labels
+                current_labels = set(project.labels.values_list('name', flat=True))
+                
+                # Parse new labels
+                new_labels = [label.strip() for label in labels_text.split(',') if label.strip()]
+                new_labels_set = set(new_labels)
+                
+                # Remove labels that are no longer in the list
+                labels_to_remove = current_labels - new_labels_set
+                project.labels.filter(name__in=labels_to_remove).delete()
+                
+                # Add new labels
+                for label_name in new_labels:
                     ProjectLabel.objects.get_or_create(
                         project=project,
                         name=label_name,
                         defaults={'color': '#3498db'}
                     )
+            else:
+                # If no labels provided, remove all existing labels
+                project.labels.all().delete()
+            
+            # Handle team members - for both creation and editing
+            team_member_ids = request.POST.getlist('team_members')
+            if team_member_ids:
+                # Get current project members (excluding creator)
+                current_members = set(ProjectMember.objects.filter(
+                    project=project
+                ).exclude(user=project.creator).values_list('user_id', flat=True))
+                
+                new_member_ids = set(int(id) for id in team_member_ids if id)
+                
+                # Remove members that are no longer selected
+                members_to_remove = current_members - new_member_ids
+                ProjectMember.objects.filter(
+                    project=project,
+                    user_id__in=members_to_remove
+                ).delete()
+                
+                # Add new members
+                for member_id in new_member_ids:
+                    if member_id not in current_members:
+                        ProjectMember.objects.get_or_create(
+                            project=project,
+                            user_id=member_id,
+                            defaults={'role': 'viewer'}
+                        )
+            else:
+                # If no team members provided, remove all members except creator
+                ProjectMember.objects.filter(project=project).exclude(user=project.creator).delete()
+            
+            # Sync the members ManyToManyField with ProjectMember objects
+            project_member_users = ProjectMember.objects.filter(project=project).values_list('user', flat=True)
+            project.members.set(project_member_users)
             
             messages.success(request, f'Project "{project.name}" {"updated" if project_id else "created"} successfully!')
             return redirect('main:project_detail', project_id=project.id)
     else:
         form = ProjectForm(instance=project)
+        # Pre-populate labels field for editing
+        if project:
+            existing_labels = ', '.join(project.labels.values_list('name', flat=True))
+            form.fields['labels'].initial = existing_labels
+    
+    # Get available users (excluding current project members for editing)
+    available_users = BotUser.objects.all()
+    if project:
+        current_member_ids = project.project_members.values_list('user_id', flat=True)
+        available_users = available_users.exclude(id__in=current_member_ids)
     
     context = {
         'form': form,
         'project': project,
-        'users': BotUser.objects.all(),
+        'available_users': available_users,
     }
     
     return render(request, 'main/project-crud.html', context)
@@ -348,7 +420,7 @@ def task_detail_view(request, task_id):
     activities = task.activities.all().order_by('-created_at')
     
     # Handle comment submission
-    if request.method == 'POST' and 'comment' in request.POST:
+    if request.method == 'POST' and 'content' in request.POST:
         comment_form = TaskCommentForm(request.POST)
         if comment_form.is_valid():
             comment = comment_form.save(commit=False)
@@ -380,8 +452,8 @@ def task_detail_view(request, task_id):
     return render(request, 'main/task-detail.html', context)
 
 
-def task_create_view(request):
-    """Task create view with real functionality"""
+def task_crud_view(request, task_id=None):
+    """Task CRUD view - handles both create and edit operations"""
     try:
         bot_user = BotUser.objects.get(user=request.user)
     except BotUser.DoesNotExist:
@@ -393,7 +465,7 @@ def task_create_view(request):
             username=request.user.username or ''
         )
     
-    # Get project from URL parameter
+    # Get project from URL parameter (for create mode)
     project_id = request.GET.get('project')
     selected_project = None
     if project_id:
@@ -405,6 +477,15 @@ def task_create_view(request):
         except Project.DoesNotExist:
             selected_project = None
     
+    # Get task if editing
+    task = None
+    if task_id:
+        task = get_object_or_404(Task, id=task_id)
+        # Check if user has access to this task
+        if not (task.creator == bot_user or bot_user in task.assignees.all()):
+            messages.error(request, 'You do not have access to this task.')
+            return redirect('main:task_list')
+    
     if request.method == 'POST':
         # Get project and category from form
         project_id = request.POST.get('project')
@@ -412,31 +493,31 @@ def task_create_view(request):
         
         # Create form data without category for validation
         form_data = request.POST.copy()
-        form = TaskForm(form_data)
+        form = TaskForm(form_data, instance=task)
         
         # Make category optional
         form.fields['category'].required = False
         
         if form.is_valid() and project_id:
-            task = form.save(commit=False)
-            task.creator = bot_user
+            task_obj = form.save(commit=False)
+            task_obj.creator = bot_user
             
             # Get the project
             try:
                 project = Project.objects.get(id=project_id)
             except Project.DoesNotExist:
                 messages.error(request, 'Selected project not found')
-                return render(request, 'main/task-create.html', context)
+                return render(request, 'main/task-crud.html', context)
             
             # Handle category assignment
             if category_id:
                 # Category was selected
                 try:
                     category = Category.objects.get(id=category_id, project=project)
-                    task.category = category
+                    task_obj.category = category
                 except Category.DoesNotExist:
                     messages.error(request, 'Selected category not found')
-                    return render(request, 'main/task-create.html', context)
+                    return render(request, 'main/task-crud.html', context)
             else:
                 # No category selected, create a default one
                 default_category, created = Category.objects.get_or_create(
@@ -447,44 +528,72 @@ def task_create_view(request):
                         'color': '#3498db'
                     }
                 )
-                task.category = default_category
+                task_obj.category = default_category
                 if created:
                     messages.info(request, f'Created default "General" category for project "{project.name}"')
             
-            task.save()
+            task_obj.save()
             
             # Save many-to-many relationships
             form.save_m2m()
             
+            # Handle dependencies manually using TaskDependency model
+            dependencies = request.POST.getlist('dependencies')
+            if dependencies:
+                # Clear existing dependencies
+                TaskDependency.objects.filter(task=task_obj).delete()
+                
+                # Create new dependencies
+                for dependency_id in dependencies:
+                    if dependency_id:  # Make sure it's not empty
+                        TaskDependency.objects.create(
+                            task=task_obj,
+                            depends_on_id=dependency_id
+                        )
+            
             # Create activity
+            action = 'updated' if task else 'created'
             TaskActivity.objects.create(
-                task=task,
+                task=task_obj,
                 user=bot_user,
-                action='created',
-                description=f'Created task: {task.title}'
+                action=action,
+                description=f'{action.title()} task: {task_obj.title}'
             )
             
-            messages.success(request, f'Task "{task.title}" created successfully!')
-            return redirect('main:task_detail', task_id=task.id)
+            messages.success(request, f'Task "{task_obj.title}" {action} successfully!')
+            return redirect('main:task_detail', task_id=task_obj.id)
         else:
             if not project_id:
                 messages.error(request, 'Please select a project')
     else:
-        form = TaskForm()
+        form = TaskForm(instance=task)
     
     # Get user's projects and categories
     user_projects = Project.objects.filter(
         Q(creator=bot_user) | Q(members=bot_user)
     ).distinct()
     
+    # Get available tasks for dependencies (exclude current task if editing)
+    available_tasks = Task.objects.select_related('category__project').order_by('category__project__name', 'title')
+    if task:
+        available_tasks = available_tasks.exclude(id=task.id)
+    
+    # Get current dependencies if editing
+    current_dependencies = []
+    if task:
+        current_dependencies = [dep.depends_on.id for dep in task.dependencies.all()]
+    
     context = {
         'form': form,
         'user_projects': user_projects,
-        'users': BotUser.objects.all(),
         'selected_project': selected_project,
+        'task': task,
+        'users': BotUser.objects.all(),
+        'available_tasks': available_tasks,
+        'current_dependencies': current_dependencies,
     }
     
-    return render(request, 'main/task-create.html', context)
+    return render(request, 'main/task-crud.html', context)
 
 
 def my_tasks_view(request):
@@ -605,11 +714,19 @@ def analytics_view(request):
     """Analytics view with real data"""
     try:
         # Get or create BotUser for the current user
-        bot_user = BotUser.objects.get(user=request.user)
+        bot_user, created = BotUser.objects.get_or_create(
+            user=request.user,
+            defaults={
+                'telegram_id': 0,
+                'first_name': request.user.first_name or 'User',
+                'last_name': request.user.last_name or '',
+                'username': request.user.username or ''
+            }
+        )
         
         # Get all projects the user has access to
         user_projects = Project.objects.filter(
-            Q(owner=request.user) | Q(members__user=request.user)
+            Q(creator=bot_user) | Q(members=bot_user)
         ).distinct()
         
         # Get all tasks from user's projects
@@ -637,7 +754,7 @@ def analytics_view(request):
             for member in project.members.all():
                 member_tasks = Task.objects.filter(
                     category__project=project,
-                    assignees=member.user
+                    assignees=member
                 )
                 if member_tasks.exists():
                     team_performance.append({
@@ -647,6 +764,21 @@ def analytics_view(request):
                         'completion_rate': round((member_tasks.filter(status='completed').count() / member_tasks.count() * 100) if member_tasks.count() > 0 else 0, 1),
                         'avg_time': 'N/A'  # This would need more complex calculation
                     })
+        
+        # Calculate project progress
+        projects_with_progress = []
+        for project in user_projects:
+            project_tasks = Task.objects.filter(category__project=project)
+            total_tasks = project_tasks.count()
+            completed_tasks = project_tasks.filter(status='completed').count()
+            progress = round((completed_tasks / total_tasks * 100) if total_tasks > 0 else 0, 1)
+            
+            projects_with_progress.append({
+                'project': project,
+                'progress': progress,
+                'total_tasks': total_tasks,
+                'completed_tasks': completed_tasks
+            })
         
         # Recent activities
         recent_activities = TaskActivity.objects.filter(
@@ -664,7 +796,7 @@ def analytics_view(request):
             'medium_tasks': medium_tasks,
             'low_tasks': low_tasks,
             'completion_rate': completion_rate,
-            'projects': user_projects,
+            'projects': projects_with_progress,
             'team_performance': team_performance,
             'recent_activities': recent_activities,
         }
@@ -795,6 +927,49 @@ def update_task_status(request):
         )
         
         return JsonResponse({'success': True, 'status': new_status})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_http_methods(["POST"])
+@csrf_exempt
+def update_task_priority(request):
+    """Update task priority via AJAX"""
+    try:
+        data = json.loads(request.body)
+        task_id = data.get('task_id')
+        new_priority = data.get('priority')
+        
+        try:
+            bot_user = BotUser.objects.get(user=request.user)
+        except BotUser.DoesNotExist:
+            bot_user = BotUser.objects.create(
+                user=request.user,
+                telegram_id=0,
+                first_name=request.user.first_name or 'User',
+                last_name=request.user.last_name or '',
+                username=request.user.username or ''
+            )
+        
+        task = get_object_or_404(Task, id=task_id)
+        
+        # Check if user has access to this task
+        if not (task.creator == bot_user or bot_user in task.assignees.all()):
+            return JsonResponse({'error': 'Access denied'}, status=403)
+        
+        old_priority = task.priority
+        task.priority = new_priority
+        task.save()
+        
+        # Create activity
+        TaskActivity.objects.create(
+            task=task,
+            user=bot_user,
+            action='priority_changed',
+            description=f'Priority changed from {old_priority} to {new_priority}'
+        )
+        
+        return JsonResponse({'success': True, 'priority': new_priority})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
@@ -954,6 +1129,10 @@ def add_project_member(request):
             role=role
         )
         
+        # Sync the members ManyToManyField
+        project_member_users = ProjectMember.objects.filter(project=project).values_list('user', flat=True)
+        project.members.set(project_member_users)
+        
         return JsonResponse({'success': True})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
@@ -993,6 +1172,10 @@ def remove_project_member(request):
         
         # Remove member
         ProjectMember.objects.filter(project=project, user=member).delete()
+        
+        # Sync the members ManyToManyField
+        project_member_users = ProjectMember.objects.filter(project=project).values_list('user', flat=True)
+        project.members.set(project_member_users)
         
         return JsonResponse({'success': True})
     except Exception as e:
@@ -1034,6 +1217,10 @@ def update_member_role(request):
         
         # Update role
         ProjectMember.objects.filter(project=project, user=member).update(role=new_role)
+        
+        # Sync the members ManyToManyField (in case role change affects membership)
+        project_member_users = ProjectMember.objects.filter(project=project).values_list('user', flat=True)
+        project.members.set(project_member_users)
         
         return JsonResponse({'success': True})
     except Exception as e:

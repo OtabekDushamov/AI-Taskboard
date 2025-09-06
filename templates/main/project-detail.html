@@ -62,12 +62,26 @@
                 <div class="flex items-center gap-2 mt-2">
                     <span class="text-sm text-gray-500 dark:text-gray-400">Owned by</span>
                     <div class="flex items-center">
-                        <div class="avatar bg-blue-500">{{ project.owner.first_name|first|upper }}{{ project.owner.last_name|first|upper }}</div>
-                        <span class="ml-2 text-sm font-medium dark:text-white">{{ project.owner.get_full_name }}</span>
+                        <div class="avatar bg-blue-500">{{ project.creator.first_name|first|upper }}{{ project.creator.last_name|first|upper }}</div>
+                        <span class="ml-2 text-sm font-medium dark:text-white">{{ project.creator.get_full_name }}</span>
                     </div>
                 </div>
                 {% if project.description %}
                 <p class="text-gray-600 dark:text-gray-400 mt-2">{{ project.description }}</p>
+                {% endif %}
+                
+                <!-- Project Labels -->
+                {% if project.labels.all %}
+                <div class="flex items-center gap-2 mt-3">
+                    <span class="text-sm text-gray-500 dark:text-gray-400">Labels:</span>
+                    <div class="flex flex-wrap gap-1">
+                        {% for label in project.labels.all %}
+                        <span class="px-2 py-1 text-xs rounded-full text-white" style="background-color: {{ label.color }}">
+                            {{ label.name }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                </div>
                 {% endif %}
             </div>
             <div class="flex items-center gap-3">
@@ -91,22 +105,22 @@
         <!-- Project Stats -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ project.progress }}%</div>
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ progress_percentage }}%</div>
                 <div class="text-sm text-gray-500 dark:text-gray-400">Progress</div>
                 <div class="progress-bar mt-2">
-                    <div class="progress-fill" style="width: {{ project.progress }}%"></div>
+                    <div class="progress-fill" style="width: {{ progress_percentage }}%"></div>
                 </div>
             </div>
             <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ completed_tasks_count }}</div>
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ completed_tasks.count }}</div>
                 <div class="text-sm text-gray-500 dark:text-gray-400">Tasks Completed</div>
             </div>
             <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ total_tasks_count }}</div>
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ tasks.count }}</div>
                 <div class="text-sm text-gray-500 dark:text-gray-400">Total Tasks</div>
             </div>
             <div class="text-center">
-                <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ team_members_count }}</div>
+                <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ project_members.count }}</div>
                 <div class="text-sm text-gray-500 dark:text-gray-400">Team Members</div>
             </div>
         </div>
@@ -160,7 +174,7 @@
                     <div>
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Tasks</h3>
                         <div class="space-y-3">
-                            {% for task in recent_tasks %}
+                            {% for task in tasks|slice:":5" %}
                             <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                                 <div class="flex items-center gap-3">
                                     <div class="w-2 h-2 rounded-full {% if task.status == 'completed' %}bg-green-500{% elif task.status == 'in_progress' %}bg-blue-500{% elif task.status == 'review' %}bg-yellow-500{% else %}bg-gray-500{% endif %}"></div>
@@ -178,7 +192,7 @@
                             {% endfor %}
                         </div>
                         <div class="mt-4">
-                            <a href="{% url 'main:task_create' %}?project={{ project.id }}" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+                            <a href="{% url 'main:task_crud' %}?project={{ project.id }}" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">
                                 <i class="fas fa-plus mr-1"></i>Add Task
                             </a>
                         </div>
@@ -188,7 +202,7 @@
                     <div>
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Team Members</h3>
                         <div class="space-y-3">
-                            {% for member in project.members.all %}
+                            {% for member in project.project_members.all %}
                             <div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                                 <div class="avatar bg-blue-500">{{ member.user.first_name|first|upper }}{{ member.user.last_name|first|upper }}</div>
                                 <div class="flex-1">
@@ -196,7 +210,7 @@
                                     <p class="text-xs text-gray-500 dark:text-gray-400">{{ member.get_role_display }}</p>
                                 </div>
                                 <span class="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300">
-                                    {{ member.tasks.count }} tasks
+                                    {{ member.user.assigned_tasks.count }} tasks
                                 </span>
                             </div>
                             {% empty %}
@@ -216,7 +230,7 @@
             <div id="tasks-tab" class="tab-content hidden">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Project Tasks</h3>
-                    <a href="{% url 'main:task_create' %}?project={{ project.id }}" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200">
+                    <a href="{% url 'main:task_crud' %}?project={{ project.id }}" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200">
                         <i class="fas fa-plus mr-2"></i>Add Task
                     </a>
                 </div>
@@ -241,7 +255,7 @@
                 </div>
 
                 <div class="space-y-3">
-                    {% for task in project_tasks %}
+                    {% for task in tasks %}
                     <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                         <div class="flex items-center gap-3">
                             <div class="w-2 h-2 rounded-full {% if task.status == 'completed' %}bg-green-500{% elif task.status == 'in_progress' %}bg-blue-500{% elif task.status == 'review' %}bg-yellow-500{% else %}bg-gray-500{% endif %}"></div>
@@ -275,7 +289,7 @@
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {% for member in project.members.all %}
+                    {% for member in project.project_members.all %}
                     <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                         <div class="flex items-center gap-3 mb-3">
                             <div class="avatar bg-blue-500">{{ member.user.first_name|first|upper }}{{ member.user.last_name|first|upper }}</div>
@@ -287,7 +301,7 @@
                         <div class="text-xs text-gray-500 dark:text-gray-400">
                             <div class="flex justify-between">
                                 <span>Tasks:</span>
-                                <span>{{ member.tasks.count }}</span>
+                                <span>{{ member.user.assigned_tasks.count }}</span>
                             </div>
                             <div class="flex justify-between">
                                 <span>Joined:</span>
@@ -307,7 +321,7 @@
             <div id="activity-tab" class="tab-content hidden">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Activity</h3>
                 <div class="space-y-4">
-                    {% for activity in project.activities.all|slice:":10" %}
+                    {% for activity in recent_activities %}
                     <div class="flex gap-3 relative timeline-item">
                         <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-medium">A</div>
                         <div class="flex-1">

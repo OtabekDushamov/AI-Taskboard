@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Create New Task - AI Taskboard{% endblock %}
+{% block title %}{% if task %}Edit Task - {{ task.title }}{% else %}Create New Task{% endif %} - AI Taskboard{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -52,7 +52,7 @@
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
         <div class="bg-indigo-600 px-6 py-4">
             <div class="flex items-center justify-between">
-                <h1 class="text-2xl font-bold text-white">Create New Task</h1>
+                <h1 class="text-2xl font-bold text-white">{% if task %}Edit Task{% else %}Create New Task{% endif %}</h1>
                 <a href="{% url 'main:task_list' %}" class="text-white hover:text-gray-200">
                     <i class="fas fa-times text-xl"></i>
                 </a>
@@ -61,6 +61,9 @@
         
         <form method="post" enctype="multipart/form-data" class="p-6">
             {% csrf_token %}
+            {% if task %}
+                <input type="hidden" name="task_id" value="{{ task.id }}">
+            {% endif %}
             
             <!-- Title -->
             <div class="mb-6">
@@ -72,6 +75,7 @@
                     required 
                     class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors duration-200"
                     placeholder="Enter task title"
+                    value="{% if task %}{{ task.title }}{% endif %}"
                 >
             </div>
             
@@ -84,7 +88,7 @@
                     rows="4"
                     class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors duration-200 resize-none"
                     placeholder="Enter task description"
-                ></textarea>
+                >{% if task %}{{ task.description }}{% endif %}</textarea>
             </div>
             
             <!-- First Row: Project and Category -->
@@ -100,7 +104,7 @@
                     >
                         <option value="">Select project</option>
                         {% for project in user_projects %}
-                            <option value="{{ project.id }}" {% if selected_project and selected_project.id == project.id %}selected{% endif %}>
+                            <option value="{{ project.id }}" {% if task and task.category.project.id == project.id %}selected{% elif selected_project and selected_project.id == project.id %}selected{% endif %}>
                                 {{ project.name }}
                             </option>
                         {% empty %}
@@ -138,10 +142,10 @@
                         name="priority" 
                         class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200"
                     >
-                        <option value="low">Low</option>
-                        <option value="medium" selected>Medium</option>
-                        <option value="high">High</option>
-                        <option value="urgent">Urgent</option>
+                        <option value="low" {% if task and task.priority == 'low' %}selected{% endif %}>Low</option>
+                        <option value="medium" {% if task and task.priority == 'medium' %}selected{% elif not task %}selected{% endif %}>Medium</option>
+                        <option value="high" {% if task and task.priority == 'high' %}selected{% endif %}>High</option>
+                        <option value="urgent" {% if task and task.priority == 'urgent' %}selected{% endif %}>Urgent</option>
                     </select>
                 </div>
                 
@@ -153,10 +157,10 @@
                         name="status" 
                         class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200"
                     >
-                        <option value="todo" selected>To Do</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="review">Review</option>
-                        <option value="done">Done</option>
+                        <option value="todo" {% if task and task.status == 'todo' %}selected{% elif not task %}selected{% endif %}>To Do</option>
+                        <option value="in_progress" {% if task and task.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                        <option value="review" {% if task and task.status == 'review' %}selected{% endif %}>Review</option>
+                        <option value="completed" {% if task and task.status == 'completed' %}selected{% endif %}>Completed</option>
                     </select>
                 </div>
                 
@@ -168,22 +172,9 @@
                         id="deadline" 
                         name="deadline" 
                         class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200"
+                        value="{% if task and task.deadline %}{{ task.deadline|date:'Y-m-d' }}{% endif %}"
                     >
                 </div>
-            </div>
-            
-            <!-- Estimated Time -->
-            <div class="mb-6">
-                <label for="estimated_minutes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Estimated Time (minutes)</label>
-                <input 
-                    type="number" 
-                    id="estimated_minutes" 
-                    name="estimated_minutes" 
-                    min="0" 
-                    step="15"
-                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors duration-200"
-                    placeholder="Enter estimated time in minutes"
-                >
             </div>
             
             <!-- Assignees -->
@@ -196,7 +187,7 @@
                     class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200"
                 >
                     {% for user in users %}
-                        <option value="{{ user.id }}">{{ user.get_full_name }}</option>
+                        <option value="{{ user.id }}" {% if user in task.assignees.all %}selected{% endif %}>{{ user.get_full_name }}</option>
                     {% endfor %}
                 </select>
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Hold Ctrl/Cmd to select multiple assignees</p>
@@ -205,15 +196,51 @@
             <!-- Dependencies -->
             <div class="mb-6">
                 <label for="dependencies" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Dependencies</label>
-                <select 
-                    id="dependencies" 
-                    name="dependencies" 
-                    multiple
-                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200"
-                >
-                    <!-- Options will be populated dynamically -->
-                </select>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Hold Ctrl/Cmd to select multiple dependencies</p>
+                <div class="max-h-64 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700">
+                    {% regroup available_tasks by category.project as project_groups %}
+                    {% for project_group in project_groups %}
+                        <div class="border-b border-gray-200 dark:border-gray-600 last:border-b-0">
+                            <div class="px-4 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-600">
+                                <h4 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center">
+                                    <i class="fas fa-folder mr-2 text-indigo-500"></i>
+                                    {{ project_group.grouper.name }}
+                                </h4>
+                            </div>
+                            <div class="p-2">
+                                {% for task in project_group.list %}
+                                    <label class="flex items-center p-2 hover:bg-gray-50 dark:hover:bg-gray-600 rounded cursor-pointer">
+                                        <input 
+                                            type="checkbox" 
+                                            name="dependencies" 
+                                            value="{{ task.id }}"
+                                            class="mr-3 text-indigo-600 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600"
+                                            {% if task.id in current_dependencies %}checked{% endif %}
+                                        >
+                                        <div class="flex-1">
+                                            <div class="text-sm font-medium text-gray-900 dark:text-white">{{ task.title }}</div>
+                                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                                    {% if task.status == 'completed' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                                    {% elif task.status == 'in_progress' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                                                    {% elif task.status == 'review' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                                    {% else %}bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200{% endif %}">
+                                                    {{ task.get_status_display }}
+                                                </span>
+                                                <span class="ml-2">{{ task.category.name }}</span>
+                                            </div>
+                                        </div>
+                                    </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% empty %}
+                        <div class="p-4 text-center text-gray-500 dark:text-gray-400">
+                            <i class="fas fa-tasks text-2xl mb-2"></i>
+                            <p>No tasks available for dependencies</p>
+                        </div>
+                    {% endfor %}
+                </div>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Select tasks that must be completed before this task</p>
             </div>
             
             <!-- Form Actions -->
@@ -225,7 +252,7 @@
                 </div>
                 <div class="flex items-center gap-3">
                     <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200">
-                        <i class="fas fa-plus mr-2"></i>Create Task
+                        <i class="fas fa-{% if task %}save{% else %}plus{% endif %} mr-2"></i>{% if task %}Update Task{% else %}Create Task{% endif %}
                     </button>
                 </div>
             </div>
@@ -237,7 +264,7 @@
 <div id="toast" class="toast bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg">
     <div class="flex items-center">
         <i class="fas fa-check-circle mr-2"></i>
-        <span>Task created successfully!</span>
+        <span>{% if task %}Task updated successfully!{% else %}Task created successfully!{% endif %}</span>
     </div>
 </div>
 {% endblock %}
@@ -357,6 +384,18 @@ document.addEventListener('DOMContentLoaded', function() {
         if (projectSelect.value) {
             projectSelect.dispatchEvent(new Event('change'));
         }
+        
+        // If editing a task, populate the category field
+        {% if task and task.category %}
+        const categorySelect = document.getElementById('category');
+        if (categorySelect) {
+            const option = document.createElement('option');
+            option.value = '{{ task.category.id }}';
+            option.textContent = '{{ task.category.name }}';
+            option.selected = true;
+            categorySelect.appendChild(option);
+        }
+        {% endif %}
     }
     
     // Category change handler to update dependencies
