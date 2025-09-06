@@ -2,7 +2,12 @@
 
 {% block title %}Dashboard - AI Taskboard{% endblock %}
 
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
 {% block content %}
+{% csrf_token %}
 <!-- KPI Cards -->
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
     <!-- Projects Card -->
@@ -17,9 +22,9 @@
             </div>
         </div>
         <div class="mt-4">
-            <div class="flex items-center text-sm text-green-600 dark:text-green-400">
+            <div class="flex items-center text-sm {% if new_projects_week > 0 %}text-green-600 dark:text-green-400{% else %}text-gray-500 dark:text-gray-400{% endif %}">
                 <i class="fas fa-arrow-up mr-1"></i>
-                <span>2 new this week</span>
+                <span>{{ new_projects_week }} new this week</span>
             </div>
         </div>
     </a>
@@ -36,9 +41,9 @@
             </div>
         </div>
         <div class="mt-4">
-            <div class="flex items-center text-sm text-red-600 dark:text-red-400">
-                <i class="fas fa-arrow-up mr-1"></i>
-                <span>5 overdue</span>
+            <div class="flex items-center text-sm {% if overdue_tasks > 0 %}text-red-600 dark:text-red-400{% else %}text-green-600 dark:text-green-400{% endif %}">
+                <i class="fas fa-{% if overdue_tasks > 0 %}exclamation-triangle{% else %}check-circle{% endif %} mr-1"></i>
+                <span>{% if overdue_tasks > 0 %}{{ overdue_tasks }} overdue{% else %}All on track{% endif %}</span>
             </div>
         </div>
     </a>
@@ -55,9 +60,9 @@
             </div>
         </div>
         <div class="mt-4">
-            <div class="flex items-center text-sm text-green-600 dark:text-green-400">
-                <i class="fas fa-arrow-up mr-1"></i>
-                <span>30% from last week</span>
+            <div class="flex items-center text-sm {% if completed_tasks_week > completed_last_week %}text-green-600 dark:text-green-400{% elif completed_tasks_week < completed_last_week %}text-red-600 dark:text-red-400{% else %}text-gray-500 dark:text-gray-400{% endif %}">
+                <i class="fas fa-{% if completed_tasks_week > completed_last_week %}arrow-up{% elif completed_tasks_week < completed_last_week %}arrow-down{% else %}equals{% endif %} mr-1"></i>
+                <span>{% if completed_tasks_week > completed_last_week %}{{ completed_tasks_week|add:"-"|add:completed_last_week }} more than last week{% elif completed_tasks_week < completed_last_week %}{{ completed_last_week|add:"-"|add:completed_tasks_week }} less than last week{% else %}Same as last week{% endif %}</span>
             </div>
         </div>
     </a>
@@ -70,13 +75,13 @@
             </div>
             <div class="ml-4">
                 <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Daily Streak</p>
-                <p class="text-2xl font-semibold text-gray-900 dark:text-white">7 days</p>
+                <p class="text-2xl font-semibold text-gray-900 dark:text-white">{{ streak_days }} days</p>
             </div>
         </div>
         <div class="mt-4">
-            <div class="flex items-center text-sm text-green-600 dark:text-green-400">
-                <i class="fas fa-medal mr-1"></i>
-                <span>Keep it up!</span>
+            <div class="flex items-center text-sm {% if streak_days > 0 %}text-green-600 dark:text-green-400{% else %}text-gray-500 dark:text-gray-400{% endif %}">
+                <i class="fas fa-{% if streak_days > 0 %}medal{% else %}calendar{% endif %} mr-1"></i>
+                <span>{% if streak_days > 0 %}Keep it up!{% else %}Start your streak{% endif %}</span>
             </div>
         </div>
     </a>
@@ -96,7 +101,7 @@
             </div>
             <div class="divide-y divide-gray-200 dark:divide-gray-700">
                 {% for task in today_tasks %}
-                <div class="task-item px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150 flex items-start">
+                <div class="task-item px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150 flex items-start{% if task.status == 'completed' %} opacity-50 line-through{% endif %}">
                     <div class="flex items-center h-5 mt-1">
                         <input id="task-{{ task.id }}" name="task-{{ task.id }}" type="checkbox" class="focus:ring-primary-500 h-4 w-4 text-primary-600 border-gray-300 dark:border-gray-600 rounded" {% if task.status == 'completed' %}checked{% endif %}>
                     </div>
@@ -238,10 +243,8 @@
                 <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Completion Rate</h2>
             </div>
             <div class="px-6 py-4 flex flex-col items-center">
-                <div class="donut-chart">
-                    <div class="donut-inner">
-                        {{ completion_rate }}%
-                    </div>
+                <div class="relative w-32 h-32">
+                    <canvas id="completionChart" width="128" height="128"></canvas>
                 </div>
                 <div class="mt-4 text-center">
                     <p class="text-sm text-gray-500 dark:text-gray-400">You've completed {{ completion_rate }}% of this week's tasks</p>
@@ -266,4 +269,134 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize completion rate donut chart
+    const ctx = document.getElementById('completionChart').getContext('2d');
+    const completionRate = parseFloat('{{ completion_rate }}');
+    const completedTasks = parseInt('{{ completed_week_tasks_count }}');
+    const totalTasks = parseInt('{{ total_week_tasks }}');
+    const remainingTasks = totalTasks - completedTasks;
+    
+    const chart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Completed', 'Remaining'],
+            datasets: [{
+                data: [completedTasks, remainingTasks],
+                backgroundColor: [
+                    '#10b981', // green-500
+                    document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb'  // gray-700 for dark, gray-200 for light
+                ],
+                borderColor: [
+                    '#10b981',
+                    document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb'
+                ],
+                borderWidth: 0,
+                cutout: '70%'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    enabled: false
+                }
+            },
+            elements: {
+                arc: {
+                    borderWidth: 0
+                }
+            }
+        }
+    });
+    
+    // Add percentage text in the center
+    const centerText = document.createElement('div');
+    centerText.className = 'absolute inset-0 flex items-center justify-center';
+    centerText.innerHTML = `<div class="text-center"><div class="text-2xl font-bold text-gray-900 dark:text-white">${completionRate}%</div><div class="text-xs text-gray-500 dark:text-gray-400">Complete</div></div>`;
+    document.querySelector('#completionChart').parentElement.appendChild(centerText);
+    
+    // Handle task completion checkboxes
+    const taskCheckboxes = document.querySelectorAll('input[name^="task-"]');
+    
+    taskCheckboxes.forEach(function(checkbox) {
+        checkbox.addEventListener('change', function() {
+            const taskId = this.name.replace('task-', '');
+            const completed = this.checked;
+            
+            // Disable checkbox while processing
+            this.disabled = true;
+            
+            // Send AJAX request
+            fetch('{% url "main:toggle_task_completion" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({
+                    task_id: taskId,
+                    completed: completed
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update the task item appearance based on completion status
+                    const taskItem = this.closest('.task-item');
+                    if (completed) {
+                        // Remove default completed styling and add clicked styling
+                        taskItem.classList.remove('opacity-50');
+                        taskItem.classList.add('opacity-60');
+                        taskItem.style.textDecoration = 'line-through';
+                    } else {
+                        // Remove all styling for incomplete tasks
+                        taskItem.classList.remove('opacity-50', 'opacity-60');
+                        taskItem.style.textDecoration = 'none';
+                    }
+                    
+                    // Show success message
+                    showNotification('Task ' + (completed ? 'completed' : 'marked as incomplete') + '!', 'success');
+                } else {
+                    // Revert checkbox state on error
+                    this.checked = !completed;
+                    showNotification('Error updating task: ' + (data.error || 'Unknown error'), 'error');
+                }
+            })
+            .catch(error => {
+                // Revert checkbox state on error
+                this.checked = !completed;
+                showNotification('Error updating task: ' + error.message, 'error');
+            })
+            .finally(() => {
+                // Re-enable checkbox
+                this.disabled = false;
+            });
+        });
+    });
+    
+    // Simple notification function
+    function showNotification(message, type) {
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${
+            type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+        }`;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        
+        // Remove notification after 3 seconds
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+});
+</script>
 {% endblock %}

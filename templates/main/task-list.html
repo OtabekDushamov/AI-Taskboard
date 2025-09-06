@@ -71,13 +71,17 @@
     }
     
     .dropdown-menu {
-        @apply absolute z-50 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg hidden;
+        @apply absolute z-50 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg;
         max-height: 200px;
         overflow-y: auto;
+        display: none;
+        top: 100%;
+        left: 0;
+        right: 0;
     }
     
     .dropdown-menu.show {
-        @apply block;
+        display: block !important;
     }
     
     .dropdown-item {
@@ -556,12 +560,25 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         toggle.addEventListener('click', (e) => {
+            e.preventDefault();
             e.stopPropagation();
+            
+            // Close other dropdowns
+            dropdowns.forEach(otherDropdown => {
+                if (otherDropdown !== dropdown) {
+                    otherDropdown.querySelector('.dropdown-menu').classList.remove('show');
+                }
+            });
+            
+            // Toggle current dropdown
             menu.classList.toggle('show');
         });
         
         items.forEach(item => {
-            item.addEventListener('click', () => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
                 const value = item.dataset.value;
                 const text = item.textContent;
                 const textElement = toggle.querySelector('span');
@@ -576,7 +593,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Close dropdown
                 menu.classList.remove('show');
                 
-                // Apply filters
+                // Apply filters immediately
                 applyFilters();
             });
         });
@@ -653,9 +670,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Event listeners
     document.getElementById('search').addEventListener('input', debounce(applyFilters, 500));
-    document.getElementById('applyFilters').addEventListener('click', applyFilters);
+    document.getElementById('applyFilters').addEventListener('click', (e) => {
+        e.preventDefault();
+        applyFilters();
+    });
     
-    document.getElementById('clearFilters').addEventListener('click', () => {
+    document.getElementById('clearFilters').addEventListener('click', (e) => {
+        e.preventDefault();
         // Clear all dropdowns
         document.querySelectorAll('.dropdown').forEach(dropdown => {
             const firstItem = dropdown.querySelector('.dropdown-item');
@@ -673,6 +694,23 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Apply filters
         applyFilters();
+    });
+    
+    // Save filter button
+    document.getElementById('saveFilterBtn').addEventListener('click', (e) => {
+        e.preventDefault();
+        // Save current filter state to localStorage
+        const filterState = {
+            search: document.getElementById('search').value,
+            status: getDropdownValue('statusFilter'),
+            priority: getDropdownValue('priorityFilter'),
+            project: getDropdownValue('projectFilter'),
+            assignee: getDropdownValue('assigneeFilter'),
+            due_date: getDropdownValue('dueDateFilter'),
+            tags: getDropdownValue('tagsFilter')
+        };
+        localStorage.setItem('savedFilters', JSON.stringify(filterState));
+        alert('Filters saved successfully!');
     });
     
     // Debounce function

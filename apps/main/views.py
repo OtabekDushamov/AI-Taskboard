@@ -100,9 +100,8 @@ def dashboard_view(request):
     today = timezone.now().date()
     today_tasks = Task.objects.filter(
         Q(assignees=bot_user) | Q(creator=bot_user),
-        deadline__date=today,
-        status__in=['todo', 'in_progress']
-    ).distinct()
+        deadline__date=today
+    ).distinct().order_by('status', 'priority', 'deadline')
     
     # Get recent activity
     recent_activities = TaskActivity.objects.filter(
@@ -127,6 +126,43 @@ def dashboard_view(request):
     completed_week_tasks = week_tasks.filter(status='completed')
     completion_rate = (completed_week_tasks.count() / week_tasks.count() * 100) if week_tasks.count() > 0 else 0
     
+    # Calculate KPI subtitles
+    # Projects: New projects this week
+    week_start_projects = timezone.now().date() - timezone.timedelta(days=7)
+    new_projects_week = user_projects.filter(created_at__date__gte=week_start_projects).count()
+    
+    # Open Tasks: Overdue tasks
+    overdue_tasks = Task.objects.filter(
+        Q(assignees=bot_user) | Q(creator=bot_user),
+        deadline__date__lt=today,
+        status__in=['todo', 'in_progress']
+    ).count()
+    
+    # Completed Tasks: Compare with last week
+    last_week_start = timezone.now().date() - timezone.timedelta(days=14)
+    last_week_end = timezone.now().date() - timezone.timedelta(days=7)
+    completed_last_week = Task.objects.filter(
+        Q(assignees=bot_user) | Q(creator=bot_user),
+        status='completed',
+        updated_at__date__gte=last_week_start,
+        updated_at__date__lt=last_week_end
+    ).count()
+    
+    # Calculate streak (consecutive days with completed tasks)
+    streak_days = 0
+    current_date = today
+    while True:
+        day_tasks = Task.objects.filter(
+            Q(assignees=bot_user) | Q(creator=bot_user),
+            status='completed',
+            updated_at__date=current_date
+        )
+        if day_tasks.exists():
+            streak_days += 1
+            current_date -= timezone.timedelta(days=1)
+        else:
+            break
+    
     context = {
         'user_projects': user_projects,
         'today_tasks': today_tasks,
@@ -139,6 +175,14 @@ def dashboard_view(request):
             status__in=['todo', 'in_progress']
         ).count(),
         'completed_tasks_week': completed_week_tasks.count(),
+        # KPI subtitles
+        'new_projects_week': new_projects_week,
+        'overdue_tasks': overdue_tasks,
+        'completed_last_week': completed_last_week,
+        'streak_days': streak_days,
+        # Donut chart data
+        'total_week_tasks': week_tasks.count(),
+        'completed_week_tasks_count': completed_week_tasks.count(),
     }
     
     return render(request, 'main/dashboard.html', context)
@@ -1256,5 +1300,53 @@ def update_member_role(request):
         project.members.set(project_member_users)
         
         return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_http_methods(["POST"])
+@csrf_exempt
+def toggle_task_completion(request):
+    """Toggle task completion status via AJAX"""
+    try:
+        data = json.loads(request.body)
+        task_id = data.get('task_id')
+        completed = data.get('completed', False)
+        
+        try:
+            bot_user = BotUser.objects.get(user=request.user)
+        except BotUser.DoesNotExist:
+            bot_user = BotUser.objects.create(
+                user=request.user,
+                telegram_id=0,
+                first_name=request.user.first_name or 'User',
+                last_name=request.user.last_name or '',
+                username=request.user.username or ''
+            )
+        
+        task = get_object_or_404(Task, id=task_id)
+        
+        # Check if user has access to this task
+        if not (task.creator == bot_user or bot_user in task.assignees.all()):
+            return JsonResponse({'error': 'Access denied'}, status=403)
+        
+        old_status = task.status
+        new_status = 'completed' if completed else 'todo'
+        task.status = new_status
+        task.save()
+        
+        # Create activity
+        TaskActivity.objects.create(
+            task=task,
+            user=bot_user,
+            action='status_changed',
+            description=f'Status changed from {old_status} to {new_status}'
+        )
+        
+        return JsonResponse({
+            'success': True, 
+            'status': new_status,
+            'completed': completed
+        })
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
