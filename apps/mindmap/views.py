@@ -24,46 +24,14 @@ def mindmap_view(request):
             username=request.user.username or ''
         )
     
-    # Get or create default project for the user
-    project, created = MindmapProject.objects.get_or_create(
-        creator=bot_user,
-        name='Default Mindmap',
-        defaults={
-            'description': 'Default mindmap project',
-        }
-    )
-    
-    # Create a project node if it doesn't exist
-    project_node, project_node_created = MindmapNode.objects.get_or_create(
-        project=project,
-        creator=bot_user,
-        title=project.name,
-        defaults={
-            'description': project.description or 'Main project node',
-            'status': 'in_progress',
-            'priority': 'high',
-            'x_position': 400,
-            'y_position': 300,
-            'width': 250,
-            'height': 100,
-            'tags': ['project', 'main']
-        }
-    )
-    
-    # Get all nodes and connections for the project
-    nodes = MindmapNode.objects.filter(project=project).order_by('-created_at')
-    connections = MindmapConnection.objects.filter(
-        from_node__project=project
-    ).select_related('from_node', 'to_node')
+    # Get all projects for the user
+    projects = MindmapProject.objects.filter(creator=bot_user).order_by('-created_at')
     
     # Get all users for assignee dropdown
     users = BotUser.objects.all()
     
     context = {
-        'project': project,
-        'project_node': project_node,
-        'nodes': nodes,
-        'connections': connections,
+        'projects': projects,
         'users': users,
     }
     
@@ -89,28 +57,15 @@ def create_node(request):
     try:
         data = json.loads(request.body)
         
-        # Get or create default project
-        project, created = MindmapProject.objects.get_or_create(
-            creator=bot_user,
-            name='Default Mindmap',
-            defaults={'description': 'Default mindmap project'}
-        )
+        # Get project ID from request data
+        project_id = data.get('project_id')
+        if not project_id:
+            return JsonResponse({'success': False, 'error': 'Project ID required'}, status=400)
         
-        # Create a project node if the project was just created
-        if created:
-            MindmapNode.objects.create(
-                project=project,
-                creator=bot_user,
-                title=project.name,
-                description=project.description or 'Main project node',
-                status='in_progress',
-                priority='high',
-                x_position=400,
-                y_position=300,
-                width=250,
-                height=100,
-                tags=['project', 'main']
-            )
+        try:
+            project = MindmapProject.objects.get(id=project_id, creator=bot_user)
+        except MindmapProject.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Project not found'}, status=404)
         
         # Create the node
         node = MindmapNode.objects.create(
@@ -209,6 +164,12 @@ def update_node(request):
             node.height = data['height']
         if 'tags' in data:
             node.tags = data['tags']
+        
+        # If this is a main project node and title changed, update project name
+        if 'title' in data and node.tags and 'project' in node.tags and 'main' in node.tags:
+            if node.project and node.project.name != data['title']:
+                node.project.name = data['title']
+                node.project.save()
         
         # Update assignee
         if 'assignee_id' in data:
@@ -396,12 +357,20 @@ def get_mindmap_data(request):
         )
     
     try:
-        # Get or create default project
-        project, created = MindmapProject.objects.get_or_create(
-            creator=bot_user,
-            name='Default Mindmap',
-            defaults={'description': 'Default mindmap project'}
-        )
+        # Get project ID from request parameters
+        project_id = request.GET.get('project_id')
+        if not project_id:
+            return JsonResponse({
+                'success': True,
+                'nodes': [],
+                'connections': [],
+                'message': 'No project selected'
+            })
+        
+        try:
+            project = MindmapProject.objects.get(id=project_id, creator=bot_user)
+        except MindmapProject.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Project not found'}, status=404)
         
         # Get all nodes
         nodes = MindmapNode.objects.filter(project=project).order_by('-created_at')
@@ -451,6 +420,284 @@ def get_mindmap_data(request):
         
         return JsonResponse({
             'success': True,
+            'nodes': nodes_data,
+            'connections': connections_data,
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@require_http_methods(["GET"])
+@login_required
+def get_projects(request):
+    """Get all projects for the current user via AJAX"""
+    try:
+        bot_user = BotUser.objects.get(user=request.user)
+    except BotUser.DoesNotExist:
+        bot_user = BotUser.objects.create(
+            user=request.user,
+            telegram_id=0,
+            first_name=request.user.first_name or 'User',
+            last_name=request.user.last_name or '',
+            username=request.user.username or ''
+        )
+    
+    try:
+        projects = MindmapProject.objects.filter(creator=bot_user).order_by('-created_at')
+        projects_data = []
+        
+        for project in projects:
+            node_count = project.get_nodes().count()
+            projects_data.append({
+                'id': project.id,
+                'name': project.name,
+                'description': project.description,
+                'node_count': node_count,
+                'created_at': project.created_at.isoformat(),
+                'updated_at': project.updated_at.isoformat(),
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'projects': projects_data,
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@require_http_methods(["POST"])
+@csrf_exempt
+@login_required
+def create_project(request):
+    """Create a new project via AJAX"""
+    try:
+        bot_user = BotUser.objects.get(user=request.user)
+    except BotUser.DoesNotExist:
+        bot_user = BotUser.objects.create(
+            user=request.user,
+            telegram_id=0,
+            first_name=request.user.first_name or 'User',
+            last_name=request.user.last_name or '',
+            username=request.user.username or ''
+        )
+    
+    try:
+        data = json.loads(request.body)
+        
+        # Create the project
+        project = MindmapProject.objects.create(
+            name=data.get('name', 'New Project'),
+            description=data.get('description', ''),
+            creator=bot_user,
+        )
+        
+        # Create a main project node
+        MindmapNode.objects.create(
+            project=project,
+            creator=bot_user,
+            title=project.name,
+            description=project.description or 'Main project node',
+            status='in_progress',
+            priority='high',
+            x_position=400,
+            y_position=300,
+            width=250,
+            height=100,
+            tags=['project', 'main']
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'project': {
+                'id': project.id,
+                'name': project.name,
+                'description': project.description,
+                'node_count': 1,
+                'created_at': project.created_at.isoformat(),
+                'updated_at': project.updated_at.isoformat(),
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@require_http_methods(["POST"])
+@csrf_exempt
+@login_required
+def update_project(request):
+    """Update an existing project via AJAX"""
+    try:
+        bot_user = BotUser.objects.get(user=request.user)
+    except BotUser.DoesNotExist:
+        bot_user = BotUser.objects.create(
+            user=request.user,
+            telegram_id=0,
+            first_name=request.user.first_name or 'User',
+            last_name=request.user.last_name or '',
+            username=request.user.username or ''
+        )
+    
+    try:
+        data = json.loads(request.body)
+        project_id = data.get('id')
+        
+        if not project_id:
+            return JsonResponse({'success': False, 'error': 'Project ID required'}, status=400)
+        
+        project = get_object_or_404(MindmapProject, id=project_id)
+        
+        # Check if user has permission to edit this project
+        if project.creator != bot_user:
+            return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+        
+        # Update project fields
+        if 'name' in data:
+            project.name = data['name']
+        if 'description' in data:
+            project.description = data['description']
+        
+        project.save()
+        
+        # Update the main project node title if name changed
+        if 'name' in data:
+            main_node = MindmapNode.objects.filter(
+                project=project,
+                tags__contains=['project', 'main']
+            ).first()
+            if main_node:
+                main_node.title = project.name
+                main_node.save()
+        
+        return JsonResponse({
+            'success': True,
+            'project': {
+                'id': project.id,
+                'name': project.name,
+                'description': project.description,
+                'node_count': project.get_nodes().count(),
+                'created_at': project.created_at.isoformat(),
+                'updated_at': project.updated_at.isoformat(),
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@require_http_methods(["POST"])
+@csrf_exempt
+@login_required
+def delete_project(request):
+    """Delete a project via AJAX"""
+    try:
+        bot_user = BotUser.objects.get(user=request.user)
+    except BotUser.DoesNotExist:
+        bot_user = BotUser.objects.create(
+            user=request.user,
+            telegram_id=0,
+            first_name=request.user.first_name or 'User',
+            last_name=request.user.last_name or '',
+            username=request.user.username or ''
+        )
+    
+    try:
+        data = json.loads(request.body)
+        project_id = data.get('id')
+        
+        if not project_id:
+            return JsonResponse({'success': False, 'error': 'Project ID required'}, status=400)
+        
+        project = get_object_or_404(MindmapProject, id=project_id)
+        
+        # Check if user has permission to delete this project
+        if project.creator != bot_user:
+            return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+        
+        project.delete()
+        
+        return JsonResponse({'success': True})
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@require_http_methods(["POST"])
+@csrf_exempt
+@login_required
+def switch_project(request):
+    """Switch to a different project via AJAX"""
+    try:
+        bot_user = BotUser.objects.get(user=request.user)
+    except BotUser.DoesNotExist:
+        bot_user = BotUser.objects.create(
+            user=request.user,
+            telegram_id=0,
+            first_name=request.user.first_name or 'User',
+            last_name=request.user.last_name or '',
+            username=request.user.username or ''
+        )
+    
+    try:
+        data = json.loads(request.body)
+        project_id = data.get('project_id')
+        
+        if not project_id:
+            return JsonResponse({'success': False, 'error': 'Project ID required'}, status=400)
+        
+        project = get_object_or_404(MindmapProject, id=project_id)
+        
+        # Check if user has permission to access this project
+        if project.creator != bot_user:
+            return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+        
+        # Get all nodes and connections for the project
+        nodes = MindmapNode.objects.filter(project=project).order_by('-created_at')
+        connections = MindmapConnection.objects.filter(
+            from_node__project=project
+        ).select_related('from_node', 'to_node')
+        
+        nodes_data = []
+        for node in nodes:
+            nodes_data.append({
+                'id': str(node.id),
+                'title': node.title,
+                'description': node.description,
+                'status': node.status,
+                'priority': node.priority,
+                'x': node.x_position,
+                'y': node.y_position,
+                'width': node.width,
+                'height': node.height,
+                'tags': node.tags,
+                'assignee': {
+                    'id': str(node.assignee.id),
+                    'name': node.assignee.get_full_name(),
+                    'avatar': 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
+                } if node.assignee else None,
+            })
+        
+        connections_data = []
+        for connection in connections:
+            connections_data.append({
+                'id': connection.id,
+                'from_node_id': str(connection.from_node.id),
+                'to_node_id': str(connection.to_node.id),
+                'connection_type': connection.connection_type,
+                'label': connection.label,
+                'color': connection.color,
+                'thickness': connection.thickness,
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'project': {
+                'id': project.id,
+                'name': project.name,
+                'description': project.description,
+            },
             'nodes': nodes_data,
             'connections': connections_data,
         })

@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth import login, authenticate
+from django.contrib.auth import login, authenticate, logout
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
@@ -103,3 +103,12 @@ def profile_view(request):
     return render(request, 'authentication/profile.html', {
         'user': request.user
     })
+
+
+@login_required
+def logout_view(request):
+    """Custom logout view with user feedback"""
+    user_name = request.user.get_full_name() or request.user.username
+    logout(request)
+    messages.success(request, f'You have been successfully logged out. Goodbye, {user_name}!')
+    return redirect('authentication:login')

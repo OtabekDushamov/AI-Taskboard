@@ -260,13 +260,20 @@
             <!-- Left Sidebar -->
             <div id="sidebar" class="sidebar w-64 bg-white dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700 flex flex-col">
                 <div class="p-4 border-b border-gray-200 dark:border-slate-700">
-                    <h2 class="font-semibold text-lg">Projects</h2>
+                    <div class="flex items-center justify-between mb-2">
+                        <h2 class="font-semibold text-lg">Projects</h2>
+                        <button id="refresh-projects" class="p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700" title="Refresh">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                        </button>
+                    </div>
                     <div class="mt-2">
-                        <button id="create-map" class="w-full flex items-center justify-center px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+                        <button id="create-project" class="w-full flex items-center justify-center px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
                             </svg>
-                            New Map
+                            New Project
                         </button>
                     </div>
                 </div>
@@ -274,33 +281,10 @@
                 <div class="flex-1 overflow-y-auto custom-scrollbar">
                     <div class="p-4">
                         <div class="mb-4">
-                            <h3 class="font-medium text-sm uppercase text-gray-500 dark:text-slate-400 mb-2">Recent Maps</h3>
-                            <ul>
-                                <li class="mb-1">
-                                    <a href="#" class="flex items-center px-3 py-2 rounded-md bg-blue-50 dark:bg-slate-700 text-blue-600 dark:text-blue-400">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
-                                        </svg>
-                                        Product Roadmap
-                                    </a>
-                                </li>
-                                <li class="mb-1">
-                                    <a href="#" class="flex items-center px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
-                                        </svg>
-                                        Marketing Strategy
-                                    </a>
-                                </li>
-                                <li class="mb-1">
-                                    <a href="#" class="flex items-center px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
-                                        </svg>
-                                        Team Structure
-                                    </a>
-                                </li>
-                            </ul>
+                            <h3 class="font-medium text-sm uppercase text-gray-500 dark:text-slate-400 mb-2">My Projects</h3>
+                            <div id="projects-list" class="space-y-1">
+                                <!-- Projects will be loaded dynamically -->
+                            </div>
                         </div>
 
                         <div class="mb-4">
@@ -695,8 +679,77 @@
                     <button id="attachment-cancel" class="px-4 py-2 text-sm rounded-md bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600">
                         Cancel
                     </button>
-                    <button id="attachment-upload" class="px-4 py-2 text-sm rounded-md bg-blue-500 text-white hover:bg-blue-600" disabled>
-                        Upload
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Project Modal -->
+    <div id="create-project-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md">
+            <div class="p-6">
+                <h3 class="text-lg font-medium mb-4">Create New Project</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Project Name</label>
+                        <input type="text" id="new-project-name" class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700" placeholder="Enter project name">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Description (Optional)</label>
+                        <textarea id="new-project-description" class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700" rows="3" placeholder="Enter project description"></textarea>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button id="create-project-cancel" class="px-4 py-2 text-sm rounded-md bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600">
+                        Cancel
+                    </button>
+                    <button id="create-project-submit" class="px-4 py-2 text-sm rounded-md bg-blue-500 text-white hover:bg-blue-600">
+                        Create Project
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Project Modal -->
+    <div id="edit-project-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md">
+            <div class="p-6">
+                <h3 class="text-lg font-medium mb-4">Edit Project</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Project Name</label>
+                        <input type="text" id="edit-project-name" class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700" placeholder="Enter project name">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Description (Optional)</label>
+                        <textarea id="edit-project-description" class="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700" rows="3" placeholder="Enter project description"></textarea>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button id="edit-project-cancel" class="px-4 py-2 text-sm rounded-md bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600">
+                        Cancel
+                    </button>
+                    <button id="edit-project-submit" class="px-4 py-2 text-sm rounded-md bg-blue-500 text-white hover:bg-blue-600">
+                        Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Project Confirmation Modal -->
+    <div id="delete-project-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md">
+            <div class="p-6">
+                <h3 class="text-lg font-medium mb-4">Delete Project</h3>
+                <p class="text-gray-600 dark:text-slate-300 mb-6">Are you sure you want to delete this project? This action cannot be undone and will delete all nodes and connections in this project.</p>
+                <div class="flex justify-end space-x-3">
+                    <button id="delete-project-cancel" class="px-4 py-2 text-sm rounded-md bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600">
+                        Cancel
+                    </button>
+                    <button id="delete-project-confirm" class="px-4 py-2 text-sm rounded-md bg-red-500 text-white hover:bg-red-600">
+                        Delete Project
                     </button>
                 </div>
             </div>
@@ -705,39 +758,8 @@
 
     <script>
         // Django data for the mind map
-        const djangoNodes = [
-            {% for node in nodes %}
-            {
-                id: '{{ node.id }}',
-                title: '{{ node.title|escapejs }}',
-                description: '{{ node.description|escapejs }}',
-                status: '{{ node.status }}',
-                priority: '{{ node.priority }}',
-                assignee: {% if node.assignee %}{ id: '{{ node.assignee.id }}', name: '{{ node.assignee.get_full_name|escapejs }}', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' }{% else %}null{% endif %},
-                tags: {{ node.tags|safe }},
-                x: {{ node.x_position }},
-                y: {{ node.y_position }},
-                width: {{ node.width }},
-                height: {{ node.height }},
-                children: []
-            }{% if not forloop.last %},{% endif %}
-            {% endfor %}
-        ];
-
-        // Django connections data
-        const djangoConnections = [
-            {% for connection in connections %}
-            {
-                id: {{ connection.id }},
-                from_node_id: '{{ connection.from_node.id }}',
-                to_node_id: '{{ connection.to_node.id }}',
-                connection_type: '{{ connection.connection_type }}',
-                label: '{{ connection.label|escapejs }}',
-                color: '{{ connection.color }}',
-                thickness: {{ connection.thickness }}
-            }{% if not forloop.last %},{% endif %}
-            {% endfor %}
-        ];
+        const djangoNodes = [];
+        const djangoConnections = [];
 
         // State management
         let state = {
@@ -804,6 +826,24 @@
         const redoBtn = document.getElementById('redo');
         const exportBtn = document.getElementById('export');
 
+        // Project management elements
+        const createProjectBtn = document.getElementById('create-project');
+        const refreshProjectsBtn = document.getElementById('refresh-projects');
+        const projectsList = document.getElementById('projects-list');
+        const createProjectModal = document.getElementById('create-project-modal');
+        const editProjectModal = document.getElementById('edit-project-modal');
+        const deleteProjectModal = document.getElementById('delete-project-modal');
+        const newProjectName = document.getElementById('new-project-name');
+        const newProjectDescription = document.getElementById('new-project-description');
+        const editProjectName = document.getElementById('edit-project-name');
+        const editProjectDescription = document.getElementById('edit-project-description');
+        const createProjectCancel = document.getElementById('create-project-cancel');
+        const createProjectSubmit = document.getElementById('create-project-submit');
+        const editProjectCancel = document.getElementById('edit-project-cancel');
+        const editProjectSubmit = document.getElementById('edit-project-submit');
+        const deleteProjectCancel = document.getElementById('delete-project-cancel');
+        const deleteProjectConfirm = document.getElementById('delete-project-confirm');
+
         // Initialize the app
         function init() {
             renderNodes();
@@ -811,6 +851,8 @@
             updateMinimap();
             setupEventListeners();
             setupTheme();
+            setupProjectManagement();
+            loadProjects();
         }
 
         // Render nodes on the canvas
@@ -1408,6 +1450,11 @@
         
         // Create new node
         function createNewNode() {
+            if (!currentProjectId) {
+                alert('Please select a project first');
+                return;
+            }
+            
             const newNodeData = {
                 title: 'New Node',
                 description: '',
@@ -1418,7 +1465,8 @@
                 width: 200,
                 height: 80,
                 tags: [],
-                assignee_id: null
+                assignee_id: null,
+                project_id: currentProjectId
             };
             
             // Send create request to backend
@@ -1685,6 +1733,330 @@
                 }
             }
             return cookieValue;
+        }
+
+        // Project Management Functions
+        let currentProjectId = null;
+        let projects = [];
+
+        // Load projects from server
+        function loadProjects() {
+            fetch('{% url "mindmap:get_projects" %}')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        projects = data.projects;
+                        renderProjectsList();
+                    } else {
+                        console.error('Failed to load projects:', data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading projects:', error);
+                });
+        }
+
+        // Render projects list in sidebar
+        function renderProjectsList() {
+            projectsList.innerHTML = '';
+            
+            if (projects.length === 0) {
+                projectsList.innerHTML = '<p class="text-gray-500 dark:text-slate-400 text-sm">No projects yet</p>';
+                return;
+            }
+
+            projects.forEach(project => {
+                const projectEl = document.createElement('div');
+                projectEl.className = 'project-item mb-1';
+                projectEl.innerHTML = `
+                    <div class="flex items-center justify-between px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700 group">
+                        <div class="flex items-center flex-1 cursor-pointer" onclick="switchToProject(${project.id})">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
+                            </svg>
+                            <div class="flex-1">
+                                <div class="font-medium text-sm">${project.name}</div>
+                                <div class="text-xs text-gray-500 dark:text-slate-400">${project.node_count} nodes</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="editProject(${project.id})" class="p-1 rounded hover:bg-gray-200 dark:hover:bg-slate-600 mr-1" title="Edit">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                            </button>
+                            <button onclick="deleteProject(${project.id})" class="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900" title="Delete">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                projectsList.appendChild(projectEl);
+            });
+        }
+
+        // Switch to a different project
+        function switchToProject(projectId) {
+            fetch('{% url "mindmap:switch_project" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ project_id: projectId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    currentProjectId = projectId;
+                    state.nodes = data.nodes;
+                    state.connections = data.connections;
+                    state.selectedNodes = [];
+                    
+                    // Clear details panel
+                    const detailsPanel = document.getElementById('details-panel');
+                    detailsPanel.classList.add('details-collapsed');
+                    
+                    // Re-render the mindmap
+                    renderNodes();
+                    renderConnections();
+                    updateMinimap();
+                    
+                    console.log('Switched to project:', data.project.name);
+                } else {
+                    console.error('Failed to switch project:', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error switching project:', error);
+            });
+        }
+
+        // Create new project
+        function createNewProject() {
+            const name = newProjectName.value.trim();
+            if (!name) {
+                alert('Please enter a project name');
+                return;
+            }
+
+            fetch('{% url "mindmap:create_project" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    name: name,
+                    description: newProjectDescription.value.trim()
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    projects.unshift(data.project);
+                    renderProjectsList();
+                    hideCreateProjectModal();
+                    
+                    // Switch to the new project
+                    switchToProject(data.project.id);
+                    
+                    console.log('Project created successfully');
+                } else {
+                    console.error('Failed to create project:', data.error);
+                    alert('Failed to create project: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error creating project:', error);
+                alert('Error creating project');
+            });
+        }
+
+        // Edit project
+        function editProject(projectId) {
+            const project = projects.find(p => p.id === projectId);
+            if (!project) return;
+
+            editProjectName.value = project.name;
+            editProjectDescription.value = project.description || '';
+            editProjectModal.dataset.projectId = projectId;
+            showEditProjectModal();
+        }
+
+        // Update project
+        function updateProject() {
+            const projectId = parseInt(editProjectModal.dataset.projectId);
+            const name = editProjectName.value.trim();
+            
+            if (!name) {
+                alert('Please enter a project name');
+                return;
+            }
+
+            fetch('{% url "mindmap:update_project" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    id: projectId,
+                    name: name,
+                    description: editProjectDescription.value.trim()
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const projectIndex = projects.findIndex(p => p.id === projectId);
+                    if (projectIndex !== -1) {
+                        projects[projectIndex] = data.project;
+                        renderProjectsList();
+                    }
+                    hideEditProjectModal();
+                    
+                    // If this is the current project, update the mindmap
+                    if (currentProjectId === projectId) {
+                        const mainNode = state.nodes.find(n => n.tags && n.tags.includes('project') && n.tags.includes('main'));
+                        if (mainNode) {
+                            mainNode.title = data.project.name;
+                            renderNodes();
+                        }
+                    }
+                    
+                    console.log('Project updated successfully');
+                } else {
+                    console.error('Failed to update project:', data.error);
+                    alert('Failed to update project: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error updating project:', error);
+                alert('Error updating project');
+            });
+        }
+
+        // Delete project
+        function deleteProject(projectId) {
+            deleteProjectModal.dataset.projectId = projectId;
+            showDeleteProjectModal();
+        }
+
+        // Confirm project deletion
+        function confirmDeleteProject() {
+            const projectId = parseInt(deleteProjectModal.dataset.projectId);
+
+            fetch('{% url "mindmap:delete_project" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ id: projectId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    projects = projects.filter(p => p.id !== projectId);
+                    renderProjectsList();
+                    hideDeleteProjectModal();
+                    
+                    // If this was the current project, switch to the first available project
+                    if (currentProjectId === projectId) {
+                        if (projects.length > 0) {
+                            switchToProject(projects[0].id);
+                        } else {
+                            // No projects left, clear the mindmap
+                            state.nodes = [];
+                            state.connections = [];
+                            state.selectedNodes = [];
+                            renderNodes();
+                            renderConnections();
+                            updateMinimap();
+                        }
+                    }
+                    
+                    console.log('Project deleted successfully');
+                } else {
+                    console.error('Failed to delete project:', data.error);
+                    alert('Failed to delete project: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting project:', error);
+                alert('Error deleting project');
+            });
+        }
+
+        // Modal functions
+        function showCreateProjectModal() {
+            createProjectModal.classList.remove('hidden');
+            newProjectName.value = '';
+            newProjectDescription.value = '';
+            newProjectName.focus();
+        }
+
+        function hideCreateProjectModal() {
+            createProjectModal.classList.add('hidden');
+        }
+
+        function showEditProjectModal() {
+            editProjectModal.classList.remove('hidden');
+            editProjectName.focus();
+        }
+
+        function hideEditProjectModal() {
+            editProjectModal.classList.add('hidden');
+        }
+
+        function showDeleteProjectModal() {
+            deleteProjectModal.classList.remove('hidden');
+        }
+
+        function hideDeleteProjectModal() {
+            deleteProjectModal.classList.add('hidden');
+        }
+
+        // Setup project management event listeners
+        function setupProjectManagement() {
+            // Create project button
+            createProjectBtn.addEventListener('click', showCreateProjectModal);
+            refreshProjectsBtn.addEventListener('click', loadProjects);
+            
+            // Create project modal
+            createProjectCancel.addEventListener('click', hideCreateProjectModal);
+            createProjectSubmit.addEventListener('click', createNewProject);
+            
+            // Edit project modal
+            editProjectCancel.addEventListener('click', hideEditProjectModal);
+            editProjectSubmit.addEventListener('click', updateProject);
+            
+            // Delete project modal
+            deleteProjectCancel.addEventListener('click', hideDeleteProjectModal);
+            deleteProjectConfirm.addEventListener('click', confirmDeleteProject);
+            
+            // Close modals on escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    hideCreateProjectModal();
+                    hideEditProjectModal();
+                    hideDeleteProjectModal();
+                }
+            });
+            
+            // Close modals on backdrop click
+            createProjectModal.addEventListener('click', (e) => {
+                if (e.target === createProjectModal) hideCreateProjectModal();
+            });
+            editProjectModal.addEventListener('click', (e) => {
+                if (e.target === editProjectModal) hideEditProjectModal();
+            });
+            deleteProjectModal.addEventListener('click', (e) => {
+                if (e.target === deleteProjectModal) hideDeleteProjectModal();
+            });
         }
 
         // Initialize the app when DOM is loaded
@@ -2060,6 +2432,11 @@
         
         // Create a child node connected to the context menu node
         function createChildNode() {
+            if (!currentProjectId) {
+                alert('Please select a project first');
+                return;
+            }
+            
             if (state.contextMenu.nodeId) {
                 const parentNode = state.nodes.find(n => n.id === state.contextMenu.nodeId);
                 if (parentNode) {
@@ -2077,7 +2454,8 @@
                         width: 200,
                         height: 80,
                         tags: [],
-                        assignee_id: null
+                        assignee_id: null,
+                        project_id: currentProjectId
                     };
                     
                     // Send create request to backend
@@ -2118,6 +2496,11 @@
         
         // Create a sibling node connected to the context menu node's parent
         function createSiblingNode() {
+            if (!currentProjectId) {
+                alert('Please select a project first');
+                return;
+            }
+            
             if (state.contextMenu.nodeId) {
                 const currentNode = state.nodes.find(n => n.id === state.contextMenu.nodeId);
                 if (currentNode) {
@@ -2149,7 +2532,8 @@
                         width: 200,
                         height: 80,
                         tags: [],
-                        assignee_id: null
+                        assignee_id: null,
+                        project_id: currentProjectId
                     };
                     
                     // Send create request to backend

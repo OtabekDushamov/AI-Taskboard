@@ -528,7 +528,14 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Form submission - add selected users to form data
     const form = document.querySelector('form');
-    form.addEventListener('submit', function(e) {
+    const submitButton = form.querySelector('button[type="submit"]');
+    
+    // Handle both form submit and button click events
+    function handleFormSubmission(e) {
+        // Clear any existing team_members inputs to avoid duplicates
+        const existingInputs = form.querySelectorAll('input[name="team_members"]');
+        existingInputs.forEach(input => input.remove());
+        
         // Add hidden inputs for selected users
         selectedUsers.forEach(user => {
             const input = document.createElement('input');
@@ -537,7 +544,11 @@ document.addEventListener('DOMContentLoaded', function() {
             input.value = user.id;
             form.appendChild(input);
         });
-    });
+    }
+    
+    // Add event listeners for both form submit and button click
+    form.addEventListener('submit', handleFormSubmission);
+    submitButton.addEventListener('click', handleFormSubmission);
 });
 
 // Remove member function (for existing members)

@@ -6,6 +6,12 @@
     <title>{% block title %}AI Taskboard{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- jQuery (required for toastr) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <!-- Toastr CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <!-- Toastr JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -105,6 +111,49 @@
         .user-menu-trigger {
             cursor: pointer;
         }
+        
+        /* Toastr custom styles for dark mode */
+        .toast-top-right {
+            top: 80px !important;
+            right: 20px !important;
+        }
+        
+        .toast-success {
+            background-color: #10b981 !important;
+            color: white !important;
+        }
+        
+        .toast-error {
+            background-color: #ef4444 !important;
+            color: white !important;
+        }
+        
+        .toast-warning {
+            background-color: #f59e0b !important;
+            color: white !important;
+        }
+        
+        .toast-info {
+            background-color: #3b82f6 !important;
+            color: white !important;
+        }
+        
+        /* Dark mode toastr styles */
+        .dark .toast-success {
+            background-color: #059669 !important;
+        }
+        
+        .dark .toast-error {
+            background-color: #dc2626 !important;
+        }
+        
+        .dark .toast-warning {
+            background-color: #d97706 !important;
+        }
+        
+        .dark .toast-info {
+            background-color: #2563eb !important;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -145,12 +194,18 @@
                         
                         <!-- Dropdown menu -->
                         <div class="user-dropdown origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white dark:bg-gray-700 ring-1 ring-black ring-opacity-5 hidden" role="menu" aria-orientation="vertical" aria-labelledby="user-menu">
-                            <a href="{% url 'main:profile' %}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600" role="menuitem">Your Profile</a>
-                            <a href="{% url 'main:settings' %}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600" role="menuitem">Settings</a>
+                            <a href="{% url 'main:profile' %}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600" role="menuitem">
+                                <i class="fas fa-user mr-2"></i>Your Profile
+                            </a>
+                            <a href="{% url 'main:settings' %}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600" role="menuitem">
+                                <i class="fas fa-cog mr-2"></i>Settings
+                            </a>
                             <a href="{% url 'mindmap:mindmap' %}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600" role="menuitem">
                                 <i class="fas fa-project-diagram mr-2"></i>Mindmap
                             </a>
-                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600" role="menuitem">Sign out</a>
+                            <a href="{% url 'authentication:logout' %}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600" role="menuitem">
+                                <i class="fas fa-sign-out-alt mr-2"></i>Sign out
+                            </a>
                         </div>
                     </div>
                     
@@ -221,6 +276,45 @@
         // Initialize theme on page load
         initTheme();
         
+        // Initialize Toastr when jQuery is ready
+        $(document).ready(function() {
+            // Initialize Toastr
+            toastr.options = {
+                "closeButton": true,
+                "debug": false,
+                "newestOnTop": true,
+                "progressBar": true,
+                "positionClass": "toast-top-right",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showDuration": "300",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            };
+            
+            // Handle Django messages
+            {% if messages %}
+                {% for message in messages %}
+                    {% if message.tags == 'success' %}
+                        toastr.success("{{ message|escapejs }}");
+                    {% elif message.tags == 'error' %}
+                        toastr.error("{{ message|escapejs }}");
+                    {% elif message.tags == 'warning' %}
+                        toastr.warning("{{ message|escapejs }}");
+                    {% elif message.tags == 'info' %}
+                        toastr.info("{{ message|escapejs }}");
+                    {% else %}
+                        toastr.info("{{ message|escapejs }}");
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+        });
+        
         // Toggle dark mode
         document.getElementById('theme-toggle').addEventListener('click', function() {
             const isDark = document.documentElement.classList.contains('dark');
@@ -269,6 +363,90 @@
             });
         });
     </script>
+    
+    <!-- Message Block for Custom Toastr Messages -->
+    {% block messages %}
+    <script>
+        /**
+         * Toastr Message Functions
+         * 
+         * Usage Examples:
+         * 1. Simple messages:
+         *    showToast('Success message', 'success');
+         *    showToast('Error message', 'error');
+         *    showToast('Warning message', 'warning');
+         *    showToast('Info message', 'info');
+         * 
+         * 2. Custom options:
+         *    showCustomToast('Custom message', {
+         *        type: 'success',
+         *        timeOut: 3000,
+         *        positionClass: 'toast-top-left'
+         *    });
+         * 
+         * 3. Django messages are automatically handled via template tags
+         */
+        
+        // Function to show custom toastr messages
+        function showToast(message, type = 'info') {
+            // Ensure toastr is available
+            if (typeof toastr === 'undefined') {
+                console.error('Toastr is not loaded');
+                return;
+            }
+            
+            switch(type) {
+                case 'success':
+                    toastr.success(message);
+                    break;
+                case 'error':
+                    toastr.error(message);
+                    break;
+                case 'warning':
+                    toastr.warning(message);
+                    break;
+                case 'info':
+                default:
+                    toastr.info(message);
+                    break;
+            }
+        }
+        
+        // Function to show toastr with custom options
+        function showCustomToast(message, options = {}) {
+            // Ensure toastr is available
+            if (typeof toastr === 'undefined') {
+                console.error('Toastr is not loaded');
+                return;
+            }
+            
+            const defaultOptions = {
+                "closeButton": true,
+                "debug": false,
+                "newestOnTop": true,
+                "progressBar": true,
+                "positionClass": "toast-top-right",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showDuration": "300",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            };
+            
+            const finalOptions = Object.assign(defaultOptions, options);
+            toastr.options = finalOptions;
+            
+            const type = options.type || 'info';
+            showToast(message, type);
+        }
+    </script>
+    {% endblock %}
+    
     {% block extra_js %}{% endblock %}
 </body>
 </html>

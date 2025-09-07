@@ -15,4 +15,11 @@ urlpatterns = [
     path('api/create-connection/', login_required(views.create_connection), name='create_connection'),
     path('api/delete-connection/', login_required(views.delete_connection), name='delete_connection'),
     path('api/get-data/', login_required(views.get_mindmap_data), name='get_mindmap_data'),
+    
+    # Project management endpoints
+    path('api/get-projects/', login_required(views.get_projects), name='get_projects'),
+    path('api/create-project/', login_required(views.create_project), name='create_project'),
+    path('api/update-project/', login_required(views.update_project), name='update_project'),
+    path('api/delete-project/', login_required(views.delete_project), name='delete_project'),
+    path('api/switch-project/', login_required(views.switch_project), name='switch_project'),
 ]
