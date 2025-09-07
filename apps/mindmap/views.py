@@ -30,9 +30,26 @@ def mindmap_view(request):
     # Get all users for assignee dropdown
     users = BotUser.objects.all()
     
+    # Get the last selected project from session
+    last_project_id = request.session.get('last_selected_project_id')
+    current_project = None
+    
+    if last_project_id:
+        try:
+            current_project = MindmapProject.objects.get(id=last_project_id, creator=bot_user)
+        except MindmapProject.DoesNotExist:
+            # If the project doesn't exist or user doesn't have access, clear the session
+            request.session.pop('last_selected_project_id', None)
+    
+    # If no current project, use the first available project
+    if not current_project and projects.exists():
+        current_project = projects.first()
+        request.session['last_selected_project_id'] = current_project.id
+    
     context = {
         'projects': projects,
         'users': users,
+        'current_project': current_project,
     }
     
     return render(request, 'mindmap/mindmap.html', context)
@@ -274,7 +291,10 @@ def create_connection(request):
         to_node = get_object_or_404(MindmapNode, id=to_node_id)
         
         # Check if user has permission to create connections for these nodes
-        if from_node.creator != bot_user or to_node.creator != bot_user:
+        # Allow connections if both nodes belong to the same project and user owns that project
+        if (from_node.project != to_node.project or 
+            not from_node.project or 
+            from_node.project.creator != bot_user):
             return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
         
         # Create the connection
@@ -653,6 +673,9 @@ def switch_project(request):
         if project.creator != bot_user:
             return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
         
+        # Save the selected project ID to session
+        request.session['last_selected_project_id'] = project_id
+        
         # Get all nodes and connections for the project
         nodes = MindmapNode.objects.filter(project=project).order_by('-created_at')
         connections = MindmapConnection.objects.filter(
@@ -661,6 +684,10 @@ def switch_project(request):
         
         nodes_data = []
         for node in nodes:
+            # Get child node IDs for this node
+            child_connections = connections.filter(from_node=node)
+            children_ids = [str(conn.to_node.id) for conn in child_connections]
+            
             nodes_data.append({
                 'id': str(node.id),
                 'title': node.title,
@@ -672,6 +699,7 @@ def switch_project(request):
                 'width': node.width,
                 'height': node.height,
                 'tags': node.tags,
+                'children': children_ids,
                 'assignee': {
                     'id': str(node.assignee.id),
                     'name': node.assignee.get_full_name(),

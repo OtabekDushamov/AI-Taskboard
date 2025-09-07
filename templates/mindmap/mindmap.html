@@ -880,6 +880,8 @@
                 nodeEl.style.transformOrigin = '0 0';
                 nodeEl.dataset.id = node.id;
                 
+                console.log('Rendering node:', node.title, 'ID:', node.id, 'type:', typeof node.id, 'tags:', node.tags);
+                
                 // Add selected class if node is selected
                 if (state.selectedNodes.includes(node.id)) {
                     nodeEl.classList.add('ring-2', 'ring-blue-500');
@@ -897,7 +899,7 @@
                     <div class="flex flex-wrap gap-1 mt-2">
                         ${node.tags.map(tag => `<span class="px-1.5 py-0.5 text-xs rounded-full bg-gray-100 dark:bg-slate-700">${tag}</span>`).join('')}
                     </div>
-                    ${node.children.length > 0 ? `<div class="absolute -bottom-2 -right-2 bg-gray-200 dark:bg-slate-700 rounded-full w-5 h-5 flex items-center justify-center text-xs">${node.children.length}</div>` : ''}
+                    ${node.children && node.children.length > 0 ? `<div class="absolute -bottom-2 -right-2 bg-gray-200 dark:bg-slate-700 rounded-full w-5 h-5 flex items-center justify-center text-xs">${node.children.length}</div>` : ''}
                 `;
                 
                 // Add click event listener for node selection and editing
@@ -1189,6 +1191,9 @@
                     state.contextMenu.x = e.clientX;
                     state.contextMenu.y = e.clientY;
                     
+                    console.log('Context menu triggered for nodeId:', state.contextMenu.nodeId, 'type:', typeof state.contextMenu.nodeId);
+                    console.log('Dataset ID:', nodeEl.dataset.id, 'type:', typeof nodeEl.dataset.id);
+                    
                     showContextMenu();
                 }
             });
@@ -1290,6 +1295,20 @@
             
             // Details panel actions
             setupDetailsPanelActions();
+            
+            // Confirmation modal actions
+            confirmCancel.addEventListener('click', () => {
+                confirmModal.classList.add('hidden');
+            });
+            
+            // Close modal on backdrop click
+            confirmModal.addEventListener('click', (e) => {
+                if (e.target === confirmModal) {
+                    confirmModal.classList.add('hidden');
+                }
+            });
+            
+            // Note: confirmAction.onclick is set dynamically in showDeleteConfirmation
         }
         
         // Handle keyboard shortcuts
@@ -1328,6 +1347,10 @@
                         detailsPanel.classList.add('details-collapsed');
                         state.selectedNodes = [];
                         renderNodes();
+                    }
+                    // Close confirmation modal if open
+                    if (!confirmModal.classList.contains('hidden')) {
+                        confirmModal.classList.add('hidden');
                     }
                     break;
                 case 'a':
@@ -1455,13 +1478,25 @@
                 return;
             }
             
+            // Check if there's a selected node to connect to
+            const selectedNodeId = state.selectedNodes.length === 1 ? state.selectedNodes[0] : null;
+            const selectedNode = selectedNodeId ? state.nodes.find(n => n.id === selectedNodeId) : null;
+            
+            // Calculate position for new node
+            let x = 100, y = 100;
+            if (selectedNode) {
+                // Position new node near the selected node
+                x = selectedNode.x + selectedNode.width + 50;
+                y = selectedNode.y;
+            }
+            
             const newNodeData = {
                 title: 'New Node',
                 description: '',
                 status: 'todo',
                 priority: 'med',
-                x: 100,
-                y: 100,
+                x: x,
+                y: y,
                 width: 200,
                 height: 80,
                 tags: [],
@@ -1481,15 +1516,18 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Add new node to state
-                    state.nodes.push(data.node);
-                    renderNodes();
-                    renderConnections();
+                    console.log('Node created successfully:', data.node);
                     
-                    // Select and show details for new node
-                    state.selectedNodes = [data.node.id];
-                    renderNodes();
-                    showNodeDetails(data.node.id);
+                    // Create connection to selected node if one was selected
+                    if (selectedNodeId) {
+                        createConnection(selectedNodeId, data.node.id).then(() => {
+                            // Reload all nodes from server after connection is created
+                            reloadAllNodes();
+                        });
+                    } else {
+                        // No connection needed, just reload
+                        reloadAllNodes();
+                    }
                 } else {
                     console.error('Failed to create node:', data.error);
                 }
@@ -1502,7 +1540,7 @@
         // Apply auto layout to nodes
         function applyAutoLayout() {
             // Simple hierarchical layout for demo purposes
-            const rootNodes = state.nodes.filter(node => !state.nodes.some(n => n.children.includes(node.id)));
+            const rootNodes = state.nodes.filter(node => !state.nodes.some(n => n.children && n.children.includes(node.id)));
             
             let y = 50;
             rootNodes.forEach((node, i) => {
@@ -1520,7 +1558,7 @@
         
         // Layout child nodes recursively
         function layoutChildren(parentNode, startX, startY) {
-            const children = state.nodes.filter(node => parentNode.children.includes(node.id));
+            const children = state.nodes.filter(node => parentNode.children && parentNode.children.includes(node.id));
             
             children.forEach((child, i) => {
                 child.x = startX + (i - (children.length - 1) / 2) * 200;
@@ -1569,11 +1607,13 @@
             contextMenuItems.forEach(item => {
                 item.addEventListener('click', (e) => {
                     e.preventDefault();
-                    const action = item.textContent.toLowerCase();
+                    const action = item.textContent.toLowerCase().trim();
+                    console.log('Context menu action clicked:', action, 'for nodeId:', state.contextMenu.nodeId, 'type:', typeof state.contextMenu.nodeId);
                     
                     if (state.contextMenu.nodeId) {
                         switch (action) {
                             case 'delete':
+                                console.log('Calling showDeleteConfirmation for nodeId:', state.contextMenu.nodeId);
                                 showDeleteConfirmation(state.contextMenu.nodeId);
                                 break;
                             case 'duplicate':
@@ -1595,14 +1635,44 @@
         
         // Show delete confirmation modal
         function showDeleteConfirmation(nodeId) {
-            const node = state.nodes.find(n => n.id === nodeId);
+            console.log('showDeleteConfirmation called with nodeId:', nodeId, 'type:', typeof nodeId);
+            console.log('All node IDs in state:', state.nodes.map(n => ({ id: n.id, type: typeof n.id })));
+            
+            // Try to find node with both string and number comparison
+            let node = state.nodes.find(n => n.id === nodeId);
+            if (!node) {
+                // Try with string conversion
+                node = state.nodes.find(n => String(n.id) === String(nodeId));
+            }
+            if (!node) {
+                // Try with number conversion
+                node = state.nodes.find(n => Number(n.id) === Number(nodeId));
+            }
+            console.log('Found node:', node);
+            console.log('Node tags:', node ? node.tags : 'undefined');
+            
             if (node) {
+                // Check if this is the main project node
+                const isMainProjectNode = node.tags && node.tags.includes('project') && node.tags.includes('main');
+                console.log('Is main project node:', isMainProjectNode);
+                
+                if (isMainProjectNode) {
+                    console.log('Preventing deletion of main project node');
+                    alert('Cannot delete the main project node. This node represents the project itself.');
+                    return;
+                }
+                
                 confirmTitle.textContent = 'Delete Task';
                 confirmMessage.textContent = `Are you sure you want to delete "${node.title}"? This action cannot be undone.`;
                 confirmModal.classList.remove('hidden');
                 
-                // Store node ID for deletion
-                confirmAction.onclick = () => deleteNode(nodeId);
+                // Store node ID for deletion using the proper API-based delete function
+                confirmAction.onclick = () => {
+                    console.log('Confirm action clicked, calling deleteNodeFromAPI with:', nodeId);
+                    deleteNodeFromAPI(nodeId);
+                };
+            } else {
+                console.error('Node not found for deletion:', nodeId);
             }
         }
         
@@ -1613,7 +1683,9 @@
             
             // Remove node from children arrays of other nodes
             state.nodes.forEach(node => {
-                node.children = node.children.filter(childId => childId !== nodeId);
+                if (node.children) {
+                    node.children = node.children.filter(childId => childId !== nodeId);
+                }
             });
             
             // Remove from selected nodes if it was selected
@@ -1628,6 +1700,9 @@
             renderNodes();
             renderConnections();
             updateMinimap();
+            
+            // Update project node count
+            updateProjectNodeCount();
             
             // Close confirmation modal
             confirmModal.classList.add('hidden');
@@ -1650,38 +1725,156 @@
                 };
                 
                 state.nodes.push(newNode);
+                
+                // Update project node count
+                updateProjectNodeCount();
+                
                 renderNodes();
                 renderConnections();
                 updateMinimap();
             }
         }
         
+        // Delete node via API (proper implementation)
+        function deleteNodeFromAPI(nodeId) {
+            console.log('deleteNodeFromAPI called with nodeId:', nodeId);
+            
+            // Check if this is the main project node
+            // Try to find node with both string and number comparison
+            let node = state.nodes.find(n => n.id === nodeId);
+            if (!node) {
+                // Try with string conversion
+                node = state.nodes.find(n => String(n.id) === String(nodeId));
+            }
+            if (!node) {
+                // Try with number conversion
+                node = state.nodes.find(n => Number(n.id) === Number(nodeId));
+            }
+            
+            if (node) {
+                console.log('Node found for deletion:', node);
+                console.log('Node tags:', node.tags);
+                const isMainProjectNode = node.tags && node.tags.includes('project') && node.tags.includes('main');
+                console.log('Is main project node:', isMainProjectNode);
+                
+                if (isMainProjectNode) {
+                    console.log('Preventing deletion of main project node in API function');
+                    alert('Cannot delete the main project node. This node represents the project itself.');
+                    return;
+                }
+            }
+            
+            // Send delete request to backend
+            fetch('{% url "mindmap:delete_node" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ id: nodeId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Delete API response:', data);
+                if (data.success) {
+                    // Remove node from state
+                    state.nodes = state.nodes.filter(n => n.id !== nodeId);
+                    
+                    // Remove connections involving this node
+                    state.connections = state.connections.filter(c => 
+                        c.from_node_id !== nodeId && c.to_node_id !== nodeId
+                    );
+                    
+                    // Remove from children arrays of other nodes
+                    state.nodes.forEach(node => {
+                        if (node.children) {
+                            node.children = node.children.filter(childId => childId !== nodeId);
+                        }
+                    });
+                    
+                    // Clear selection if this node was selected
+                    state.selectedNodes = state.selectedNodes.filter(id => id !== nodeId);
+                    
+                    // Hide details panel if it was showing the deleted node
+                    if (state.selectedNodes.length === 0) {
+                        const detailsPanel = document.getElementById('details-panel');
+                        detailsPanel.classList.add('details-collapsed');
+                    }
+                    
+                    // Update project node count
+                    updateProjectNodeCount();
+                    
+                    // Re-render the mindmap
+                    renderNodes();
+                    renderConnections();
+                    updateMinimap();
+                    
+                    // Close confirmation modal
+                    confirmModal.classList.add('hidden');
+                    
+                    console.log('Node deleted successfully');
+                } else {
+                    console.error('Failed to delete node:', data.error);
+                    alert('Failed to delete node: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting node:', error);
+                alert('An error occurred while deleting the node');
+            });
+        }
+        
         // Add child node
         function addChildNode(nodeId) {
             const parentNode = state.nodes.find(n => n.id === nodeId);
+            
             if (parentNode) {
-                const newNode = {
-                    id: Date.now().toString(),
+                // Calculate position for new child node
+                const x = parentNode.x;
+                const y = parentNode.y + parentNode.height + 50;
+                
+                const newNodeData = {
                     title: 'New Child Node',
                     description: '',
                     status: 'todo',
                     priority: 'med',
-                    assignee: null,
+                    x: x,
+                    y: y,
+                    width: 200,
+                    height: 80,
                     tags: [],
-                    x: parentNode.x,
-                    y: parentNode.y + parentNode.height + 50,
-                    width: 180,
-                    height: 70,
-                    children: []
+                    assignee_id: null,
+                    project_id: currentProjectId
                 };
                 
-                // Add to parent's children
-                parentNode.children.push(newNode.id);
-                
-                state.nodes.push(newNode);
-                renderNodes();
-                renderConnections();
-                updateMinimap();
+                // Send create request to backend
+                fetch('{% url "mindmap:create_node" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify(newNodeData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log('Child node created successfully:', data.node);
+                        
+                        // Create connection from parent to child, then reload
+                        createConnection(nodeId, data.node.id).then(() => {
+                            reloadAllNodes();
+                        }).catch(error => {
+                            console.error('Failed to create connection, reloading anyway:', error);
+                            reloadAllNodes();
+                        });
+                    } else {
+                        console.error('Failed to create child node:', data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
             }
         }
         
@@ -1690,32 +1883,60 @@
             const currentNode = state.nodes.find(n => n.id === nodeId);
             if (currentNode) {
                 // Find parent node
-                const parentNode = state.nodes.find(n => n.children.includes(nodeId));
+                const parentNode = state.nodes.find(n => n.children && n.children.includes(nodeId));
+                const parentNodeId = parentNode ? parentNode.id : null;
                 
-                const newNode = {
-                    id: Date.now().toString(),
+                // Calculate position for new sibling node
+                const x = currentNode.x + currentNode.width + 50;
+                const y = currentNode.y;
+                
+                const newNodeData = {
                     title: 'New Sibling Node',
                     description: '',
                     status: 'todo',
                     priority: 'med',
-                    assignee: null,
+                    x: x,
+                    y: y,
+                    width: 200,
+                    height: 80,
                     tags: [],
-                    x: currentNode.x + currentNode.width + 50,
-                    y: currentNode.y,
-                    width: 180,
-                    height: 70,
-                    children: []
+                    assignee_id: null,
+                    project_id: currentProjectId
                 };
                 
-                // Add to parent's children if parent exists
-                if (parentNode) {
-                    parentNode.children.push(newNode.id);
-                }
-                
-                state.nodes.push(newNode);
-                renderNodes();
-                renderConnections();
-                updateMinimap();
+                // Send create request to backend
+                fetch('{% url "mindmap:create_node" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify(newNodeData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log('Sibling node created successfully:', data.node);
+                        
+                        // Create connection from parent to sibling if parent exists, then reload
+                        if (parentNodeId) {
+                            createConnection(parentNodeId, data.node.id).then(() => {
+                                reloadAllNodes();
+                            }).catch(error => {
+                                console.error('Failed to create connection, reloading anyway:', error);
+                                reloadAllNodes();
+                            });
+                        } else {
+                            // No parent connection needed, just reload
+                            reloadAllNodes();
+                        }
+                    } else {
+                        console.error('Failed to create sibling node:', data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
             }
         }
         
@@ -1747,6 +1968,12 @@
                     if (data.success) {
                         projects = data.projects;
                         renderProjectsList();
+                        
+                        // Auto-load current project if available
+                        {% if current_project %}
+                        currentProjectId = {{ current_project.id }};
+                        loadProjectData({{ current_project.id }});
+                        {% endif %}
                     } else {
                         console.error('Failed to load projects:', data.error);
                     }
@@ -1794,6 +2021,98 @@
                     </div>
                 `;
                 projectsList.appendChild(projectEl);
+            });
+        }
+
+        // Reload all nodes from server
+        function reloadAllNodes() {
+            if (!currentProjectId) {
+                console.error('No current project selected');
+                return;
+            }
+            
+            fetch('{% url "mindmap:switch_project" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ project_id: currentProjectId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Replace all nodes with fresh data from server
+                    state.nodes = data.nodes;
+                    state.connections = data.connections;
+                    state.selectedNodes = [];
+                    
+                    // Clear details panel
+                    const detailsPanel = document.getElementById('details-panel');
+                    detailsPanel.classList.add('details-collapsed');
+                    
+                    // Update project node count
+                    updateProjectNodeCount();
+                    
+                    // Re-render everything
+                    renderNodes();
+                    renderConnections();
+                    updateMinimap();
+                    
+                    console.log('All nodes reloaded successfully');
+                } else {
+                    console.error('Failed to reload nodes:', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error reloading nodes:', error);
+            });
+        }
+
+        // Update project node count in the projects list
+        function updateProjectNodeCount() {
+            if (currentProjectId) {
+                const project = projects.find(p => p.id === currentProjectId);
+                if (project) {
+                    project.node_count = state.nodes.length;
+                    renderProjectsList();
+                }
+            }
+        }
+
+        // Load project data without switching (for initial load)
+        function loadProjectData(projectId) {
+            fetch('{% url "mindmap:switch_project" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ project_id: projectId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    state.nodes = data.nodes;
+                    state.connections = data.connections;
+                    state.selectedNodes = [];
+                    
+                    // Clear details panel
+                    const detailsPanel = document.getElementById('details-panel');
+                    detailsPanel.classList.add('details-collapsed');
+                    
+                    // Re-render the mindmap
+                    renderNodes();
+                    renderConnections();
+                    updateMinimap();
+                    
+                    console.log('Loaded project:', data.project.name);
+                } else {
+                    console.error('Failed to load project:', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading project:', error);
             });
         }
 
@@ -2073,7 +2392,13 @@
             saveChangesBtn.addEventListener('click', saveNodeChanges);
             cancelChangesBtn.addEventListener('click', cancelNodeChanges);
             archiveTaskBtn.addEventListener('click', archiveNode);
-            deleteNodeBtn.addEventListener('click', deleteNode);
+            deleteNodeBtn.addEventListener('click', () => {
+                if (state.selectedNodes.length === 1) {
+                    showDeleteConfirmation(state.selectedNodes[0]);
+                } else {
+                    alert('Please select a node to delete');
+                }
+            });
             
             // Add input event listeners for real-time updates
             const taskTitle = document.getElementById('task-title');
@@ -2319,9 +2644,10 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Update the node with the new database ID
-                    node.id = data.node.id;
                     console.log('Node created successfully with ID:', data.node.id);
+                    
+                    // Reload all nodes from server to ensure consistency
+                    reloadAllNodes();
                 } else {
                     console.error('Failed to create node:', data.error);
                 }
@@ -2470,19 +2796,15 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            // Add new node to state
-                            state.nodes.push(data.node);
+                            console.log('Child node created successfully:', data.node);
                             
-                            // Create connection from parent to child
-                            createConnection(state.contextMenu.nodeId, data.node.id);
-                            
-                            renderNodes();
-                            renderConnections();
-                            
-                            // Select and show details for new node
-                            state.selectedNodes = [data.node.id];
-                            renderNodes();
-                            showNodeDetails(data.node.id);
+                            // Create connection from parent to child, then reload
+                            createConnection(state.contextMenu.nodeId, data.node.id).then(() => {
+                                reloadAllNodes();
+                            }).catch(error => {
+                                console.error('Failed to create connection, reloading anyway:', error);
+                                reloadAllNodes();
+                            });
                         } else {
                             console.error('Failed to create child node:', data.error);
                         }
@@ -2548,21 +2870,20 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            // Add new node to state
-                            state.nodes.push(data.node);
+                            console.log('Sibling node created successfully:', data.node);
                             
-                            // Create connection from parent to sibling
+                            // Create connection from parent to sibling if parent exists, then reload
                             if (parentNodeId) {
-                                createConnection(parentNodeId, data.node.id);
+                                createConnection(parentNodeId, data.node.id).then(() => {
+                                    reloadAllNodes();
+                                }).catch(error => {
+                                    console.error('Failed to create connection, reloading anyway:', error);
+                                    reloadAllNodes();
+                                });
+                            } else {
+                                // No parent connection needed, just reload
+                                reloadAllNodes();
                             }
-                            
-                            renderNodes();
-                            renderConnections();
-                            
-                            // Select and show details for new node
-                            state.selectedNodes = [data.node.id];
-                            renderNodes();
-                            showNodeDetails(data.node.id);
                         } else {
                             console.error('Failed to create sibling node:', data.error);
                         }
@@ -2585,7 +2906,7 @@
                 thickness: 2
             };
             
-            fetch('{% url "mindmap:create_connection" %}', {
+            return fetch('{% url "mindmap:create_connection" %}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -2599,12 +2920,15 @@
                     // Add connection to state
                     state.connections.push(data.connection);
                     renderConnections();
+                    return data;
                 } else {
                     console.error('Failed to create connection:', data.error);
+                    throw new Error(data.error);
                 }
             })
             .catch(error => {
                 console.error('Error creating connection:', error);
+                throw error;
             });
         }
         
