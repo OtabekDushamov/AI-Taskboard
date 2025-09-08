@@ -1,395 +1,231 @@
 {% extends 'base.html' %}
 
-{% block title %}Routine Detail - AI Taskboard{% endblock %}
-
-{% block extra_css %}
-<style>
-    .heatmap-day {
-        width: 14px;
-        height: 14px;
-        margin: 2px;
-        border-radius: 2px;
-        transition: all 0.2s ease;
-    }
-    .heatmap-day:hover {
-        transform: scale(1.5);
-    }
-    .attachment-card {
-        transition: all 0.2s ease;
-    }
-    .attachment-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    }
-    .mark-done-btn {
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    }
-    .mark-done-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    }
-    .mark-done-btn:active {
-        transform: translateY(0);
-    }
-    .chip {
-        transition: all 0.2s ease;
-    }
-    .chip.active {
-        transform: scale(1.05);
-    }
-</style>
-{% endblock %}
+{% block title %}{{ daily_task.title }} - Daily Task Details{% endblock %}
 
 {% block content %}
-<!-- Header Section -->
-<div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between">
-        <div class="flex items-center mb-4 md:mb-0">
-            <h1 class="text-2xl font-bold text-gray-800 dark:text-white mr-4">Morning Meditation</h1>
-            <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" value="" class="sr-only peer" checked>
-                <div class="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
-                <span class="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">Active</span>
-            </label>
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800 dark:text-white">{{ daily_task.title }}</h1>
+            <p class="text-gray-600 dark:text-gray-400">Daily Task Details & History</p>
         </div>
-        <div class="flex items-center">
-            <div class="flex items-center bg-blue-50 dark:bg-blue-900/30 px-3 py-1 rounded-full">
-                <i class="far fa-clock text-blue-500 mr-2"></i>
-                <span class="text-blue-700 dark:text-blue-300 font-medium">8:00 AM</span>
-            </div>
-            <button class="ml-4 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" id="edit-btn">
-                <i class="fas fa-edit"></i>
-            </button>
+        <div class="flex space-x-3">
+            <a href="{% url 'main:daily_tasks' %}" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md flex items-center">
+                <i class="fas fa-arrow-left mr-2"></i> Back to Tasks
+            </a>
+            <a href="{% url 'main:daily_tasks_today' %}" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md flex items-center">
+                <i class="fas fa-calendar-day mr-2"></i> Today's Tasks
+            </a>
         </div>
     </div>
-    
-    <!-- Schedule Chips -->
-    <div class="mt-4 flex flex-wrap gap-2">
-        <div class="chip px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">Mon</div>
-        <div class="chip px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">Wed</div>
-        <div class="chip px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">Fri</div>
-        <div class="chip px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">Sun</div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Task Details -->
+        <div class="lg:col-span-2">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Task Information</h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
+                        <p class="text-gray-800 dark:text-white mt-1">
+                            {% if daily_task.description %}
+                                {{ daily_task.description }}
+                            {% else %}
+                                No description provided
+                            {% endif %}
+                        </p>
+                    </div>
+                    
+                    {% if daily_task.notes %}
+                    <div>
+                        <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Notes</label>
+                        <p class="text-gray-800 dark:text-white mt-1">{{ daily_task.notes }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Priority</label>
+                            <p class="text-gray-800 dark:text-white mt-1">
+                                <span class="px-2 py-1 text-xs font-medium rounded-full 
+                                    {% if daily_task.priority == 'urgent' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
+                                    {% elif daily_task.priority == 'high' %}bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200
+                                    {% elif daily_task.priority == 'medium' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                    {% else %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200{% endif %}">
+                                    {{ daily_task.get_priority_display }}
+                                </span>
+                            </p>
+                        </div>
+                        
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
+                            <p class="text-gray-800 dark:text-white mt-1">
+                                <span class="px-2 py-1 text-xs font-medium rounded-full 
+                                    {% if daily_task.is_active %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200{% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200{% endif %}">
+                                    {% if daily_task.is_active %}Active{% else %}Inactive{% endif %}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        {% if daily_task.reminder_time %}
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Reminder Time</label>
+                            <p class="text-gray-800 dark:text-white mt-1">{{ daily_task.reminder_time }}</p>
+                        </div>
+                        {% endif %}
+                        
+                        {% if daily_task.estimated_minutes %}
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Estimated Duration</label>
+                            <p class="text-gray-800 dark:text-white mt-1">{{ daily_task.estimated_minutes }} minutes</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Scheduled Days</label>
+                        <div class="mt-1 flex flex-wrap gap-2">
+                            {% for day_num in daily_task.scheduled_days %}
+                                {% if day_num == 0 %}<span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">Monday</span>{% endif %}
+                                {% if day_num == 1 %}<span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">Tuesday</span>{% endif %}
+                                {% if day_num == 2 %}<span class="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">Wednesday</span>{% endif %}
+                                {% if day_num == 3 %}<span class="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded">Thursday</span>{% endif %}
+                                {% if day_num == 4 %}<span class="px-2 py-1 text-xs bg-pink-100 text-pink-800 rounded">Friday</span>{% endif %}
+                                {% if day_num == 5 %}<span class="px-2 py-1 text-xs bg-indigo-100 text-indigo-800 rounded">Saturday</span>{% endif %}
+                                {% if day_num == 6 %}<span class="px-2 py-1 text-xs bg-red-100 text-red-800 rounded">Sunday</span>{% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    {% if daily_task.assignees.exists %}
+                    <div>
+                        <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Assignees</label>
+                        <p class="text-gray-800 dark:text-white mt-1">{{ daily_task.get_assignee_names }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Completion History -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Completion History</h2>
+                
+                {% if completions %}
+                    <div class="space-y-4">
+                        {% for completion in completions %}
+                        <div class="border-l-4 border-green-500 pl-4 py-2">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-800 dark:text-white">
+                                        Completed on {{ completion.date|date:"F j, Y" }}
+                                    </p>
+                                    {% if completion.notes %}
+                                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ completion.notes }}</p>
+                                    {% endif %}
+                                </div>
+                                <div class="text-right text-sm text-gray-500 dark:text-gray-400">
+                                    {% if completion.actual_minutes %}
+                                        <p>{{ completion.actual_minutes }} min</p>
+                                    {% endif %}
+                                    <p>{{ completion.completed_at|date:"g:i A" }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-8">
+                        <i class="fas fa-calendar-times text-4xl text-gray-300 dark:text-gray-600 mb-4"></i>
+                        <p class="text-gray-500 dark:text-gray-400">No completions recorded yet</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Statistics Sidebar -->
+        <div class="space-y-6">
+            <!-- Statistics -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Statistics</h3>
+                
+                <div class="space-y-4">
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ total_completions }}</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">Total Completions</div>
+                    </div>
+                    
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-green-600 dark:text-green-400">{{ streak }}</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">Current Streak</div>
+                    </div>
+                    
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-purple-600 dark:text-purple-400">{{ completion_rate }}%</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">Completion Rate</div>
+                    </div>
+                    
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-orange-600 dark:text-orange-400">{{ scheduled_days_count }}</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400">Scheduled Days (30 days)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Quick Actions</h3>
+                
+                <div class="space-y-3">
+                    <a href="{% url 'main:daily_tasks_today' %}" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md text-center block">
+                        <i class="fas fa-check mr-2"></i> Complete Today
+                    </a>
+                    
+                    <button onclick="editTask()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md">
+                        <i class="fas fa-edit mr-2"></i> Edit Task
+                    </button>
+                    
+                    <form method="post" action="{% url 'main:daily_tasks' %}" onsubmit="return confirm('Are you sure you want to delete this task?')">
+                        {% csrf_token %}
+                        <input type="hidden" name="delete_task" value="1">
+                        <input type="hidden" name="task_id" value="{{ daily_task.id }}">
+                        <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-md">
+                            <i class="fas fa-trash mr-2"></i> Delete Task
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Motivational Message -->
+            {% if streak > 0 %}
+            <div class="bg-gradient-to-r from-green-400 to-blue-500 rounded-lg p-6 text-white text-center">
+                <i class="fas fa-fire text-3xl mb-2"></i>
+                <h4 class="font-bold text-lg mb-1">{{ streak }} Day Streak!</h4>
+                <p class="text-sm">Keep up the amazing work!</p>
+            </div>
+            {% elif total_completions > 0 %}
+            <div class="bg-gradient-to-r from-blue-400 to-purple-500 rounded-lg p-6 text-white text-center">
+                <i class="fas fa-star text-3xl mb-2"></i>
+                <h4 class="font-bold text-lg mb-1">Great Progress!</h4>
+                <p class="text-sm">You've completed this task {{ total_completions }} times!</p>
+            </div>
+            {% else %}
+            <div class="bg-gradient-to-r from-gray-400 to-gray-500 rounded-lg p-6 text-white text-center">
+                <i class="fas fa-play text-3xl mb-2"></i>
+                <h4 class="font-bold text-lg mb-1">Ready to Start?</h4>
+                <p class="text-sm">Complete this task for the first time!</p>
+            </div>
+            {% endif %}
+        </div>
     </div>
 </div>
 
-<div class="flex flex-col lg:flex-row gap-6">
-    <!-- Left Column -->
-    <div class="lg:w-2/3">
-        <!-- Description -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
-            <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-3">Description</h2>
-            <p class="text-gray-600 dark:text-gray-300">
-                Start your day with a 10-minute mindfulness meditation session. Find a quiet space, sit comfortably, and focus on your breath. This practice helps reduce stress and increase focus for the day ahead.
-            </p>
-        </div>
-        
-        <!-- Notes -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
-            <div class="flex justify-between items-center mb-3">
-                <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Notes</h2>
-                <button class="text-blue-500 hover:text-blue-700 dark:hover:text-blue-400">
-                    <i class="fas fa-plus"></i>
-                </button>
-            </div>
-            <div class="space-y-3">
-                <div class="flex items-start">
-                    <div class="flex-shrink-0 mt-1">
-                        <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    </div>
-                    <div class="ml-3 text-sm text-gray-600 dark:text-gray-300">
-                        <p>Try to meditate in the same place each day to build a routine</p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Added 2 days ago</p>
-                    </div>
-                </div>
-                <div class="flex items-start">
-                    <div class="flex-shrink-0 mt-1">
-                        <div class="w-2 h-2 bg-green-500 rounded-full"></div>
-                    </div>
-                    <div class="ml-3 text-sm text-gray-600 dark:text-gray-300">
-                        <p>Use a timer to avoid checking the clock during meditation</p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Added 1 week ago</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Progress Tracking -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
-            <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Progress Tracking</h2>
-            
-            <!-- Weekly Heatmap -->
-            <div class="mb-6">
-                <h3 class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3">This Month</h3>
-                <div class="grid grid-cols-7 gap-1">
-                    <!-- Generate 30 days of heatmap -->
-                    <div class="heatmap-day bg-green-400" title="Day 1 - Completed"></div>
-                    <div class="heatmap-day bg-green-400" title="Day 2 - Completed"></div>
-                    <div class="heatmap-day bg-gray-200 dark:bg-gray-600" title="Day 3 - Missed"></div>
-                    <div class="heatmap-day bg-green-400" title="Day 4 - Completed"></div>
-                    <div class="heatmap-day bg-green-400" title="Day 5 - Completed"></div>
-                    <div class="heatmap-day bg-gray-200 dark:bg-gray-600" title="Day 6 - Missed"></div>
-                    <div class="heatmap-day bg-green-400" title="Day 7 - Completed"></div>
-                    <div class="heatmap-day bg-green-400" title="Day 8 - Completed"></div>
-                    <div class="heatmap-day bg-green-400" title="Day 9 - Completed"></div>
-                    <div class="heatmap-day bg-gray-200 dark:bg-gray-600" title="Day 10 - Missed"></div>
-                    <div class="heatmap-day bg-green-400" title="Day 11 - Completed"></div>
-                    <div class="heatmap-day bg-green-400" title="Day 12 - Completed"></div>
-                    <div class="heatmap-day bg-gray-200 dark:bg-gray-600" title="Day 13 - Missed"></div>
-                    <div class="heatmap-day bg-green-400" title="Day 14 - Completed"></div>
-                    <div class="heatmap-day bg-green-400" title="Day 15 - Completed"></div>
-                    <div class="heatmap-day bg-green-400" title="Day 16 - Completed"></div>
-                    <div class="heatmap-day bg-gray-200 dark:bg-gray-600" title="Day 17 - Missed"></div>
-                    <div class="heatmap-day bg-green-400" title="Day 18 - Completed"></div>
-                    <div class="heatmap-day bg-green-400" title="Day 19 - Completed"></div>
-                    <div class="heatmap-day bg-gray-200 dark:bg-gray-600" title="Day 20 - Missed"></div>
-                    <div class="heatmap-day bg-green-400" title="Day 21 - Completed"></div>
-                    <div class="heatmap-day bg-green-400" title="Day 22 - Completed"></div>
-                    <div class="heatmap-day bg-green-400" title="Day 23 - Completed"></div>
-                    <div class="heatmap-day bg-gray-200 dark:bg-gray-600" title="Day 24 - Missed"></div>
-                    <div class="heatmap-day bg-green-400" title="Day 25 - Completed"></div>
-                    <div class="heatmap-day bg-green-400" title="Day 26 - Completed"></div>
-                    <div class="heatmap-day bg-gray-200 dark:bg-gray-600" title="Day 27 - Missed"></div>
-                    <div class="heatmap-day bg-green-400" title="Day 28 - Completed"></div>
-                    <div class="heatmap-day bg-green-400" title="Day 29 - Completed"></div>
-                    <div class="heatmap-day bg-green-400" title="Day 30 - Completed"></div>
-                </div>
-                <div class="flex items-center justify-between mt-2 text-xs text-gray-500 dark:text-gray-400">
-                    <span>Less</span>
-                    <div class="flex items-center space-x-1">
-                        <div class="w-3 h-3 bg-gray-200 dark:bg-gray-600 rounded"></div>
-                        <div class="w-3 h-3 bg-green-200 rounded"></div>
-                        <div class="w-3 h-3 bg-green-400 rounded"></div>
-                    </div>
-                    <span>More</span>
-                </div>
-            </div>
-            
-            <!-- Stats -->
-            <div class="grid grid-cols-3 gap-4">
-                <div class="text-center">
-                    <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">23</div>
-                    <div class="text-sm text-gray-600 dark:text-gray-400">Days Completed</div>
-                </div>
-                <div class="text-center">
-                    <div class="text-2xl font-bold text-green-600 dark:text-green-400">77%</div>
-                    <div class="text-sm text-gray-600 dark:text-gray-400">Success Rate</div>
-                </div>
-                <div class="text-center">
-                    <div class="text-2xl font-bold text-purple-600 dark:text-purple-400">7</div>
-                    <div class="text-sm text-gray-600 dark:text-gray-400">Current Streak</div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Mark Done Button -->
-        <div class="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg mark-done-btn text-center cursor-pointer transition-all duration-300">
-            <i class="fas fa-check mr-2"></i>Mark Done Today
-        </div>
-    </div>
-    
-    <!-- Right Column -->
-    <div class="lg:w-1/3">
-        <!-- Schedule Settings -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
-            <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Schedule</h2>
-            <div class="space-y-3">
-                <label class="inline-flex items-center">
-                    <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600" checked>
-                    <span class="ml-2 text-gray-700 dark:text-gray-300">Mon</span>
-                </label>
-                <label class="inline-flex items-center">
-                    <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600">
-                    <span class="ml-2 text-gray-700 dark:text-gray-300">Tue</span>
-                </label>
-                <label class="inline-flex items-center">
-                    <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600" checked>
-                    <span class="ml-2 text-gray-700 dark:text-gray-300">Wed</span>
-                </label>
-                <label class="inline-flex items-center">
-                    <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600">
-                    <span class="ml-2 text-gray-700 dark:text-gray-300">Thu</span>
-                </label>
-                <label class="inline-flex items-center">
-                    <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600" checked>
-                    <span class="ml-2 text-gray-700 dark:text-gray-300">Fri</span>
-                </label>
-                <label class="inline-flex items-center">
-                    <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600">
-                    <span class="ml-2 text-gray-700 dark:text-gray-300">Sat</span>
-                </label>
-                <label class="inline-flex items-center">
-                    <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600" checked>
-                    <span class="ml-2 text-gray-700 dark:text-gray-300">Sun</span>
-                </label>
-            </div>
-        </div>
-        
-        <!-- Attachments -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
-            <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Attachments</h2>
-            <div class="space-y-3">
-                <div class="attachment-card bg-gray-50 dark:bg-gray-700 rounded-lg p-3 flex items-center">
-                    <i class="fas fa-file-pdf text-red-500 mr-3"></i>
-                    <div class="flex-1">
-                        <div class="text-sm font-medium text-gray-800 dark:text-white">Meditation Guide.pdf</div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400">2.3 MB</div>
-                    </div>
-                    <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                        <i class="fas fa-download"></i>
-                    </button>
-                </div>
-                <div class="attachment-card bg-gray-50 dark:bg-gray-700 rounded-lg p-3 flex items-center">
-                    <i class="fas fa-music text-blue-500 mr-3"></i>
-                    <div class="flex-1">
-                        <div class="text-sm font-medium text-gray-800 dark:text-white">Calm Sounds.mp3</div>
-                        <div class="text-xs text-gray-500 dark:text-gray-400">5.1 MB</div>
-                    </div>
-                    <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                        <i class="fas fa-download"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Edit Modal -->
-<div id="edit-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
-    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
-        <div class="mt-3">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-medium text-gray-900 dark:text-white">Edit Routine</h3>
-                <button id="close-modal" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            
-            <form class="space-y-4">
-                <div>
-                    <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" for="routine-name">
-                        Routine Name
-                    </label>
-                    <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-300 dark:bg-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="routine-name" type="text" value="Morning Meditation">
-                </div>
-                
-                <div>
-                    <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" for="time">
-                        Time
-                    </label>
-                    <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-300 dark:bg-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="time" type="time" value="08:00">
-                </div>
-                
-                <div>
-                    <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">
-                        Days of Week
-                    </label>
-                    <div class="grid grid-cols-2 gap-2">
-                        <label class="inline-flex items-center">
-                            <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600" checked>
-                            <span class="ml-2 text-gray-700 dark:text-gray-300">Mon</span>
-                        </label>
-                        <label class="inline-flex items-center">
-                            <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600">
-                            <span class="ml-2 text-gray-700 dark:text-gray-300">Tue</span>
-                        </label>
-                        <label class="inline-flex items-center">
-                            <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600" checked>
-                            <span class="ml-2 text-gray-700 dark:text-gray-300">Wed</span>
-                        </label>
-                        <label class="inline-flex items-center">
-                            <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600">
-                            <span class="ml-2 text-gray-700 dark:text-gray-300">Thu</span>
-                        </label>
-                        <label class="inline-flex items-center">
-                            <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600" checked>
-                            <span class="ml-2 text-gray-700 dark:text-gray-300">Fri</span>
-                        </label>
-                        <label class="inline-flex items-center">
-                            <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600">
-                            <span class="ml-2 text-gray-700 dark:text-gray-300">Sat</span>
-                        </label>
-                        <label class="inline-flex items-center">
-                            <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600" checked>
-                            <span class="ml-2 text-gray-700 dark:text-gray-300">Sun</span>
-                        </label>
-                    </div>
-                </div>
-                
-                <div>
-                    <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" for="description">
-                        Description
-                    </label>
-                    <textarea class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-300 dark:bg-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="description" rows="3">Start your day with a 10-minute mindfulness meditation session. Find a quiet space, sit comfortably, and focus on your breath. This practice helps reduce stress and increase focus for the day ahead.</textarea>
-                </div>
-                
-                <div class="flex justify-end space-x-3">
-                    <button type="button" id="cancel-edit" class="bg-gray-200 hover:bg-gray-300 text-gray-800 dark:text-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-                        Cancel
-                    </button>
-                    <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-                        Save Changes
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block extra_js %}
 <script>
-    // Modal functionality
-    const editBtn = document.getElementById('edit-btn');
-    const editModal = document.getElementById('edit-modal');
-    const closeModal = document.getElementById('close-modal');
-    const cancelEdit = document.getElementById('cancel-edit');
-    
-    editBtn.addEventListener('click', () => {
-        editModal.classList.remove('hidden');
-    });
-    
-    closeModal.addEventListener('click', () => {
-        editModal.classList.add('hidden');
-    });
-    
-    cancelEdit.addEventListener('click', () => {
-        editModal.classList.add('hidden');
-    });
-    
-    // Close modal when clicking outside
-    editModal.addEventListener('click', (e) => {
-        if (e.target === editModal) {
-            editModal.classList.add('hidden');
-        }
-    });
-    
-    // Mark Done button animation
-    const markDoneBtn = document.querySelector('.mark-done-btn');
-    markDoneBtn.addEventListener('click', function() {
-        // In a real app, this would save the completion
-        // Here we just show a temporary effect
-        this.innerHTML = '<i class="fas fa-check mr-2"></i> Done!';
-        this.classList.remove('from-blue-500', 'to-blue-600', 'hover:from-blue-600', 'hover:to-blue-700');
-        this.classList.add('from-green-500', 'to-green-600');
-        
-        setTimeout(() => {
-            this.innerHTML = 'Mark Done Today';
-            this.classList.remove('from-green-500', 'to-green-600');
-            this.classList.add('from-blue-500', 'to-blue-600', 'hover:from-blue-600', 'hover:to-blue-700');
-        }, 2000);
-    });
-    
-    // Toggle active state for schedule chips
-    const chips = document.querySelectorAll('.chip');
-    chips.forEach(chip => {
-        chip.addEventListener('click', function() {
-            this.classList.toggle('bg-gray-100');
-            this.classList.toggle('bg-blue-100');
-            this.classList.toggle('text-gray-700');
-            this.classList.toggle('text-blue-700');
-            this.classList.toggle('active');
-        });
-    });
+    function editTask() {
+        // Redirect to edit page or open edit modal
+        window.location.href = "{% url 'main:daily_tasks' %}?edit={{ daily_task.id }}";
+    }
 </script>
 {% endblock %}

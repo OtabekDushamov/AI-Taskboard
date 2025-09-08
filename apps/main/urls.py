@@ -53,4 +53,5 @@ urlpatterns = [
     path('api/add-project-member/', login_required(views.add_project_member), name='add_project_member'),
     path('api/remove-project-member/', login_required(views.remove_project_member), name='remove_project_member'),
     path('api/update-member-role/', login_required(views.update_member_role), name='update_member_role'),
+    path('api/calendar-events/', login_required(views.tasks_calendar_view), name='calendar_events'),
 ]

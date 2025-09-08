@@ -7,15 +7,18 @@ from django.utils import timezone
 from django.core.paginator import Paginator
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
+from datetime import timedelta
 import json
 
 from .models import (
     Project, Category, Task, ProjectMember, TaskComment, 
-    TaskAttachment, TaskDependency, ProjectLabel, TaskActivity
+    TaskAttachment, TaskDependency, ProjectLabel, TaskActivity,
+    DailyTask, DailyTaskCompletion
 )
 from .forms import (
     ProjectForm, TaskForm, TaskCommentForm, TaskAttachmentForm,
-    ProjectMemberForm, ProjectLabelForm, TaskDependencyForm, CategoryForm
+    ProjectMemberForm, ProjectLabelForm, TaskDependencyForm, CategoryForm,
+    DailyTaskForm, DailyTaskCompletionForm
 )
 from apps.webapp.models import BotUser
 
@@ -729,18 +732,234 @@ def my_tasks_view(request):
 # =============================================================================
 
 def daily_tasks_view(request):
-    """Daily tasks view"""
-    return render(request, 'main/daily-tasks.html')
+    """Daily tasks management view with full CRUD functionality"""
+    try:
+        bot_user = BotUser.objects.get(user=request.user)
+    except BotUser.DoesNotExist:
+        bot_user = BotUser.objects.create(
+            user=request.user,
+            telegram_id=0,
+            first_name=request.user.first_name or 'User',
+            last_name=request.user.last_name or '',
+            username=request.user.username or ''
+        )
+    
+    # Get user's daily tasks
+    daily_tasks = DailyTask.objects.filter(
+        Q(creator=bot_user) | Q(assignees=bot_user)
+    ).distinct().order_by('reminder_time', 'title')
+    
+    # Handle form submissions
+    if request.method == 'POST':
+        if 'create_task' in request.POST:
+            form = DailyTaskForm(request.POST)
+            if form.is_valid():
+                daily_task = form.save(commit=False)
+                daily_task.creator = bot_user
+                daily_task.save()
+                form.save_m2m()
+                messages.success(request, f'Daily task "{daily_task.title}" created successfully!')
+                return redirect('main:daily_tasks')
+        elif 'edit_task' in request.POST:
+            task_id = request.POST.get('task_id')
+            try:
+                daily_task = DailyTask.objects.get(id=task_id)
+                if daily_task.creator == bot_user or bot_user in daily_task.assignees.all():
+                    form = DailyTaskForm(request.POST, instance=daily_task)
+                    if form.is_valid():
+                        form.save()
+                        messages.success(request, f'Daily task "{daily_task.title}" updated successfully!')
+                        return redirect('main:daily_tasks')
+                else:
+                    messages.error(request, 'You do not have permission to edit this task.')
+            except DailyTask.DoesNotExist:
+                messages.error(request, 'Daily task not found.')
+        elif 'delete_task' in request.POST:
+            task_id = request.POST.get('task_id')
+            try:
+                daily_task = DailyTask.objects.get(id=task_id)
+                if daily_task.creator == bot_user:
+                    daily_task.delete()
+                    messages.success(request, f'Daily task "{daily_task.title}" deleted successfully!')
+                    return redirect('main:daily_tasks')
+                else:
+                    messages.error(request, 'You can only delete tasks you created.')
+            except DailyTask.DoesNotExist:
+                messages.error(request, 'Daily task not found.')
+        elif 'toggle_active' in request.POST:
+            task_id = request.POST.get('task_id')
+            try:
+                daily_task = DailyTask.objects.get(id=task_id)
+                if daily_task.creator == bot_user or bot_user in daily_task.assignees.all():
+                    daily_task.is_active = not daily_task.is_active
+                    daily_task.save()
+                    status = 'activated' if daily_task.is_active else 'deactivated'
+                    messages.success(request, f'Daily task "{daily_task.title}" {status} successfully!')
+                    return redirect('main:daily_tasks')
+                else:
+                    messages.error(request, 'You do not have permission to modify this task.')
+            except DailyTask.DoesNotExist:
+                messages.error(request, 'Daily task not found.')
+    
+    # Get completion data for the last 30 days
+    from datetime import datetime, timedelta
+    thirty_days_ago = timezone.now().date() - timedelta(days=30)
+    completions = DailyTaskCompletion.objects.filter(
+        daily_task__in=daily_tasks,
+        date__gte=thirty_days_ago
+    ).order_by('-date')
+    
+    context = {
+        'daily_tasks': daily_tasks,
+        'completions': completions,
+        'form': DailyTaskForm(),
+        'users': BotUser.objects.all(),
+    }
+    
+    return render(request, 'main/daily-tasks.html', context)
 
 
 def daily_tasks_today_view(request):
-    """Daily tasks today view"""
-    return render(request, 'main/daily-tasks-today.html')
+    """Today's daily tasks view with completion tracking"""
+    try:
+        bot_user = BotUser.objects.get(user=request.user)
+    except BotUser.DoesNotExist:
+        bot_user = BotUser.objects.create(
+            user=request.user,
+            telegram_id=0,
+            first_name=request.user.first_name or 'User',
+            last_name=request.user.last_name or '',
+            username=request.user.username or ''
+        )
+    
+    today = timezone.now().date()
+    today_weekday = today.weekday()
+    
+    # Get today's scheduled tasks
+    today_tasks = DailyTask.objects.filter(
+        Q(creator=bot_user) | Q(assignees=bot_user),
+        scheduled_days__contains=[today_weekday],
+        is_active=True
+    ).distinct().order_by('reminder_time', 'title')
+    
+    # Get completion status for today
+    completed_today = DailyTaskCompletion.objects.filter(
+        daily_task__in=today_tasks,
+        user=bot_user,
+        date=today
+    ).values_list('daily_task_id', flat=True)
+    
+    # Handle completion form submission
+    if request.method == 'POST':
+        if 'complete_task' in request.POST:
+            task_id = request.POST.get('task_id')
+            notes = request.POST.get('notes', '')
+            actual_minutes = request.POST.get('actual_minutes')
+            
+            try:
+                daily_task = DailyTask.objects.get(id=task_id)
+                if daily_task.creator == bot_user or bot_user in daily_task.assignees.all():
+                    # Check if already completed today
+                    existing_completion = DailyTaskCompletion.objects.filter(
+                        daily_task=daily_task,
+                        user=bot_user,
+                        date=today
+                    ).first()
+                    
+                    if existing_completion:
+                        messages.info(request, f'You have already completed "{daily_task.title}" today.')
+                    else:
+                        DailyTaskCompletion.objects.create(
+                            daily_task=daily_task,
+                            user=bot_user,
+                            date=today,
+                            notes=notes,
+                            actual_minutes=int(actual_minutes) if actual_minutes else None
+                        )
+                        messages.success(request, f'Great job completing "{daily_task.title}"!')
+                        return redirect('main:daily_tasks_today')
+                else:
+                    messages.error(request, 'You do not have permission to complete this task.')
+            except DailyTask.DoesNotExist:
+                messages.error(request, 'Daily task not found.')
+            except ValueError:
+                messages.error(request, 'Please enter a valid number for actual minutes.')
+    
+    context = {
+        'today_tasks': today_tasks,
+        'completed_today': completed_today,
+        'today': today,
+        'completion_form': DailyTaskCompletionForm(),
+    }
+    
+    return render(request, 'main/daily-tasks-today.html', context)
 
 
 def daily_tasks_detail_view(request, daily_task_id):
-    """Daily tasks detail view"""
-    return render(request, 'main/daily-tasks-detail.html')
+    """Daily task detail view with completion history"""
+    try:
+        bot_user = BotUser.objects.get(user=request.user)
+    except BotUser.DoesNotExist:
+        bot_user = BotUser.objects.create(
+            user=request.user,
+            telegram_id=0,
+            first_name=request.user.first_name or 'User',
+            last_name=request.user.last_name or '',
+            username=request.user.username or ''
+        )
+    
+    daily_task = get_object_or_404(DailyTask, id=daily_task_id)
+    
+    # Check if user has access to this task
+    if not (daily_task.creator == bot_user or bot_user in daily_task.assignees.all()):
+        messages.error(request, 'You do not have access to this daily task.')
+        return redirect('main:daily_tasks')
+    
+    # Get completion history
+    completions = DailyTaskCompletion.objects.filter(
+        daily_task=daily_task,
+        user=bot_user
+    ).order_by('-date')[:30]  # Last 30 completions
+    
+    # Calculate statistics
+    total_completions = completions.count()
+    streak = 0
+    current_date = timezone.now().date()
+    
+    # Calculate current streak
+    while True:
+        if DailyTaskCompletion.objects.filter(
+            daily_task=daily_task,
+            user=bot_user,
+            date=current_date
+        ).exists():
+            streak += 1
+            current_date -= timedelta(days=1)
+        else:
+            break
+    
+    # Calculate completion rate for the last 30 days
+    from datetime import datetime, timedelta
+    thirty_days_ago = timezone.now().date() - timedelta(days=30)
+    scheduled_days = []
+    current_date = thirty_days_ago
+    while current_date <= timezone.now().date():
+        if current_date.weekday() in daily_task.scheduled_days:
+            scheduled_days.append(current_date)
+        current_date += timedelta(days=1)
+    
+    completion_rate = (total_completions / len(scheduled_days) * 100) if scheduled_days else 0
+    
+    context = {
+        'daily_task': daily_task,
+        'completions': completions,
+        'total_completions': total_completions,
+        'streak': streak,
+        'completion_rate': round(completion_rate, 1),
+        'scheduled_days_count': len(scheduled_days),
+    }
+    
+    return render(request, 'main/daily-tasks-detail.html', context)
 
 
 # =============================================================================
@@ -767,38 +986,133 @@ def habit_tracker_view(request):
 
 
 def tasks_calendar_view(request):
-    """Tasks calendar view"""
-    return render(request, 'main/tasks-calendar.html')
+    """Tasks calendar view with full CRUD functionality"""
+    try:
+        bot_user = BotUser.objects.get(user=request.user)
+    except BotUser.DoesNotExist:
+        bot_user = BotUser.objects.create(
+            user=request.user,
+            telegram_id=0,
+            first_name=request.user.first_name or 'User',
+            last_name=request.user.last_name or '',
+            username=request.user.username or ''
+        )
+    
+    # Get current date and view parameters
+    today = timezone.now().date()
+    year = request.GET.get('year', today.year)
+    month = request.GET.get('month', today.month)
+    
+    try:
+        year = int(year)
+        month = int(month)
+        current_date = timezone.datetime(year, month, 1).date()
+    except (ValueError, TypeError):
+        current_date = today
+    
+    # Get user's tasks with deadlines
+    tasks_with_deadlines = Task.objects.filter(
+        Q(assignees=bot_user) | Q(creator=bot_user),
+        deadline__isnull=False
+    ).distinct().order_by('deadline')
+    
+    # Get user's daily tasks
+    daily_tasks = DailyTask.objects.filter(
+        Q(creator=bot_user) | Q(assignees=bot_user),
+        is_active=True
+    ).distinct()
+    
+    # Create calendar events
+    calendar_events = []
+    
+    # Add regular tasks
+    for task in tasks_with_deadlines:
+        if task.deadline:
+            calendar_events.append({
+                'id': f'task_{task.id}',
+                'title': task.title,
+                'date': task.deadline.date().strftime('%Y-%m-%d'),
+                'time': task.deadline.time().strftime('%H:%M:%S'),
+                'type': 'task',
+                'priority': task.priority,
+                'status': task.status,
+                'project': task.category.project.name if task.category else 'No Project',
+                'assignee': task.get_assignee_names(),
+                'description': task.description,
+                'notes': task.notes,
+                'creator': task.creator.get_full_name(),
+                'actual_hours': task.actual_hours,
+                'created_at': task.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'updated_at': task.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'completed_at': task.completed_at.strftime('%Y-%m-%d %H:%M:%S') if task.completed_at else None,
+                'is_overdue': task.is_overdue(),
+                'task_id': task.id,
+            })
+    
+    # Add daily tasks for the month
+    for daily_task in daily_tasks:
+        # Generate events for each scheduled day in the month
+        for day_num in daily_task.scheduled_days:
+            # Find all dates in the current month that match this weekday
+            first_day = current_date.replace(day=1)
+            last_day = (first_day + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+            
+            current_day = first_day
+            while current_day <= last_day:
+                if current_day.weekday() == day_num:
+                    calendar_events.append({
+                        'id': f'daily_task_{daily_task.id}_{current_day}',
+                        'title': daily_task.title,
+                        'date': current_day.strftime('%Y-%m-%d'),
+                        'time': daily_task.reminder_time,
+                        'type': 'daily_task',
+                        'priority': daily_task.priority,
+                        'status': 'scheduled',
+                        'project': 'Daily Tasks',
+                        'assignee': daily_task.get_assignee_names(),
+                        'description': daily_task.description,
+                        'notes': daily_task.notes,
+                        'creator': daily_task.creator.get_full_name(),
+                        'estimated_minutes': daily_task.estimated_minutes,
+                        'scheduled_days': daily_task.scheduled_days,
+                        'is_active': daily_task.is_active,
+                        'created_at': daily_task.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                        'daily_task_id': daily_task.id,
+                    })
+                current_day += timedelta(days=1)
+    
+    # Handle AJAX requests for calendar data
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({
+            'events': calendar_events,
+            'current_date': current_date.isoformat(),
+        })
+    
+    # Get user's projects for filtering
+    user_projects = Project.objects.filter(
+        Q(creator=bot_user) | Q(members=bot_user)
+    ).distinct()
+    
+    # Convert calendar events to JSON-serializable format
+    import json
+    calendar_events_json = json.dumps(calendar_events, default=str)
+    
+    context = {
+        'calendar_events': calendar_events_json,
+        'current_date': current_date,
+        'today': today,
+        'user_projects': user_projects,
+        'users': BotUser.objects.all(),
+        'task_form': TaskForm(),
+        'daily_task_form': DailyTaskForm(),
+    }
+    
+    return render(request, 'main/tasks-calendar.html', context)
 
 
 def settings_view(request):
     """Settings view"""
     return render(request, 'main/settings.html')
-
-
-def daily_tasks_view(request):
-    """Daily tasks view"""
-    return render(request, 'main/daily-tasks.html')
-
-
-def daily_tasks_today_view(request):
-    """Daily tasks today view"""
-    return render(request, 'main/daily-tasks-today.html')
-
-
-def daily_tasks_detail_view(request, daily_task_id):
-    """Daily tasks detail view"""
-    return render(request, 'main/daily-tasks-detail.html')
-
-
-def category_list_view(request):
-    """Category list view"""
-    return render(request, 'main/category-list.html')
-
-
-def category_detail_view(request, category_id):
-    """Category detail view"""
-    return render(request, 'main/category-detail.html')
 
 
 def analytics_view(request):
