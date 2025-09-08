@@ -63,24 +63,24 @@
     <!-- Daily Tasks Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {% for task in daily_tasks %}
-        <div class="task-card bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 priority-{{ task.priority }}">
+        <div class="task-card bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 priority-{{ task.priority }}" data-task-id="{{ task.id }}">
             <div class="flex justify-between items-start mb-4">
                 <div class="flex-1">
-                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">{{ task.title }}</h3>
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white" data-field="title">{{ task.title }}</h3>
                     {% if task.description %}
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ task.description|truncatechars:100 }}</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1" data-field="description">{{ task.description|truncatechars:100 }}</p>
                     {% endif %}
                 </div>
                 <div class="flex items-center space-x-2">
                     <span class="px-2 py-1 text-xs font-medium rounded-full 
-                        {% if task.is_active %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200{% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200{% endif %}">
+                        {% if task.is_active %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200{% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200{% endif %}" data-field="is_active">
                         {% if task.is_active %}Active{% else %}Inactive{% endif %}
                     </span>
                     <span class="px-2 py-1 text-xs font-medium rounded-full 
                         {% if task.priority == 'urgent' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
                         {% elif task.priority == 'high' %}bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200
                         {% elif task.priority == 'medium' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
-                        {% else %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200{% endif %}">
+                        {% else %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200{% endif %}" data-field="priority">
                         {{ task.get_priority_display }}
                     </span>
                 </div>
@@ -89,7 +89,7 @@
             <!-- Scheduled Days -->
             <div class="mb-4">
                 <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Scheduled Days:</label>
-                <div class="mt-1">
+                <div class="mt-1" data-field="scheduled_days" data-scheduled-days="{{ task.scheduled_days|join:',' }}">
                     {% for day_num in task.scheduled_days %}
                         {% if day_num == '0' %}<span class="day-badge day-mon">Mon</span>{% endif %}
                         {% if day_num == '1' %}<span class="day-badge day-tue">Tue</span>{% endif %}
@@ -105,13 +105,13 @@
             <!-- Task Details -->
             <div class="space-y-2 mb-4">
                 {% if task.reminder_time %}
-                    <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                    <div class="flex items-center text-sm text-gray-600 dark:text-gray-400" data-field="reminder_time">
                         <i class="fas fa-clock mr-2"></i>
                         Reminder: {{ task.reminder_time }}
                     </div>
                 {% endif %}
                 {% if task.estimated_minutes %}
-                    <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                    <div class="flex items-center text-sm text-gray-600 dark:text-gray-400" data-field="estimated_minutes">
                         <i class="fas fa-hourglass-half mr-2"></i>
                         Estimated: {{ task.estimated_minutes }} minutes
                     </div>
@@ -282,9 +282,56 @@
     }
 
     function editTask(taskId) {
-        // This would need to be implemented with AJAX to fetch task data
-        // For now, we'll redirect to a separate edit page or use a different approach
-        window.location.href = `/main/daily-tasks/edit/${taskId}/`;
+        // Find the task data from the page
+        const taskCard = document.querySelector(`[data-task-id="${taskId}"]`);
+        if (!taskCard) {
+            console.error('Task card not found for ID:', taskId);
+            return;
+        }
+        
+        // Extract task data from the card
+        const titleElement = taskCard.querySelector('[data-field="title"]');
+        const descriptionElement = taskCard.querySelector('[data-field="description"]');
+        const priorityElement = taskCard.querySelector('[data-field="priority"]');
+        const reminderTimeElement = taskCard.querySelector('[data-field="reminder_time"]');
+        const estimatedMinutesElement = taskCard.querySelector('[data-field="estimated_minutes"]');
+        const scheduledDaysElement = taskCard.querySelector('[data-field="scheduled_days"]');
+        const isActiveElement = taskCard.querySelector('[data-field="is_active"]');
+        
+        const taskData = {
+            id: taskId,
+            title: titleElement ? titleElement.textContent.trim() : '',
+            description: descriptionElement ? descriptionElement.textContent.trim() : '',
+            notes: '', // Notes are not displayed in the card, will be empty
+            priority: priorityElement ? priorityElement.textContent.trim().toLowerCase() : 'medium',
+            reminder_time: reminderTimeElement ? reminderTimeElement.textContent.replace('Reminder: ', '').trim() : '',
+            estimated_minutes: estimatedMinutesElement ? estimatedMinutesElement.textContent.replace('Estimated: ', '').replace(' minutes', '').trim() : '',
+            scheduled_days: scheduledDaysElement ? scheduledDaysElement.getAttribute('data-scheduled-days').split(',') : [],
+            is_active: isActiveElement ? isActiveElement.textContent.trim() === 'Active' : true
+        };
+        
+        // Populate the modal
+        document.getElementById('modalTitle').textContent = 'Edit Daily Task';
+        document.getElementById('taskId').value = taskData.id;
+        document.getElementById('taskTitle').value = taskData.title;
+        document.getElementById('taskDescription').value = taskData.description;
+        document.getElementById('taskNotes').value = taskData.notes;
+        document.getElementById('taskPriority').value = taskData.priority;
+        document.getElementById('taskTime').value = taskData.reminder_time;
+        document.getElementById('taskMinutes').value = taskData.estimated_minutes;
+        document.getElementById('taskActive').checked = taskData.is_active;
+        
+        // Update form action
+        document.getElementById('formAction').name = 'edit_task';
+        
+        // Handle scheduled days checkboxes
+        const scheduledDaysCheckboxes = document.querySelectorAll('input[name="scheduled_days"]');
+        scheduledDaysCheckboxes.forEach(checkbox => {
+            checkbox.checked = taskData.scheduled_days.includes(checkbox.value);
+        });
+        
+        // Show the modal
+        document.getElementById('taskModal').classList.remove('hidden');
     }
 
     function closeModal() {
