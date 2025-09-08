@@ -260,8 +260,10 @@ class DailyTaskForm(forms.ModelForm):
     
     def save(self, commit=True):
         instance = super().save(commit=False)
-        # Convert multiple choice to JSONField
-        instance.scheduled_days = self.cleaned_data.get('scheduled_days', [])
+        # Convert multiple choice to JSONField and ensure integers
+        scheduled_days = self.cleaned_data.get('scheduled_days', [])
+        # Convert string values to integers
+        instance.scheduled_days = [int(day) for day in scheduled_days]
         if commit:
             instance.save()
             self.save_m2m()

@@ -771,9 +771,6 @@ def daily_tasks_view(request):
                         messages.success(request, f'Daily task "{daily_task.title}" updated successfully!')
                         return redirect('main:daily_tasks')
                     else:
-                        # Debug: Log form errors
-                        print("Form errors:", form.errors)
-                        print("Form non-field errors:", form.non_field_errors())
                         messages.error(request, f'Form validation failed: {form.errors}')
                 else:
                     messages.error(request, 'You do not have permission to edit this task.')
