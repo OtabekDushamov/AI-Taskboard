@@ -838,7 +838,7 @@ def daily_tasks_today_view(request):
     # Get today's scheduled tasks
     today_tasks = DailyTask.objects.filter(
         Q(creator=bot_user) | Q(assignees=bot_user),
-        scheduled_days__contains=[today_weekday],
+        scheduled_days__in=[today_weekday],
         is_active=True
     ).distinct().order_by('reminder_time', 'title')
     
