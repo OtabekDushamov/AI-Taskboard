@@ -215,6 +215,14 @@ class DailyTaskForm(forms.ModelForm):
         label='Scheduled Days'
     )
     
+    def clean_scheduled_days(self):
+        """Convert scheduled_days to integers"""
+        scheduled_days = self.cleaned_data.get('scheduled_days', [])
+        try:
+            return [int(day) for day in scheduled_days]
+        except (ValueError, TypeError):
+            raise forms.ValidationError('Invalid scheduled days format.')
+    
     class Meta:
         model = DailyTask
         fields = [
@@ -258,20 +266,9 @@ class DailyTaskForm(forms.ModelForm):
         if self.instance and self.instance.pk and self.instance.scheduled_days:
             self.fields['scheduled_days'].initial = self.instance.scheduled_days
     
-    def clean(self):
-        cleaned_data = super().clean()
-        # Convert scheduled_days from strings to integers
-        scheduled_days = cleaned_data.get('scheduled_days', [])
-        if scheduled_days:
-            try:
-                cleaned_data['scheduled_days'] = [int(day) for day in scheduled_days]
-            except (ValueError, TypeError):
-                raise forms.ValidationError('Invalid scheduled days format.')
-        return cleaned_data
-    
     def save(self, commit=True):
         instance = super().save(commit=False)
-        # Use the cleaned data (already converted to integers)
+        # Use the cleaned data (already converted to integers by clean_scheduled_days)
         instance.scheduled_days = self.cleaned_data.get('scheduled_days', [])
         if commit:
             instance.save()

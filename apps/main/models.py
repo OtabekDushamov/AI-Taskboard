@@ -187,7 +187,12 @@ class DailyTask(models.Model):
         if self.scheduled_days:
             valid_days = [0, 1, 2, 3, 4, 5, 6]
             for day in self.scheduled_days:
-                if day not in valid_days:
+                # Convert string to int if needed
+                try:
+                    day_int = int(day)
+                    if day_int not in valid_days:
+                        raise ValidationError(f'Invalid weekday: {day}. Must be 0-6.')
+                except (ValueError, TypeError):
                     raise ValidationError(f'Invalid weekday: {day}. Must be 0-6.')
     
     def get_scheduled_days_display(self):
