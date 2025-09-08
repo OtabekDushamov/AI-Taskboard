@@ -372,6 +372,19 @@
     function closeModal() {
         document.getElementById('taskModal').classList.add('hidden');
     }
+    
+    // Add form submission debugging
+    document.getElementById('taskForm').addEventListener('submit', function(e) {
+        console.log('Form being submitted');
+        console.log('Form action:', document.getElementById('formAction').name);
+        console.log('Form data:', new FormData(this));
+        
+        // Log all form field values
+        const formData = new FormData(this);
+        for (let [key, value] of formData.entries()) {
+            console.log(`${key}: ${value}`);
+        }
+    });
 
     // Close modal when clicking outside
     document.addEventListener('click', function(e) {
