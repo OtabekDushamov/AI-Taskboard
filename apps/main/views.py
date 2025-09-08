@@ -1024,11 +1024,11 @@ def tasks_calendar_view(request):
         deadline__isnull=False
     ).distinct().order_by('deadline')
     
-    # Get user's daily tasks
-    daily_tasks = DailyTask.objects.filter(
-        Q(creator=bot_user) | Q(assignees=bot_user),
-        is_active=True
-    ).distinct()
+    # Get user's daily tasks (removed from calendar)
+    # daily_tasks = DailyTask.objects.filter(
+    #     Q(creator=bot_user) | Q(assignees=bot_user),
+    #     is_active=True
+    # ).distinct()
     
     # Create calendar events
     calendar_events = []
@@ -1057,37 +1057,37 @@ def tasks_calendar_view(request):
                 'task_id': task.id,
             })
     
-    # Add daily tasks for the month
-    for daily_task in daily_tasks:
-        # Generate events for each scheduled day in the month
-        for day_num in daily_task.scheduled_days:
-            # Find all dates in the current month that match this weekday
-            first_day = current_date.replace(day=1)
-            last_day = (first_day + timedelta(days=32)).replace(day=1) - timedelta(days=1)
-            
-            current_day = first_day
-            while current_day <= last_day:
-                if current_day.weekday() == day_num:
-                    calendar_events.append({
-                        'id': f'daily_task_{daily_task.id}_{current_day}',
-                        'title': daily_task.title,
-                        'date': current_day.strftime('%Y-%m-%d'),
-                        'time': daily_task.reminder_time,
-                        'type': 'daily_task',
-                        'priority': daily_task.priority,
-                        'status': 'scheduled',
-                        'project': 'Daily Tasks',
-                        'assignee': daily_task.get_assignee_names(),
-                        'description': daily_task.description,
-                        'notes': daily_task.notes,
-                        'creator': daily_task.creator.get_full_name(),
-                        'estimated_minutes': daily_task.estimated_minutes,
-                        'scheduled_days': daily_task.scheduled_days,
-                        'is_active': daily_task.is_active,
-                        'created_at': daily_task.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-                        'daily_task_id': daily_task.id,
-                    })
-                current_day += timedelta(days=1)
+    # Add daily tasks for the month (removed from calendar)
+    # for daily_task in daily_tasks:
+    #     # Generate events for each scheduled day in the month
+    #     for day_num in daily_task.scheduled_days:
+    #         # Find all dates in the current month that match this weekday
+    #         first_day = current_date.replace(day=1)
+    #         last_day = (first_day + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+    #         
+    #         current_day = first_day
+    #         while current_day <= last_day:
+    #             if current_day.weekday() == day_num:
+    #                 calendar_events.append({
+    #                     'id': f'daily_task_{daily_task.id}_{current_day}',
+    #                     'title': daily_task.title,
+    #                     'date': current_day.strftime('%Y-%m-%d'),
+    #                     'time': daily_task.reminder_time,
+    #                     'type': 'daily_task',
+    #                     'priority': daily_task.priority,
+    #                     'status': 'scheduled',
+    #                     'project': 'Daily Tasks',
+    #                     'assignee': daily_task.get_assignee_names(),
+    #                     'description': daily_task.description,
+    #                     'notes': daily_task.notes,
+    #                     'creator': daily_task.creator.get_full_name(),
+    #                     'estimated_minutes': daily_task.estimated_minutes,
+    #                     'scheduled_days': daily_task.scheduled_days,
+    #                     'is_active': daily_task.is_active,
+    #                     'created_at': daily_task.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+    #                     'daily_task_id': daily_task.id,
+    #                 })
+    #             current_day += timedelta(days=1)
     
     # Handle AJAX requests for calendar data
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
