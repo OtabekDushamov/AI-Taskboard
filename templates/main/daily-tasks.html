@@ -298,14 +298,49 @@
         const scheduledDaysElement = taskCard.querySelector('[data-field="scheduled_days"]');
         const isActiveElement = taskCard.querySelector('[data-field="is_active"]');
         
+        // Extract reminder time properly
+        let reminderTime = '';
+        if (reminderTimeElement) {
+            const timeText = reminderTimeElement.textContent.replace('Reminder: ', '').trim();
+            if (timeText) {
+                // Handle different time formats
+                if (timeText.includes('a.m.') || timeText.includes('p.m.')) {
+                    // Convert 12-hour format (8:14 p.m.) to 24-hour format (20:14)
+                    const timeMatch = timeText.match(/(\d{1,2}):(\d{2})\s*(a\.m\.|p\.m\.)/);
+                    if (timeMatch) {
+                        let hours = parseInt(timeMatch[1]);
+                        const minutes = timeMatch[2];
+                        const period = timeMatch[3];
+                        
+                        if (period === 'p.m.' && hours !== 12) {
+                            hours += 12;
+                        } else if (period === 'a.m.' && hours === 12) {
+                            hours = 0;
+                        }
+                        
+                        reminderTime = `${hours.toString().padStart(2, '0')}:${minutes}`;
+                    }
+                } else {
+                    // Handle 24-hour format (HH:MM:SS) to HTML time input format (HH:MM)
+                    reminderTime = timeText.split(':').slice(0, 2).join(':');
+                }
+            }
+        }
+        
+        // Extract estimated minutes properly
+        let estimatedMinutes = '';
+        if (estimatedMinutesElement) {
+            estimatedMinutes = estimatedMinutesElement.textContent.replace('Estimated: ', '').replace(' minutes', '').trim();
+        }
+        
         const taskData = {
             id: taskId,
             title: titleElement ? titleElement.textContent.trim() : '',
             description: descriptionElement ? descriptionElement.textContent.trim() : '',
             notes: '', // Notes are not displayed in the card, will be empty
             priority: priorityElement ? priorityElement.textContent.trim().toLowerCase() : 'medium',
-            reminder_time: reminderTimeElement ? reminderTimeElement.textContent.replace('Reminder: ', '').trim() : '',
-            estimated_minutes: estimatedMinutesElement ? estimatedMinutesElement.textContent.replace('Estimated: ', '').replace(' minutes', '').trim() : '',
+            reminder_time: reminderTime,
+            estimated_minutes: estimatedMinutes,
             scheduled_days: scheduledDaysElement ? scheduledDaysElement.getAttribute('data-scheduled-days').split(',') : [],
             is_active: isActiveElement ? isActiveElement.textContent.trim() === 'Active' : true
         };
