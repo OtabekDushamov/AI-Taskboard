@@ -836,11 +836,16 @@ def daily_tasks_today_view(request):
     today_weekday = today.weekday()
     
     # Get today's scheduled tasks
-    today_tasks = DailyTask.objects.filter(
+    all_daily_tasks = DailyTask.objects.filter(
         Q(creator=bot_user) | Q(assignees=bot_user),
-        scheduled_days__in=[today_weekday],
         is_active=True
-    ).distinct().order_by('reminder_time', 'title')
+    ).distinct()
+
+    # Filter in Python to check if today's weekday is in scheduled_days
+    today_tasks = [task for task in all_daily_tasks if f"{today_weekday}" in (task.scheduled_days or [])]
+
+    # Sort by reminder_time and title
+    today_tasks.sort(key=lambda x: (x.reminder_time or '23:59', x.title))
     
     # Get completion status for today
     completed_today = DailyTaskCompletion.objects.filter(
