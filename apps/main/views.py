@@ -844,7 +844,7 @@ def daily_tasks_today_view(request):
     ).distinct()
 
     # Filter in Python to check if today's weekday is in scheduled_days
-    today_tasks = [task for task in all_daily_tasks if f"{today_weekday}" in (task.scheduled_days or [])]
+    today_tasks = [task for task in all_daily_tasks if today_weekday in (task.scheduled_days or [])]
 
     # Sort by reminder_time and title
     from datetime import time

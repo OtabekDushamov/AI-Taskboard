@@ -89,13 +89,13 @@
                         <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Scheduled Days</label>
                         <div class="mt-1 flex flex-wrap gap-2">
                             {% for day_num in daily_task.scheduled_days %}
-                                {% if day_num == '0' %}<span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">Monday</span>{% endif %}
-                                {% if day_num == '1' %}<span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">Tuesday</span>{% endif %}
-                                {% if day_num == '2' %}<span class="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">Wednesday</span>{% endif %}
-                                {% if day_num == '3' %}<span class="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded">Thursday</span>{% endif %}
-                                {% if day_num == '4' %}<span class="px-2 py-1 text-xs bg-pink-100 text-pink-800 rounded">Friday</span>{% endif %}
-                                {% if day_num == '5' %}<span class="px-2 py-1 text-xs bg-indigo-100 text-indigo-800 rounded">Saturday</span>{% endif %}
-                                {% if day_num == '6' %}<span class="px-2 py-1 text-xs bg-red-100 text-red-800 rounded">Sunday</span>{% endif %}
+                                {% if day_num == 0 %}<span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">Monday</span>{% endif %}
+                                {% if day_num == 1 %}<span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">Tuesday</span>{% endif %}
+                                {% if day_num == 2 %}<span class="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">Wednesday</span>{% endif %}
+                                {% if day_num == 3 %}<span class="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded">Thursday</span>{% endif %}
+                                {% if day_num == 4 %}<span class="px-2 py-1 text-xs bg-pink-100 text-pink-800 rounded">Friday</span>{% endif %}
+                                {% if day_num == 5 %}<span class="px-2 py-1 text-xs bg-indigo-100 text-indigo-800 rounded">Saturday</span>{% endif %}
+                                {% if day_num == 6 %}<span class="px-2 py-1 text-xs bg-red-100 text-red-800 rounded">Sunday</span>{% endif %}
                             {% endfor %}
                         </div>
                     </div>

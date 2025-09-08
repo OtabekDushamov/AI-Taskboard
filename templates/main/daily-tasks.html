@@ -91,13 +91,13 @@
                 <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Scheduled Days:</label>
                 <div class="mt-1" data-field="scheduled_days" data-scheduled-days="{{ task.scheduled_days|join:',' }}">
                     {% for day_num in task.scheduled_days %}
-                        {% if day_num == '0' %}<span class="day-badge day-mon">Mon</span>{% endif %}
-                        {% if day_num == '1' %}<span class="day-badge day-tue">Tue</span>{% endif %}
-                        {% if day_num == '2' %}<span class="day-badge day-wed">Wed</span>{% endif %}
-                        {% if day_num == '3' %}<span class="day-badge day-thu">Thu</span>{% endif %}
-                        {% if day_num == '4' %}<span class="day-badge day-fri">Fri</span>{% endif %}
-                        {% if day_num == '5' %}<span class="day-badge day-sat">Sat</span>{% endif %}
-                        {% if day_num == '6' %}<span class="day-badge day-sun">Sun</span>{% endif %}
+                        {% if day_num == 0 %}<span class="day-badge day-mon">Mon</span>{% endif %}
+                        {% if day_num == 1 %}<span class="day-badge day-tue">Tue</span>{% endif %}
+                        {% if day_num == 2 %}<span class="day-badge day-wed">Wed</span>{% endif %}
+                        {% if day_num == 3 %}<span class="day-badge day-thu">Thu</span>{% endif %}
+                        {% if day_num == 4 %}<span class="day-badge day-fri">Fri</span>{% endif %}
+                        {% if day_num == 5 %}<span class="day-badge day-sat">Sat</span>{% endif %}
+                        {% if day_num == 6 %}<span class="day-badge day-sun">Sun</span>{% endif %}
                     {% endfor %}
                 </div>
             </div>
