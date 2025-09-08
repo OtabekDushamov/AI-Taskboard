@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Case, When, IntegerField
 from django.utils import timezone
 from django.core.paginator import Paginator
 from django.views.decorators.http import require_http_methods
@@ -93,10 +93,20 @@ def dashboard_view(request):
     
     # Get today's tasks
     today = timezone.now().date()
+    
     today_tasks = Task.objects.filter(
         Q(assignees=bot_user) | Q(creator=bot_user),
         deadline__date=today
-    ).distinct().order_by('status', 'priority', 'deadline')
+    ).distinct().annotate(
+        priority_order=Case(
+            When(priority='urgent', then=1),
+            When(priority='high', then=2),
+            When(priority='medium', then=3),
+            When(priority='low', then=4),
+            default=5,
+            output_field=IntegerField(),
+        )
+    ).order_by('status', 'priority_order', 'category__project__name', 'deadline')
     
     # Get recent activity
     recent_activities = TaskActivity.objects.filter(
