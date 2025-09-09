@@ -998,7 +998,6 @@ def daily_tasks_detail_view(request, daily_task_id):
             break
     
     # Calculate completion rate for the last 30 days
-    from datetime import datetime, timedelta
     thirty_days_ago = timezone.now().date() - timedelta(days=30)
     scheduled_days = []
     current_date = thirty_days_ago
