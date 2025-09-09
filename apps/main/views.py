@@ -101,6 +101,14 @@ def dashboard_view(request):
         Q(assignees=bot_user) | Q(creator=bot_user),
         deadline__date=today
     ).distinct().annotate(
+        status_order=Case(
+            When(status='in_progress', then=1),
+            When(status='todo', then=2),
+            When(status='review', then=3),
+            When(status='completed', then=4),
+            default=5,
+            output_field=IntegerField(),
+        ),
         priority_order=Case(
             When(priority='urgent', then=1),
             When(priority='high', then=2),
@@ -109,7 +117,7 @@ def dashboard_view(request):
             default=5,
             output_field=IntegerField(),
         )
-    ).order_by('status', 'priority_order', 'category__project__name', 'deadline')
+    ).order_by('status_order', 'deadline', 'priority_order')
     
     # Get recent activity
     recent_activities = TaskActivity.objects.filter(
@@ -263,9 +271,26 @@ def project_detail_view(request, project_id):
         messages.error(request, 'You do not have access to this project.')
         return redirect('main:project_list')
     
-    # Get project categories and tasks
+    # Get project categories and tasks with proper ordering
     categories = project.categories.all()
-    tasks = Task.objects.filter(category__project=project).order_by('-created_at')
+    tasks = Task.objects.filter(category__project=project).annotate(
+        status_order=Case(
+            When(status='in_progress', then=1),
+            When(status='todo', then=2),
+            When(status='review', then=3),
+            When(status='completed', then=4),
+            default=5,
+            output_field=IntegerField(),
+        ),
+        priority_order=Case(
+            When(priority='urgent', then=1),
+            When(priority='high', then=2),
+            When(priority='medium', then=3),
+            When(priority='low', then=4),
+            default=5,
+            output_field=IntegerField(),
+        )
+    ).order_by('status_order', 'deadline', 'priority_order')
     
     # Get filtered task counts for the dashboard
     todo_tasks = tasks.filter(status='todo')
@@ -446,10 +471,27 @@ def task_list_view(request):
             username=request.user.username or ''
         )
     
-    # Get user's tasks
+    # Get user's tasks with proper ordering
     tasks = Task.objects.filter(
         Q(assignees=bot_user) | Q(creator=bot_user)
-    ).distinct().order_by('-created_at')
+    ).distinct().annotate(
+        status_order=Case(
+            When(status='in_progress', then=1),
+            When(status='todo', then=2),
+            When(status='review', then=3),
+            When(status='completed', then=4),
+            default=5,
+            output_field=IntegerField(),
+        ),
+        priority_order=Case(
+            When(priority='urgent', then=1),
+            When(priority='high', then=2),
+            When(priority='medium', then=3),
+            When(priority='low', then=4),
+            default=5,
+            output_field=IntegerField(),
+        )
+    ).order_by('status_order', 'deadline', 'priority_order')
     
     # Apply filters
     status_filter = request.GET.get('status')
@@ -703,16 +745,25 @@ def my_tasks_view(request):
             username=request.user.username or ''
         )
     
-    # Get user's tasks grouped by status
+    # Get user's tasks grouped by status with proper ordering
     tasks = Task.objects.filter(
         Q(assignees=bot_user) | Q(creator=bot_user)
-    ).distinct()
+    ).distinct().annotate(
+        priority_order=Case(
+            When(priority='urgent', then=1),
+            When(priority='high', then=2),
+            When(priority='medium', then=3),
+            When(priority='low', then=4),
+            default=5,
+            output_field=IntegerField(),
+        )
+    )
     
-    # Group tasks by status
-    todo_tasks = tasks.filter(status='todo')
-    in_progress_tasks = tasks.filter(status='in_progress')
-    review_tasks = tasks.filter(status='review')
-    done_tasks = tasks.filter(status='completed')
+    # Group tasks by status with proper ordering within each group
+    todo_tasks = tasks.filter(status='todo').order_by('deadline', 'priority_order')
+    in_progress_tasks = tasks.filter(status='in_progress').order_by('deadline', 'priority_order')
+    review_tasks = tasks.filter(status='review').order_by('deadline', 'priority_order')
+    done_tasks = tasks.filter(status='completed').order_by('deadline', 'priority_order')
     
     context = {
         'todo_tasks': todo_tasks,
