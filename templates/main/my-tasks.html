@@ -90,16 +90,24 @@
         border-left: 4px solid #ef4444 !important;
     }
 
+    .chip {
+        @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    }
+    
+    .priority-urgent {
+        @apply bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200;
+    }
+    
     .priority-high {
-        color: #dc2626;
+        @apply bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200;
     }
 
     .priority-medium {
-        color: #ea580c;
+        @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200;
     }
 
     .priority-low {
-        color: #16a34a;
+        @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200;
     }
 
     .project-chip {
@@ -215,7 +223,7 @@
                 <div class="flex justify-between items-start mb-2">
                     <h3 class="font-medium text-gray-900 dark:text-white text-sm">{{ task.title }}</h3>
                     <div class="flex items-center gap-1">
-                        <span class="priority-{{ task.priority }} text-xs">
+                        <span class="chip priority-{{ task.priority }}">
                             {% if task.priority == 'urgent' %}
                                 <i class="fas fa-exclamation-circle"></i>
                             {% elif task.priority == 'high' %}
@@ -271,7 +279,7 @@
                 <div class="flex justify-between items-start mb-2">
                     <h3 class="font-medium text-gray-900 dark:text-white text-sm">{{ task.title }}</h3>
                     <div class="flex items-center gap-1">
-                        <span class="priority-{{ task.priority }} text-xs">
+                        <span class="chip priority-{{ task.priority }}">
                             {% if task.priority == 'urgent' %}
                                 <i class="fas fa-exclamation-circle"></i>
                             {% elif task.priority == 'high' %}
@@ -327,7 +335,7 @@
                 <div class="flex justify-between items-start mb-2">
                     <h3 class="font-medium text-gray-900 dark:text-white text-sm">{{ task.title }}</h3>
                     <div class="flex items-center gap-1">
-                        <span class="priority-{{ task.priority }} text-xs">
+                        <span class="chip priority-{{ task.priority }}">
                             {% if task.priority == 'urgent' %}
                                 <i class="fas fa-exclamation-circle"></i>
                             {% elif task.priority == 'high' %}
@@ -383,7 +391,7 @@
                 <div class="flex justify-between items-start mb-2">
                     <h3 class="font-medium text-gray-900 dark:text-white text-sm line-through">{{ task.title }}</h3>
                     <div class="flex items-center gap-1">
-                        <span class="priority-{{ task.priority }} text-xs">
+                        <span class="chip priority-{{ task.priority }}">
                             {% if task.priority == 'urgent' %}
                                 <i class="fas fa-exclamation-circle"></i>
                             {% elif task.priority == 'high' %}
