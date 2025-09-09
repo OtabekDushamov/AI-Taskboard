@@ -131,6 +131,7 @@
 {% endblock %}
 
 {% block content %}
+{% csrf_token %}
 <div class="min-h-screen">
     <!-- Header -->
     <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 mb-6">
@@ -318,9 +319,12 @@
                         </thead>
                         <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                             {% for task in tasks %}
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <tr class="task-item hover:bg-gray-50 dark:hover:bg-gray-700{% if task.status == 'completed' %} opacity-50 line-through{% endif %}">
                                 <td class="checkbox-cell" style="padding-left: 18px;">
-                                    <input type="checkbox" class="task-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700">
+                                    <input type="checkbox" 
+                                           class="task-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700" 
+                                           data-task-id="{{ task.id }}"
+                                           {% if task.status == 'completed' %}checked{% endif %}>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex items-center">
@@ -407,13 +411,19 @@
         <div id="cardView" class="card-view">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {% for task in tasks %}
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+                <div class="task-item bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700{% if task.status == 'completed' %} opacity-50 line-through{% endif %}">
                     <div class="flex items-start justify-between mb-4">
-                        <div class="flex-1">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                                <a href="{% url 'main:task_detail' task.id %}" class="hover:text-primary-600 dark:hover:text-primary-400">{{ task.title }}</a>
-                            </h3>
-                            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{{ task.description|truncatechars:100 }}</p>
+                        <div class="flex items-center space-x-3">
+                            <input type="checkbox" 
+                                   class="task-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700" 
+                                   data-task-id="{{ task.id }}"
+                                   {% if task.status == 'completed' %}checked{% endif %}>
+                            <div class="flex-1">
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                                    <a href="{% url 'main:task_detail' task.id %}" class="hover:text-primary-600 dark:hover:text-primary-400">{{ task.title }}</a>
+                                </h3>
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{{ task.description|truncatechars:100 }}</p>
+                            </div>
                         </div>
                         <div class="flex items-center gap-2">
                             <span class="chip status-{{ task.status|default:'todo' }}">{{ task.get_status_display }}</span>
@@ -750,13 +760,83 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Individual checkbox change
+    // Individual checkbox change with AJAX functionality
     taskCheckboxes.forEach(checkbox => {
         checkbox.addEventListener('change', function() {
+            const taskId = this.dataset.taskId;
+            const completed = this.checked;
+            
+            // Disable checkbox while processing
+            this.disabled = true;
+            
+            // Send AJAX request
+            fetch('{% url "main:toggle_task_completion" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({
+                    task_id: taskId,
+                    completed: completed
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update the task item appearance based on completion status
+                    const taskItem = this.closest('.task-item');
+                    if (completed) {
+                        // Add completed styling
+                        taskItem.classList.add('opacity-50', 'line-through');
+                    } else {
+                        // Remove completed styling
+                        taskItem.classList.remove('opacity-50', 'line-through');
+                    }
+                    
+                    // Show success message
+                    showNotification('Task ' + (completed ? 'completed' : 'marked as incomplete') + '!', 'success');
+                } else {
+                    // Revert checkbox state on error
+                    this.checked = !completed;
+                    showNotification('Error updating task: ' + (data.error || 'Unknown error'), 'error');
+                }
+            })
+            .catch(error => {
+                // Revert checkbox state on error
+                this.checked = !completed;
+                showNotification('Error updating task: ' + error.message, 'error');
+            })
+            .finally(() => {
+                // Re-enable checkbox
+                this.disabled = false;
+            });
+            
+            // Update select all checkbox state
             const checkedBoxes = document.querySelectorAll('.task-checkbox:checked');
             selectAllCheckbox.checked = checkedBoxes.length === taskCheckboxes.length;
         });
     });
+    
+    // Simple notification function
+    function showNotification(message, type) {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 px-6 py-3 rounded-md shadow-lg z-50 transition-all duration-300 ${
+            type === 'success' 
+                ? 'bg-green-500 text-white' 
+                : 'bg-red-500 text-white'
+        }`;
+        notification.textContent = message;
+        
+        // Add to page
+        document.body.appendChild(notification);
+        
+        // Remove after 3 seconds
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
 });
 </script>
 {% endblock %}
