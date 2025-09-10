@@ -1008,10 +1008,14 @@
                     this.classList.add('dragging');
                     e.dataTransfer.setData('text/plain', this.dataset.taskId);
                     e.dataTransfer.effectAllowed = 'move';
+                    // Store reference to the dragged element
+                    window.draggedElement = this;
                 });
                 
                 card.addEventListener('dragend', function() {
                     this.classList.remove('dragging');
+                    // Clear the reference
+                    window.draggedElement = null;
                 });
             });
 
@@ -1034,12 +1038,15 @@
                     
                     const taskId = e.dataTransfer.getData('text/plain');
                     const newCategoryId = this.dataset.categoryId;
-                    const draggedElement = document.querySelector(`[data-task-id="${taskId}"]`);
+                    const draggedElement = window.draggedElement;
                     
                     if (draggedElement && draggedElement.dataset.categoryId !== newCategoryId) {
                         // Move task to new category
                         moveTaskToCategory(taskId, newCategoryId, draggedElement, this);
                     }
+                    
+                    // Clear the reference
+                    window.draggedElement = null;
                 });
             });
 
@@ -1062,12 +1069,15 @@
                     
                     const taskId = e.dataTransfer.getData('text/plain');
                     const newCategoryId = this.dataset.categoryId;
-                    const draggedElement = document.querySelector(`[data-task-id="${taskId}"]`);
+                    const draggedElement = window.draggedElement;
                     
                     if (draggedElement && draggedElement.dataset.categoryId !== newCategoryId) {
                         const taskList = this.querySelector('.task-list');
                         moveTaskToCategory(taskId, newCategoryId, draggedElement, taskList);
                     }
+                    
+                    // Clear the reference
+                    window.draggedElement = null;
                 });
             });
         }
