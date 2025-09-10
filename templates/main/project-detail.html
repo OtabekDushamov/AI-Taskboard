@@ -135,9 +135,14 @@
                         <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
                     </div>
                 </div>
-                <a href="{% url 'main:project_crud' project.id %}" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200">
-                    <i class="fas fa-edit mr-2"></i>Edit Project
-                </a>
+                <div class="flex space-x-3">
+                    <a href="{% url 'main:project_crud' project.id %}" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200">
+                        <i class="fas fa-edit mr-2"></i>Edit Project
+                    </a>
+                    <a href="{% url 'main:category_list' project.id %}" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-200">
+                        <i class="fas fa-tags mr-2"></i>Manage Categories
+                    </a>
+                </div>
             </div>
         </div>
 

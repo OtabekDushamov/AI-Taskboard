@@ -33,7 +33,7 @@ urlpatterns = [
     path('daily-tasks-detail/<int:daily_task_id>/', login_required(views.daily_tasks_detail_view), name='daily_tasks_detail'),
     
     # Categories
-    path('category-list/', login_required(views.category_list_view), name='category_list'),
+    path('project/<int:project_id>/categories/', login_required(views.category_list_view), name='category_list'),
     path('category-detail/<int:category_id>/', login_required(views.category_detail_view), name='category_detail'),
     
     # Habits and settings

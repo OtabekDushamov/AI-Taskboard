@@ -1024,14 +1024,107 @@ def daily_tasks_detail_view(request, daily_task_id):
 # CATEGORIES
 # =============================================================================
 
-def category_list_view(request):
-    """Category list view"""
-    return render(request, 'main/category-list.html')
+def category_list_view(request, project_id):
+    """Category list view for a specific project"""
+    try:
+        bot_user = BotUser.objects.get(user=request.user)
+    except BotUser.DoesNotExist:
+        bot_user = BotUser.objects.create(
+            user=request.user,
+            telegram_id=0,
+            first_name=request.user.first_name or 'User',
+            last_name=request.user.last_name or '',
+            username=request.user.username or ''
+        )
+    
+    project = get_object_or_404(Project, id=project_id)
+    
+    # Check if user has access to this project
+    if not (project.creator == bot_user or bot_user in project.members.all()):
+        messages.error(request, 'You do not have access to this project.')
+        return redirect('main:project_list')
+    
+    # Get project categories
+    categories = project.categories.all().order_by('name')
+    
+    # Handle form submissions
+    if request.method == 'POST':
+        if 'create_category' in request.POST:
+            form = CategoryForm(request.POST)
+            if form.is_valid():
+                category = form.save(commit=False)
+                category.project = project
+                category.save()
+                messages.success(request, f'Category "{category.name}" created successfully!')
+                return redirect('main:category_list', project_id=project.id)
+        elif 'edit_category' in request.POST:
+            category_id = request.POST.get('category_id')
+            try:
+                category = Category.objects.get(id=category_id, project=project)
+                form = CategoryForm(request.POST, instance=category)
+                if form.is_valid():
+                    form.save()
+                    messages.success(request, f'Category "{category.name}" updated successfully!')
+                    return redirect('main:category_list', project_id=project.id)
+                else:
+                    messages.error(request, f'Form validation failed: {form.errors}')
+            except Category.DoesNotExist:
+                messages.error(request, 'Category not found.')
+        elif 'delete_category' in request.POST:
+            category_id = request.POST.get('category_id')
+            try:
+                category = Category.objects.get(id=category_id, project=project)
+                # Check if category has tasks
+                if category.tasks.exists():
+                    messages.error(request, f'Cannot delete category "{category.name}" because it contains tasks. Please move or delete the tasks first.')
+                else:
+                    category.delete()
+                    messages.success(request, f'Category "{category.name}" deleted successfully!')
+                    return redirect('main:category_list', project_id=project.id)
+            except Category.DoesNotExist:
+                messages.error(request, 'Category not found.')
+    else:
+        form = CategoryForm()
+    
+    context = {
+        'project': project,
+        'categories': categories,
+        'form': form,
+    }
+    
+    return render(request, 'main/category-list.html', context)
 
 
 def category_detail_view(request, category_id):
     """Category detail view"""
-    return render(request, 'main/category-detail.html')
+    try:
+        bot_user = BotUser.objects.get(user=request.user)
+    except BotUser.DoesNotExist:
+        bot_user = BotUser.objects.create(
+            user=request.user,
+            telegram_id=0,
+            first_name=request.user.first_name or 'User',
+            last_name=request.user.last_name or '',
+            username=request.user.username or ''
+        )
+    
+    category = get_object_or_404(Category, id=category_id)
+    
+    # Check if user has access to this category's project
+    if not (category.project.creator == bot_user or bot_user in category.project.members.all()):
+        messages.error(request, 'You do not have access to this category.')
+        return redirect('main:project_list')
+    
+    # Get category tasks
+    tasks = category.tasks.all().order_by('-priority', 'deadline', '-created_at')
+    
+    context = {
+        'category': category,
+        'tasks': tasks,
+        'project': category.project,
+    }
+    
+    return render(request, 'main/category-detail.html', context)
 
 
 # =============================================================================
