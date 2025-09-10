@@ -1233,8 +1233,10 @@ def tasks_calendar_view(request):
             calendar_events.append({
                 'id': f'task_{task.id}',
                 'title': task.title,
-                'date': task.deadline.date().strftime('%Y-%m-%d'),
-                'time': task.deadline.time().strftime('%H:%M:%S'),
+                'date': task.deadline.astimezone(timezone.get_current_timezone()).date().strftime('%Y-%m-%d'),
+                'time': task.deadline.astimezone(timezone.get_current_timezone()).time().strftime('%H:%M:%S'),
+                'timezone': 'Asia/Tashkent',
+                'utc_offset': '+05:00',
                 'type': 'task',
                 'priority': task.priority,
                 'status': task.status,
