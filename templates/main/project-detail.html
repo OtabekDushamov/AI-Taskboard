@@ -1075,8 +1075,13 @@
         function moveTaskToCategory(taskId, newCategoryId, draggedElement, targetList) {
             const oldCategoryId = draggedElement.dataset.categoryId;
             
-            // Update UI immediately
+            // Remove the element from its current location first
+            draggedElement.remove();
+            
+            // Update the element's category data
             draggedElement.dataset.categoryId = newCategoryId;
+            
+            // Add to new location
             targetList.appendChild(draggedElement);
             
             // Update task counts
@@ -1101,9 +1106,10 @@
                 } else {
                     showNotification('Failed to move task: ' + data.error, 'error');
                     // Revert UI changes on error
+                    draggedElement.remove();
+                    draggedElement.dataset.categoryId = oldCategoryId;
                     const originalList = document.querySelector(`[data-category-id="${oldCategoryId}"] .task-list`);
                     originalList.appendChild(draggedElement);
-                    draggedElement.dataset.categoryId = oldCategoryId;
                     updateCategoryTaskCounts();
                 }
             })
@@ -1111,9 +1117,10 @@
                 console.error('Error moving task:', error);
                 showNotification('Failed to move task', 'error');
                 // Revert UI changes on error
+                draggedElement.remove();
+                draggedElement.dataset.categoryId = oldCategoryId;
                 const originalList = document.querySelector(`[data-category-id="${oldCategoryId}"] .task-list`);
                 originalList.appendChild(draggedElement);
-                draggedElement.dataset.categoryId = oldCategoryId;
                 updateCategoryTaskCounts();
             });
         }
