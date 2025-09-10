@@ -88,6 +88,83 @@
         background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23e5e7eb' fill-opacity='0.3'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
         background-repeat: repeat;
     }
+    
+    /* Drag and Drop Styles */
+    .category-column {
+        transition: all 0.3s ease;
+    }
+    
+    .category-column.drag-over {
+        background-color: rgba(59, 130, 246, 0.1);
+        border: 2px dashed #3b82f6;
+        transform: scale(1.02);
+    }
+    
+    .task-card.dragging {
+        opacity: 0.5;
+        transform: rotate(5deg);
+        z-index: 1000;
+    }
+    
+    .task-list.drag-over {
+        background-color: rgba(34, 197, 94, 0.1);
+        border: 2px dashed #22c55e;
+        border-radius: 8px;
+        min-height: 100px;
+    }
+    
+    .line-clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    /* Modal Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+    
+    .modal-content {
+        background-color: white;
+        margin: 5% auto;
+        padding: 0;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 500px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    
+    .dark .modal-content {
+        background-color: #1f2937;
+    }
+    
+    .modal-header {
+        padding: 24px 24px 0 24px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .dark .modal-header {
+        border-bottom-color: #374151;
+    }
+    
+    .modal-body {
+        padding: 24px;
+    }
+    
+    .modal-footer {
+        padding: 0 24px 24px 24px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+    }
 </style>
 {% endblock %}
 
@@ -199,6 +276,9 @@
                 </button>
                 <button class="tab-link py-4 px-1 border-b-2 border-transparent text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300" data-tab="tasks">
                     Tasks
+                </button>
+                <button class="tab-link py-4 px-1 border-b-2 border-transparent text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300" data-tab="categories">
+                    Categories
                 </button>
                 <button class="tab-link py-4 px-1 border-b-2 border-transparent text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300" data-tab="team">
                     Team
@@ -426,6 +506,119 @@
                 </div>
             </div>
 
+            <!-- Categories Tab -->
+            <div id="categories-tab" class="tab-content hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Project Categories</h3>
+                    <div class="flex space-x-3">
+                        <button onclick="openCreateCategoryModal()" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-200">
+                            <i class="fas fa-plus mr-2"></i>Add Category
+                        </button>
+                        <a href="{% url 'main:task_crud' %}?project={{ project.id }}" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200">
+                            <i class="fas fa-plus mr-2"></i>Add Task
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Categories Kanban Board -->
+                <div id="categories-kanban" class="flex space-x-6 overflow-x-auto pb-4 min-h-96">
+                    {% for category in categories %}
+                    <div class="category-column flex-shrink-0 w-80 bg-gray-50 dark:bg-gray-700 rounded-lg p-4" data-category-id="{{ category.id }}">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center space-x-2">
+                                <span class="w-4 h-4 rounded-full" style="background-color: {{ category.color }}"></span>
+                                <h4 class="font-semibold text-gray-900 dark:text-white">{{ category.name }}</h4>
+                                <span class="text-xs bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 px-2 py-1 rounded-full">
+                                    {{ category.get_task_count }}
+                                </span>
+                            </div>
+                            <div class="flex items-center space-x-1">
+                                <button onclick="openEditCategoryModal({{ category.id }}, '{{ category.name }}', '{{ category.description|escapejs }}', '{{ category.color }}')" class="text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200">
+                                    <i class="fas fa-edit text-sm"></i>
+                                </button>
+                                <button onclick="openDeleteCategoryModal({{ category.id }}, '{{ category.name }}')" class="text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors duration-200">
+                                    <i class="fas fa-trash text-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        {% if category.description %}
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">{{ category.description }}</p>
+                        {% endif %}
+
+                        <!-- Tasks in this category -->
+                        <div class="task-list space-y-3 min-h-32" data-category-id="{{ category.id }}">
+                            {% for task in category.tasks.all %}
+                            <div class="task-card bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-200 dark:border-gray-600 cursor-move hover:shadow-md transition-shadow duration-200" 
+                                 data-task-id="{{ task.id }}" 
+                                 data-category-id="{{ category.id }}">
+                                <div class="flex items-start justify-between mb-2">
+                                    <h5 class="font-medium text-gray-900 dark:text-white text-sm line-clamp-2">
+                                        <a href="{% url 'main:task_detail' task.id %}" class="hover:text-indigo-600 dark:hover:text-indigo-400">
+                                            {{ task.title }}
+                                        </a>
+                                    </h5>
+                                    <div class="flex items-center space-x-1 ml-2">
+                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                            {% if task.priority == 'urgent' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
+                                            {% elif task.priority == 'high' %}bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200
+                                            {% elif task.priority == 'medium' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                                            {% else %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200{% endif %}">
+                                            {{ task.get_priority_display }}
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                {% if task.description %}
+                                <p class="text-xs text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">{{ task.description }}</p>
+                                {% endif %}
+                                
+                                <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                                    <div class="flex items-center space-x-2">
+                                        {% if task.deadline %}
+                                        <span class="flex items-center">
+                                            <i class="fas fa-clock mr-1"></i>
+                                            {{ task.deadline|date:"M j" }}
+                                        </span>
+                                        {% endif %}
+                                        {% if task.assignees.exists %}
+                                        <span class="flex items-center">
+                                            <i class="fas fa-user mr-1"></i>
+                                            {{ task.assignees.count }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                        {% if task.status == 'todo' %}bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200
+                                        {% elif task.status == 'in_progress' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                                        {% elif task.status == 'review' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                        {% elif task.status == 'completed' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                        {% else %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200{% endif %}">
+                                        {{ task.get_status_display }}
+                                    </span>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <div class="text-center py-8 text-gray-400 dark:text-gray-500">
+                                <i class="fas fa-tasks text-2xl mb-2"></i>
+                                <p class="text-sm">No tasks</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="w-full text-center py-12">
+                        <i class="fas fa-tags text-4xl text-gray-400 dark:text-gray-500 mb-4"></i>
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No categories yet</h3>
+                        <p class="text-gray-600 dark:text-gray-400 mb-4">Create your first category to organize tasks</p>
+                        <button onclick="openCreateCategoryModal()" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-200">
+                            <i class="fas fa-plus mr-2"></i>Create Category
+                        </button>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
             <!-- Team Tab -->
             <div id="team-tab" class="tab-content hidden">
                 <div class="flex justify-between items-center mb-4">
@@ -482,6 +675,102 @@
                 </div>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Category Management Modals -->
+<!-- Create Category Modal -->
+<div id="createCategoryModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Create New Category</h3>
+        </div>
+        <form method="post" class="modal-body">
+            {% csrf_token %}
+            <input type="hidden" name="create_category" value="1">
+            <div class="space-y-4">
+                <div>
+                    <label for="category_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Name</label>
+                    <input type="text" name="name" id="category_name" required class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors duration-200" placeholder="Enter category name">
+                </div>
+                <div>
+                    <label for="category_description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
+                    <textarea name="description" id="category_description" rows="2" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors duration-200 resize-none" placeholder="Enter category description"></textarea>
+                </div>
+                <div>
+                    <label for="category_color" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Color</label>
+                    <input type="color" name="color" id="category_color" value="#3498db" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="closeCreateCategoryModal()" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors duration-200">
+                    Cancel
+                </button>
+                <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors duration-200">
+                    Create Category
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Category Modal -->
+<div id="editCategoryModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Edit Category</h3>
+        </div>
+        <form method="post" class="modal-body">
+            {% csrf_token %}
+            <input type="hidden" name="edit_category" value="1">
+            <input type="hidden" name="category_id" id="edit_category_id">
+            <div class="space-y-4">
+                <div>
+                    <label for="edit_category_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Name</label>
+                    <input type="text" name="name" id="edit_category_name" required class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors duration-200" placeholder="Enter category name">
+                </div>
+                <div>
+                    <label for="edit_category_description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
+                    <textarea name="description" id="edit_category_description" rows="2" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors duration-200 resize-none" placeholder="Enter category description"></textarea>
+                </div>
+                <div>
+                    <label for="edit_category_color" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Color</label>
+                    <input type="color" name="color" id="edit_category_color" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors duration-200">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="closeEditCategoryModal()" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors duration-200">
+                    Cancel
+                </button>
+                <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors duration-200">
+                    Update Category
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Category Modal -->
+<div id="deleteCategoryModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Delete Category</h3>
+        </div>
+        <div class="modal-body">
+            <p class="text-gray-600 dark:text-gray-400">Are you sure you want to delete the category "<span id="delete_category_name"></span>"? This action cannot be undone.</p>
+            <p class="text-sm text-red-600 dark:text-red-400 mt-2">Note: If this category contains tasks, you'll need to move or delete them first.</p>
+        </div>
+        <form method="post" class="modal-footer">
+            {% csrf_token %}
+            <input type="hidden" name="delete_category" value="1">
+            <input type="hidden" name="category_id" id="delete_category_id">
+            <button type="button" onclick="closeDeleteCategoryModal()" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors duration-200">
+                Cancel
+            </button>
+            <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors duration-200">
+                Delete Category
+            </button>
+        </form>
     </div>
 </div>
 {% endblock %}
@@ -648,6 +937,218 @@
             setTimeout(() => {
                 notification.remove();
             }, 3000);
+        }
+
+        // =============================================================================
+        // CATEGORY MANAGEMENT AND DRAG & DROP FUNCTIONALITY
+        // =============================================================================
+
+        // Initialize drag and drop for categories
+        initializeCategoryDragAndDrop();
+
+        // Category Modal Functions
+        function openCreateCategoryModal() {
+            document.getElementById('createCategoryModal').style.display = 'block';
+        }
+
+        function closeCreateCategoryModal() {
+            document.getElementById('createCategoryModal').style.display = 'none';
+        }
+
+        function openEditCategoryModal(id, name, description, color) {
+            document.getElementById('edit_category_id').value = id;
+            document.getElementById('edit_category_name').value = name;
+            document.getElementById('edit_category_description').value = description;
+            document.getElementById('edit_category_color').value = color;
+            document.getElementById('editCategoryModal').style.display = 'block';
+        }
+
+        function closeEditCategoryModal() {
+            document.getElementById('editCategoryModal').style.display = 'none';
+        }
+
+        function openDeleteCategoryModal(id, name) {
+            document.getElementById('delete_category_id').value = id;
+            document.getElementById('delete_category_name').textContent = name;
+            document.getElementById('deleteCategoryModal').style.display = 'block';
+        }
+
+        function closeDeleteCategoryModal() {
+            document.getElementById('deleteCategoryModal').style.display = 'none';
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            const createModal = document.getElementById('createCategoryModal');
+            const editModal = document.getElementById('editCategoryModal');
+            const deleteModal = document.getElementById('deleteCategoryModal');
+            
+            if (event.target === createModal) {
+                closeCreateCategoryModal();
+            }
+            if (event.target === editModal) {
+                closeEditCategoryModal();
+            }
+            if (event.target === deleteModal) {
+                closeDeleteCategoryModal();
+            }
+        }
+
+        // Drag and Drop Functions
+        function initializeCategoryDragAndDrop() {
+            const kanbanBoard = document.getElementById('categories-kanban');
+            if (!kanbanBoard) return;
+
+            // Make task cards draggable
+            const taskCards = kanbanBoard.querySelectorAll('.task-card');
+            taskCards.forEach(card => {
+                card.draggable = true;
+                
+                card.addEventListener('dragstart', function(e) {
+                    this.classList.add('dragging');
+                    e.dataTransfer.setData('text/plain', this.dataset.taskId);
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+                
+                card.addEventListener('dragend', function() {
+                    this.classList.remove('dragging');
+                });
+            });
+
+            // Make task lists droppable
+            const taskLists = kanbanBoard.querySelectorAll('.task-list');
+            taskLists.forEach(list => {
+                list.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    this.classList.add('drag-over');
+                });
+                
+                list.addEventListener('dragleave', function() {
+                    this.classList.remove('drag-over');
+                });
+                
+                list.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    this.classList.remove('drag-over');
+                    
+                    const taskId = e.dataTransfer.getData('text/plain');
+                    const newCategoryId = this.dataset.categoryId;
+                    const draggedElement = document.querySelector(`[data-task-id="${taskId}"]`);
+                    
+                    if (draggedElement && draggedElement.dataset.categoryId !== newCategoryId) {
+                        // Move task to new category
+                        moveTaskToCategory(taskId, newCategoryId, draggedElement, this);
+                    }
+                });
+            });
+
+            // Make category columns droppable for reordering
+            const categoryColumns = kanbanBoard.querySelectorAll('.category-column');
+            categoryColumns.forEach(column => {
+                column.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    this.classList.add('drag-over');
+                });
+                
+                column.addEventListener('dragleave', function() {
+                    this.classList.remove('drag-over');
+                });
+                
+                column.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    this.classList.remove('drag-over');
+                    
+                    const taskId = e.dataTransfer.getData('text/plain');
+                    const newCategoryId = this.dataset.categoryId;
+                    const draggedElement = document.querySelector(`[data-task-id="${taskId}"]`);
+                    
+                    if (draggedElement && draggedElement.dataset.categoryId !== newCategoryId) {
+                        const taskList = this.querySelector('.task-list');
+                        moveTaskToCategory(taskId, newCategoryId, draggedElement, taskList);
+                    }
+                });
+            });
+        }
+
+        function moveTaskToCategory(taskId, newCategoryId, draggedElement, targetList) {
+            const oldCategoryId = draggedElement.dataset.categoryId;
+            
+            // Update UI immediately
+            draggedElement.dataset.categoryId = newCategoryId;
+            targetList.appendChild(draggedElement);
+            
+            // Update task counts
+            updateCategoryTaskCounts();
+            
+            // Send AJAX request to update database
+            fetch('{% url "main:move_task_to_category" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                },
+                body: JSON.stringify({
+                    task_id: taskId,
+                    category_id: newCategoryId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Task moved successfully!', 'success');
+                } else {
+                    showNotification('Failed to move task: ' + data.error, 'error');
+                    // Revert UI changes on error
+                    const originalList = document.querySelector(`[data-category-id="${oldCategoryId}"] .task-list`);
+                    originalList.appendChild(draggedElement);
+                    draggedElement.dataset.categoryId = oldCategoryId;
+                    updateCategoryTaskCounts();
+                }
+            })
+            .catch(error => {
+                console.error('Error moving task:', error);
+                showNotification('Failed to move task', 'error');
+                // Revert UI changes on error
+                const originalList = document.querySelector(`[data-category-id="${oldCategoryId}"] .task-list`);
+                originalList.appendChild(draggedElement);
+                draggedElement.dataset.categoryId = oldCategoryId;
+                updateCategoryTaskCounts();
+            });
+        }
+
+        function updateCategoryTaskCounts() {
+            const categoryColumns = document.querySelectorAll('.category-column');
+            categoryColumns.forEach(column => {
+                const categoryId = column.dataset.categoryId;
+                const taskCount = column.querySelectorAll('.task-card').length;
+                const countBadge = column.querySelector('.bg-gray-200, .bg-gray-600');
+                
+                if (countBadge) {
+                    countBadge.textContent = taskCount;
+                }
+                
+                // Handle empty state
+                const taskList = column.querySelector('.task-list');
+                const noTasksElement = taskList.querySelector('.text-center.py-8');
+                
+                if (taskCount === 0 && !noTasksElement) {
+                    const noTasksDiv = document.createElement('div');
+                    noTasksDiv.className = 'text-center py-8 text-gray-400 dark:text-gray-500';
+                    noTasksDiv.innerHTML = '<i class="fas fa-tasks text-2xl mb-2"></i><p class="text-sm">No tasks</p>';
+                    taskList.appendChild(noTasksDiv);
+                } else if (taskCount > 0 && noTasksElement) {
+                    noTasksElement.remove();
+                }
+            });
+        }
+
+        // Reinitialize drag and drop when categories are updated
+        function reinitializeDragAndDrop() {
+            setTimeout(() => {
+                initializeCategoryDragAndDrop();
+            }, 100);
         }
     });
 </script>

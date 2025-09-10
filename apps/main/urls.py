@@ -49,6 +49,7 @@ urlpatterns = [
     path('api/add-task-comment/', login_required(views.add_task_comment), name='add_task_comment'),
     path('api/assign-task/', login_required(views.assign_task), name='assign_task'),
     path('api/toggle-task-completion/', login_required(views.toggle_task_completion), name='toggle_task_completion'),
+    path('api/move-task-to-category/', login_required(views.move_task_to_category), name='move_task_to_category'),
     path('api/project/<int:project_id>/categories/', login_required(views.get_project_categories), name='get_project_categories'),
     path('api/add-project-member/', login_required(views.add_project_member), name='add_project_member'),
     path('api/remove-project-member/', login_required(views.remove_project_member), name='remove_project_member'),

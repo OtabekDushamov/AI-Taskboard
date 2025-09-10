@@ -271,8 +271,45 @@ def project_detail_view(request, project_id):
         messages.error(request, 'You do not have access to this project.')
         return redirect('main:project_list')
     
+    # Handle category management form submissions
+    if request.method == 'POST':
+        if 'create_category' in request.POST:
+            form = CategoryForm(request.POST)
+            if form.is_valid():
+                category = form.save(commit=False)
+                category.project = project
+                category.save()
+                messages.success(request, f'Category "{category.name}" created successfully!')
+                return redirect('main:project_detail', project_id=project.id)
+        elif 'edit_category' in request.POST:
+            category_id = request.POST.get('category_id')
+            try:
+                category = Category.objects.get(id=category_id, project=project)
+                form = CategoryForm(request.POST, instance=category)
+                if form.is_valid():
+                    form.save()
+                    messages.success(request, f'Category "{category.name}" updated successfully!')
+                    return redirect('main:project_detail', project_id=project.id)
+                else:
+                    messages.error(request, f'Form validation failed: {form.errors}')
+            except Category.DoesNotExist:
+                messages.error(request, 'Category not found.')
+        elif 'delete_category' in request.POST:
+            category_id = request.POST.get('category_id')
+            try:
+                category = Category.objects.get(id=category_id, project=project)
+                # Check if category has tasks
+                if category.tasks.exists():
+                    messages.error(request, f'Cannot delete category "{category.name}" because it contains tasks. Please move or delete the tasks first.')
+                else:
+                    category.delete()
+                    messages.success(request, f'Category "{category.name}" deleted successfully!')
+                    return redirect('main:project_detail', project_id=project.id)
+            except Category.DoesNotExist:
+                messages.error(request, 'Category not found.')
+    
     # Get project categories and tasks with proper ordering
-    categories = project.categories.all()
+    categories = project.categories.all().order_by('name')
     tasks = Task.objects.filter(category__project=project).annotate(
         status_order=Case(
             When(status='in_progress', then=1),
@@ -1826,6 +1863,61 @@ def toggle_task_completion(request):
             'success': True, 
             'status': new_status,
             'completed': completed
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_http_methods(["POST"])
+@csrf_exempt
+def move_task_to_category(request):
+    """Move task to different category via AJAX"""
+    try:
+        data = json.loads(request.body)
+        task_id = data.get('task_id')
+        category_id = data.get('category_id')
+        
+        try:
+            bot_user = BotUser.objects.get(user=request.user)
+        except BotUser.DoesNotExist:
+            bot_user = BotUser.objects.create(
+                user=request.user,
+                telegram_id=0,
+                first_name=request.user.first_name or 'User',
+                last_name=request.user.last_name or '',
+                username=request.user.username or ''
+            )
+        
+        task = get_object_or_404(Task, id=task_id)
+        category = get_object_or_404(Category, id=category_id)
+        
+        # Check if user has access to this task
+        if not (task.creator == bot_user or bot_user in task.assignees.all()):
+            return JsonResponse({'error': 'Access denied'}, status=403)
+        
+        # Check if user has access to the target category's project
+        if not (category.project.creator == bot_user or bot_user in category.project.members.all()):
+            return JsonResponse({'error': 'Access denied to target category'}, status=403)
+        
+        old_category = task.category
+        task.category = category
+        task.save()
+        
+        # Create activity
+        TaskActivity.objects.create(
+            task=task,
+            user=bot_user,
+            action='updated',
+            description=f'Moved task from "{old_category.name}" to "{category.name}" category'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'task_id': task.id,
+            'old_category_id': old_category.id,
+            'new_category_id': category.id,
+            'old_category_name': old_category.name,
+            'new_category_name': category.name
         })
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
