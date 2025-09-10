@@ -1300,7 +1300,7 @@ def tasks_calendar_view(request):
     calendar_events_json = json.dumps(calendar_events, default=str)
     
     context = {
-        'calendar_events': calendar_events_json,
+        'calendar_events_json': calendar_events_json,
         'current_date': current_date,
         'today': today,
         'user_projects': user_projects,

@@ -386,7 +386,7 @@
     // Calendar state
     let currentDate = new Date('{{ current_date|date:"Y-m-d" }}');
     let currentView = 'month';
-    let events = {{ calendar_events|default:"[]"|safe }};
+    let events = {{ calendar_events_json|default:"[]"|safe }};
     
     console.log(`Loaded ${events.length} calendar events:`, events);
 
