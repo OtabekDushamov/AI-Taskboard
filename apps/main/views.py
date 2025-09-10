@@ -94,12 +94,14 @@ def dashboard_view(request):
         Q(creator=bot_user) | Q(members=bot_user)
     ).distinct()
     
-    # Get today's tasks
-    today = timezone.now().date()
+    # Get today's tasks (using timezone-aware filtering)
+    today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_end = today_start + timezone.timedelta(days=1)
     
     today_tasks = Task.objects.filter(
         Q(assignees=bot_user) | Q(creator=bot_user),
-        deadline__date=today
+        deadline__gte=today_start,
+        deadline__lt=today_end
     ).distinct().annotate(
         status_order=Case(
             When(status='in_progress', then=1),
@@ -147,10 +149,11 @@ def dashboard_view(request):
     week_start_projects = timezone.now().date() - timezone.timedelta(days=7)
     new_projects_week = user_projects.filter(created_at__date__gte=week_start_projects).count()
     
-    # Open Tasks: Overdue tasks
+    # Open Tasks: Overdue tasks (using timezone-aware filtering)
+    today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
     overdue_tasks = Task.objects.filter(
         Q(assignees=bot_user) | Q(creator=bot_user),
-        deadline__date__lt=today,
+        deadline__lt=today_start,
         status__in=['todo', 'in_progress']
     ).count()
     
@@ -166,7 +169,7 @@ def dashboard_view(request):
     
     # Calculate streak (consecutive days with completed tasks)
     streak_days = 0
-    current_date = today
+    current_date = timezone.now().date()
     while True:
         day_tasks = Task.objects.filter(
             Q(assignees=bot_user) | Q(creator=bot_user),
@@ -1246,9 +1249,9 @@ def tasks_calendar_view(request):
                 'notes': task.notes,
                 'creator': task.creator.get_full_name(),
                 'actual_hours': task.actual_hours,
-                'created_at': task.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-                'updated_at': task.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
-                'completed_at': task.completed_at.strftime('%Y-%m-%d %H:%M:%S') if task.completed_at else None,
+                'created_at': task.created_at.astimezone(timezone.get_current_timezone()).strftime('%Y-%m-%d %H:%M:%S'),
+                'updated_at': task.updated_at.astimezone(timezone.get_current_timezone()).strftime('%Y-%m-%d %H:%M:%S'),
+                'completed_at': task.completed_at.astimezone(timezone.get_current_timezone()).strftime('%Y-%m-%d %H:%M:%S') if task.completed_at else None,
                 'is_overdue': task.is_overdue(),
                 'task_id': task.id,
             })
