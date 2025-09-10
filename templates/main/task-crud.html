@@ -334,6 +334,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const projectSelect = document.getElementById('project');
     const categorySelect = document.getElementById('category');
     
+    // Store the current task's category for later use
+    const currentTaskCategoryId = {% if task and task.category %}'{{ task.category.id }}'{% else %}null{% endif %};
+    
     if (projectSelect && categorySelect) {
         projectSelect.addEventListener('change', function() {
             const projectId = this.value;
@@ -370,6 +373,11 @@ document.addEventListener('DOMContentLoaded', function() {
                             categorySelect.appendChild(option);
                         }
                         
+                        // If editing a task and we have a current category, select it
+                        if (currentTaskCategoryId) {
+                            categorySelect.value = currentTaskCategoryId;
+                        }
+                        
                         categorySelect.disabled = false;
                     })
                     .catch(error => {
@@ -384,18 +392,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (projectSelect.value) {
             projectSelect.dispatchEvent(new Event('change'));
         }
-        
-        // If editing a task, populate the category field
-        {% if task and task.category %}
-        const categorySelect = document.getElementById('category');
-        if (categorySelect) {
-            const option = document.createElement('option');
-            option.value = '{{ task.category.id }}';
-            option.textContent = '{{ task.category.name }}';
-            option.selected = true;
-            categorySelect.appendChild(option);
-        }
-        {% endif %}
     }
     
     // Category change handler to update dependencies
