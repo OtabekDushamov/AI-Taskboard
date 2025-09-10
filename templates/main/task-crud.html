@@ -260,13 +260,7 @@
     </div>
 </div>
 
-<!-- Toast Notification -->
-<div id="toast" class="toast bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg">
-    <div class="flex items-center">
-        <i class="fas fa-check-circle mr-2"></i>
-        <span>{% if task %}Task updated successfully!{% else %}Task created successfully!{% endif %}</span>
-    </div>
-</div>
+<!-- Toast Notification (removed - using Django messages instead) -->
 {% endblock %}
 
 {% block extra_js %}
@@ -409,7 +403,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Form submission
     const form = document.querySelector('form');
+    let isSubmitting = false;
+    
     form.addEventListener('submit', function(e) {
+        // Prevent double submission
+        if (isSubmitting) {
+            e.preventDefault();
+            return;
+        }
+        
         // Basic validation
         const titleInput = document.getElementById('title');
         const projectSelect = document.getElementById('project');
@@ -426,18 +428,21 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Show success message
-        showToast();
+        // Mark as submitting to prevent double submission
+        isSubmitting = true;
+        
+        // Disable submit button to prevent double clicks
+        const submitButton = form.querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.textContent = 'Creating...';
+        }
+        
+        // Allow form to submit normally
+        // The success message will be shown by Django messages
     });
     
-    // Show toast notification
-    function showToast() {
-        const toast = document.getElementById('toast');
-        toast.classList.add('show');
-        setTimeout(() => {
-            toast.classList.remove('show');
-        }, 3000);
-    }
+    // Toast notification removed - using Django messages instead
     
     // Show error message
     function showError(message) {

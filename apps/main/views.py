@@ -672,15 +672,29 @@ def task_crud_view(request, task_id=None):
         form.fields['category'].required = False
         
         if form.is_valid() and project_id:
-            task_obj = form.save(commit=False)
-            task_obj.creator = bot_user
-            
-            # Get the project
+            # Get the project first
             try:
                 project = Project.objects.get(id=project_id)
             except Project.DoesNotExist:
                 messages.error(request, 'Selected project not found')
                 return render(request, 'main/task-crud.html', context)
+            
+            # Check for duplicate task creation (prevent double submission)
+            if not task_id:  # Only check for new tasks, not edits
+                title = form.cleaned_data.get('title', '').strip()
+                if title:
+                    existing_task = Task.objects.filter(
+                        title__iexact=title,
+                        creator=bot_user,
+                        category__project=project
+                    ).first()
+                    
+                    if existing_task:
+                        messages.warning(request, f'A task with the title "{title}" already exists in this project.')
+                        return redirect('main:task_detail', task_id=existing_task.id)
+            
+            task_obj = form.save(commit=False)
+            task_obj.creator = bot_user
             
             # Handle category assignment
             if category_id:
