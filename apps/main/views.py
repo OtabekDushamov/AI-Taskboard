@@ -94,14 +94,12 @@ def dashboard_view(request):
         Q(creator=bot_user) | Q(members=bot_user)
     ).distinct()
     
-    # Get today's tasks (using timezone-aware filtering)
-    today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
-    today_end = today_start + timezone.timedelta(days=1)
+    # Get today's tasks (filter by deadline date equals today)
+    today_date = timezone.now().date()
     
     today_tasks = Task.objects.filter(
         Q(assignees=bot_user) | Q(creator=bot_user),
-        deadline__gte=today_start,
-        deadline__lt=today_end
+        deadline__date=today_date
     ).distinct().annotate(
         status_order=Case(
             When(status='in_progress', then=1),
