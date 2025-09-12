@@ -25,9 +25,9 @@ SECRET_KEY = 'django-insecure-mdib97zrsbp5*1vd$v2s$f3ad$06d@jqx)u9-7&oz9jf9lkv-+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'taskboard.uz', 'www.taskboard.uz']
 
-CSRF_TRUSTED_ORIGINS = ['https://*']
+CSRF_TRUSTED_ORIGINS = ['https://taskboard.uz', 'https://www.taskboard.uz']
 
 
 # Application definition
