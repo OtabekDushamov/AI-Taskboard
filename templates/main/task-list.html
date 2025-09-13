@@ -320,7 +320,7 @@
                         <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                             {% for task in tasks %}
                             <tr class="task-item hover:bg-gray-50 dark:hover:bg-gray-700{% if task.status == 'completed' %} opacity-50 line-through{% endif %}">
-                                <td class="checkbox-cell" style="padding-left: 18px;">
+                                <td class="checkbox-cell" style="padding-left: 8px;">
                                     <input type="checkbox" 
                                            class="task-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700" 
                                            data-task-id="{{ task.id }}"
@@ -337,7 +337,7 @@
                                             <div class="text-sm font-medium text-gray-900 dark:text-white">
                                                 <a href="{% url 'main:task_detail' task.id %}" class="hover:text-indigo-600 dark:hover:text-indigo-400">{{ task.title }}</a>
                                             </div>
-                                            <div class="text-sm text-gray-500 dark:text-gray-400">{{ task.description|truncatechars:50 }}</div>
+                                            <div class="text-sm text-gray-500 dark:text-gray-400">{{ task.description|truncatechars:40 }}</div>
                                         </div>
                                     </div>
                                 </td>
