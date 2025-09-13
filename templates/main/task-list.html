@@ -284,7 +284,7 @@
                     <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                         <thead class="bg-gray-50 dark:bg-gray-700">
                             <tr>
-                                <th class="checkbox-cell" style="padding: 0 18px 0 10px;">
+                                <th class="checkbox-cell" style="padding: 0 10px 0 18px;">
                                     <input type="checkbox" id="selectAll" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700">
                                 </th>
                                 <th class="px-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600">
@@ -313,7 +313,7 @@
                         <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                             {% for task in tasks %}
                             <tr class="task-item hover:bg-gray-50 dark:hover:bg-gray-700{% if task.status == 'completed' %} opacity-50 line-through{% endif %}">
-                                <td class="checkbox-cell" style="padding: 0 18px 0 10px;">
+                                <td class="checkbox-cell" style="padding: 0 10px 0 18px;">
                                     <input type="checkbox" 
                                            class="task-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700" 
                                            data-task-id="{{ task.id }}"
