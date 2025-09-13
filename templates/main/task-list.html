@@ -326,7 +326,7 @@
                                            data-task-id="{{ task.id }}"
                                            {% if task.status == 'completed' %}checked{% endif %}>
                                 </td>
-                                <td class="px-4 py-4 whitespace-nowrap">
+                                <td class="px-2 py-4 whitespace-nowrap">
                                     <div class="flex items-center">
                                         <div class="flex-shrink-0 h-10 w-10">
                                             <div class="h-10 w-10 rounded-full {% if task.priority == 'urgent' %}bg-red-100 dark:bg-red-900/30{% elif task.priority == 'high' %}bg-orange-100 dark:bg-orange-900/30{% elif task.priority == 'medium' %}bg-yellow-100 dark:bg-yellow-900/30{% else %}bg-green-100 dark:bg-green-900/30{% endif %} flex items-center justify-center">
@@ -341,13 +341,13 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-4 py-4 whitespace-nowrap">
+                                <td class="px-2 py-4 whitespace-nowrap">
                                     <span class="chip status-{{ task.status|default:'todo' }}">{{ task.get_status_display }}</span>
                                 </td>
-                                <td class="px-4 py-4 whitespace-nowrap">
+                                <td class="px-2 py-4 whitespace-nowrap">
                                     <span class="chip priority-{{ task.priority|default:'medium' }}">{{ task.get_priority_display }}</span>
                                 </td>
-                                <td class="px-4 py-4 whitespace-nowrap">
+                                <td class="px-2 py-4 whitespace-nowrap">
                                     <div class="flex items-center">
                                         {% for assignee in task.assignees.all|slice:":1" %}
                                         <div class="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
@@ -359,7 +359,7 @@
                                         {% endfor %}
                                     </div>
                                 </td>
-                                <td class="px-4 py-4 whitespace-nowrap">
+                                <td class="px-2 py-4 whitespace-nowrap">
                                     {% if task.deadline %}
                                         {% if task.deadline.date < today %}
                                             <span class="chip date-overdue">Overdue</span>
@@ -375,10 +375,10 @@
                                         <span class="text-sm text-gray-500 dark:text-gray-400">No deadline</span>
                                     {% endif %}
                                 </td>
-                                <td class="px-4 py-4 whitespace-nowrap">
+                                <td class="px-2 py-4 whitespace-nowrap">
                                     <span class="text-sm text-gray-900 dark:text-white">{{ task.category.project.name }}</span>
                                 </td>
-                                <td class="px-4 py-4 whitespace-nowrap text-sm font-medium">
+                                <td class="px-2 py-4 whitespace-nowrap text-sm font-medium">
                                     <a href="{% url 'main:task_crud' task.id %}" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 transition-colors duration-150">
                                         <i class="fas fa-edit mr-1"></i>Edit
                                     </a>
